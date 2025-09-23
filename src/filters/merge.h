@@ -1,5 +1,5 @@
-#include "Crop.h"
-#include "Resize.h"
+#include "crop.h"
+#include "resize.h"
 
 void fix(Image & a, Image & b) {
     cout << "images are not the same size \n";
@@ -16,12 +16,12 @@ void fix(Image & a, Image & b) {
             z = 1;
         }
         if(x == 1) {
-            Resize(a, max(w1, w2), max(h1, h2));
-            Resize(b, max(w1, w2), max(h1, h2));
+            resize(a, max(w1, w2), max(h1, h2));
+            resize(b, max(w1, w2), max(h1, h2));
             break;
         }else if(x == 2){
-            Crop(a, 0, 0, min(w1, w2), min(h1, h2));
-            Crop(b, 0, 0, min(w1, w2), min(h1, h2));
+            crop(a, 0, 0, min(w1, w2), min(h1, h2));
+            crop(b, 0, 0, min(w1, w2), min(h1, h2));
             break;
         }else {
             cout << "invalid input please try again (input 1 or 2) \n";

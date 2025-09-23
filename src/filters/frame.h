@@ -1,0 +1,3 @@
+void frame(Image &image) {
+    
+}
