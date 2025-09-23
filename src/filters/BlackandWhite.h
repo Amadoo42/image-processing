@@ -1,5 +1,5 @@
-void BlackandWhite(Image &image){
-    //grayscale(image)
+void blackandwhite(Image &image){
+    gray(image)
     for(int i=0;i<image.width;i++){
         for(int j=0;j<image.height;j++){
             if(image(i,j,0)>=128){

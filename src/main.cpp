@@ -21,10 +21,15 @@ int main() {
     do {
         cout << "\nMenu:\n";
         cout << "1. Load a new image\n";
-        // string filters[] = {};
-        cout << "2. Save the current image\n";
-        cout << "3. Exit\n";
-        cout << "Choose an option: (1-3):" << endl;
+        int cnt=2;
+        string filters[] = {"Black&White", "Darken&lighten", "Add frame", "Grayscale", "Flip", "Invert", "Merge",
+            "Resize", "Rotate", "Blur", "Crop", "Image Edge"};
+        for(auto filter:filters){
+            cout<<cnt++<<" "<<". "<<filter<<endl;
+        }
+        cout << cnt++<<". Save the current image\n";
+        cout << cnt++<<". Exit\n";
+        cout << "Choose an option: (1-"<<cnt<<"): " << endl;
         cin >> input;
 
         // Load a new image
@@ -34,6 +39,13 @@ int main() {
             image.loadNewImage(filename);
             cout << "Image loaded successfully!" << endl;
         }
+        else if(input == "2"){
+            blackandwhite(image);
+            cout<< "successful" <<endl;
+        }
+        else if(input == "3"){
+            
+        }
         // Save the current image
         else if(input == "2") {
             cout << "Enter the filename to save the current image (with extension .jpg, .bmp, .png): ";
@@ -42,7 +54,7 @@ int main() {
             cout << "Image saved successfully!" << endl;
         }
         // Exit the program
-        else if(input == "3") {
+        else if(input == cnt) {
             cout << "Exiting the program. Goodbye!" << endl;
         }
         // Invalid option
@@ -50,7 +62,7 @@ int main() {
             cout << "Invalid option. Please try again." << endl;
         }
 
-    } while(input != "3");
+    } while(input != cnt);
 
     return 0;
 }
