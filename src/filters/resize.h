@@ -1,4 +1,4 @@
-double color(Image &image,int i, int j, int c){
+double color(Image &image,int i, int j, int newWidth, int newHeight, int c){
     double srci= i * image.width / newWidth;
     double srcj= j * image.height / newHeight;
             
@@ -14,9 +14,9 @@ void resize(Image &image,int newWidth, int newHeight){
     for(int i=0; i < newWidth; i++){
         for(int j=0; j < newHeight; j++){
 
-            double r = color(image, x1, y1, x2, y2, 0);
-            double g = color(image, x1, y1, x2, y2, 1); 
-            double b = color(image, x1, y1, x2, y2, 2);
+            double r = color(image, i, j, newWidth, newHeight, 0);
+            double g = color(image, i, j, newWidth, newHeight, 1);
+            double b = color(image, i, j, newWidth, newHeight, 2);
 
             newImage(i,j,0) = r;
             newImage(i,j,1) = g;
