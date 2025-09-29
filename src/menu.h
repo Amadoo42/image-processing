@@ -7,6 +7,7 @@ void displayMenu(Image &image, string &dir) {
     do {
         cout << "\nMenu:\n";
         cout << "1. Load a new image\n";
+        cout << "2. Save current image\n";
         string filters[] = {"Black & White", "Darken & Lighten", "Add Frame", "Grayscale", "Flip", "Invert", "Merge",
             "Resize", "Rotate", "Blur", "Crop", "Outline"};
 
@@ -14,7 +15,7 @@ void displayMenu(Image &image, string &dir) {
         int filterCnt = 12;
 
         for(int i = 0; i < filterCnt; i++) cout << i + 3 << ". Apply " << filters[i] << " filter\n";
-
+        cout << "15. To exit program\n";
         cin >> input;
 
         // Load a new image
