@@ -1,6 +1,6 @@
-#include "resize.h"
+#include "../helpers/apply_filter.h"
 
-void frame(Image &image, const Image &frame_image) {
+void Filter::frame(Image &image, const Image &frame_image) {
     Image frame_image_resized = frame_image;
     resize(frame_image_resized, image.width, image.height);
     int border_size = min(image.width, image.height) / 20;

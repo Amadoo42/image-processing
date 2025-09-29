@@ -1,4 +1,6 @@
-void h_flip(Image &image){
+#include "../helpers/apply_filter.h"
+
+void Filter::h_flip(Image &image){
     for(int i=0;i<image.width/2;i++){
         for(int j=0;j<image.height;j++){
             swap(image(i,j,0),image(image.width-i-1,j,0));

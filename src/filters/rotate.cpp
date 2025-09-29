@@ -1,4 +1,6 @@
-void rotate(Image &image, int degrees) {
+#include "../helpers/apply_filter.h"
+
+void Filter::rotate(Image &image, int degrees) {
     int numRotations = degrees / 90;
     for(int k = 0; k < numRotations; ++k) {
         int newWidth = image.height;

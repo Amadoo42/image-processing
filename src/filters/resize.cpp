@@ -1,3 +1,5 @@
+#include "../helpers/apply_filter.h"
+
 double color(Image &image,int i, int j, int newWidth, int newHeight, int c){
     double srci= i * image.width / newWidth;
     double srcj= j * image.height / newHeight;
@@ -9,7 +11,7 @@ double color(Image &image,int i, int j, int newWidth, int newHeight, int c){
                     + (x2 - srci) * (srcj - y1) / ((x2 - x1) * (y2 -y1)) * image(x1,y2,c)
                     + (srci - x1) * (srcj - y1) / ((x2 - x1) * (y2 -y1)) * image(x2,y2,c);
 }
-void resize(Image &image,int newWidth, int newHeight){
+void Filter::resize(Image &image,int newWidth, int newHeight){
     Image newImage(newWidth,newHeight);
     for(int i=0; i < newWidth; i++){
         for(int j=0; j < newHeight; j++){
@@ -25,7 +27,7 @@ void resize(Image &image,int newWidth, int newHeight){
     }
     image = newImage;
 }
-void resize(Image &image,double ratioX, double ratioY){
+void Filter::resize(Image &image,double ratioX, double ratioY){
     int newWidth = image.width * ratioX;
     int newHeight = image.height * ratioY;
     resize(image, newWidth, newHeight);

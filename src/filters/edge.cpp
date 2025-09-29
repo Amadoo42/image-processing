@@ -1,5 +1,4 @@
-#include "blur.h"
-#include "gray.h"
+#include "../helpers/apply_filter.h"
 
 int X, Y;
 int getx(int x) {
@@ -13,7 +12,7 @@ int gety(int y) {
     return y;
 }
 vector<vector<int>> z;// array too big will give us RTE
-void edge(Image & a) {
+void Filter::edge(Image & a) {
     gray(a);
     blur(a);
     // return;

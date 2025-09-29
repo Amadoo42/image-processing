@@ -1,4 +1,6 @@
-void gray(Image & image) {
+#include "../helpers/apply_filter.h"
+
+void Filter::gray(Image & image) {
     for(int i=0; i < image.width; i++){
         for(int j=0; j < image.height; j++){
             int gry = 0.2126 * image(i,j,0) + 0.7152 * image(i,j,1) + 0.0722 * image(i,j,2);

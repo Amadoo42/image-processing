@@ -1,4 +1,6 @@
-void crop(Image &image,int x,int y,int w,int h){
+#include "../helpers/apply_filter.h"
+
+void Filter::crop(Image &image,int x,int y,int w,int h){
     Image newImage(w,h);
     for(int i=x;i<x+w;i++){
         for(int j=y;j<y+h;j++){

@@ -1,4 +1,6 @@
-void darken(Image & a) {
+#include "../helpers/apply_filter.h"
+
+void Filter::darken(Image & a) {
     for(int i = 0; i < a.width; i++) {
         for(int j = 0; j < a.height; j++) {
             for(int k = 0; k < 3; k++) {
@@ -7,7 +9,7 @@ void darken(Image & a) {
         }
     }
 }
-void lighten(Image & a) {
+void Filter::lighten(Image & a) {
     for(int i = 0; i < a.width; i++) {
         for(int j = 0; j < a.height; j++) {
             for(int k = 0; k < 3; k++) {

@@ -1,3 +1,5 @@
+#include "../helpers/apply_filter.h"
+
 // Reference: https://en.wikipedia.org/wiki/Gaussian_blur, https://www.geeksforgeeks.org/machine-learning/gaussian-kernel/
 vector <vector <double>> generate2DGaussianKernel(int kernelSize, double sigma) {
     vector <vector <double>> kernel(kernelSize, vector <double>(kernelSize));
@@ -18,7 +20,7 @@ vector <vector <double>> generate2DGaussianKernel(int kernelSize, double sigma) 
     return kernel;
 }   
 
-void blur(Image &image, int kernelSize = 7, double sigma = 1.0) {
+void Filter::blur(Image &image, int kernelSize, double sigma) {
     int W = image.width, H = image.height;
     vector <vector <double>> kernel = generate2DGaussianKernel(kernelSize, sigma);
 

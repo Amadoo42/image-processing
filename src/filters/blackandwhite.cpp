@@ -1,5 +1,6 @@
+#include "../helpers/apply_filter.h"
 
-void blackandwhite(Image &image){
+void Filter::blackandwhite(Image &image) {
     int sum=0;
     for(int i=0; i < image.width; i++){
         for(int j=0; j < image.height; j++){
