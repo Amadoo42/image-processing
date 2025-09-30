@@ -3,19 +3,21 @@
 #include "helpers/apply_filter.h"
 
 void displayMenu(Image &image, string &dir) {
+    vector<string> filters{"Black & White", "Darken & Lighten", "Add Frame", "Grayscale", "Flip", "Invert", "Merge",
+        "Resize", "Rotate", "Blur", "Crop", "Outline", "Purple"};
+    
     int input;
     do {
         cout << "\nMenu:\n";
         cout << "1. Load a new image\n";
         cout << "2. Save current image\n";
-        string filters[] = {"Black & White", "Darken & Lighten", "Add Frame", "Grayscale", "Flip", "Invert", "Merge",
-            "Resize", "Rotate", "Blur", "Crop", "Outline"};
 
         // Number of filters
-        int filterCnt = 12;
+        int filterCnt = filters.size();
 
         for(int i = 0; i < filterCnt; i++) cout << i + 3 << ". Apply " << filters[i] << " filter\n";
-        cout << "15. To exit program\n";
+
+        cout << filters.size() + 3 << ". To exit program\n";
         cin >> input;
 
         // Load a new image
@@ -136,11 +138,16 @@ void displayMenu(Image &image, string &dir) {
                     filter.edge(image);
                     break;
                 }
+
+                case 15: {
+                    filter.purple(image);
+                    break;
+                }
             }
         }
 
         // Exit the program
-        else if(input == 15) {
+        else if(input == filters.size() + 3) {
             cout << "Exiting the program. Goodbye!" << endl;
         }
         // Invalid option
@@ -148,5 +155,5 @@ void displayMenu(Image &image, string &dir) {
             cout << "Invalid option. Please try again." << endl;
         }
 
-    } while(input != 15);
+    } while(input != filters.size() + 3);
 }
