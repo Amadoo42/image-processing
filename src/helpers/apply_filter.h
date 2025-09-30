@@ -18,4 +18,5 @@ class Filter {
         void blur(Image &image, int kernelSize = 7, double sigma = 1.0);
         void crop(Image &image, int x, int y, int w, int h);
         void edge(Image &image);
+        void purple(Image &image);
 };
