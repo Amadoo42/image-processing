@@ -4,7 +4,7 @@
 
 void displayMenu(Image &image, string &dir) {
     vector<string> filters{"Black & White", "Darken & Lighten", "Add Frame", "Grayscale", "Flip", "Invert", "Merge",
-        "Resize", "Rotate", "Blur", "Crop", "Outline", "Purple"};
+        "Resize", "Rotate", "Blur", "Crop", "Outline", "Purple", "Infrared"};
     
     int input;
     do {
@@ -41,6 +41,7 @@ void displayMenu(Image &image, string &dir) {
             switch(input) {
                 case 3: {
                     filter.blackandwhite(image);
+                    cout << "Filter applied successfully!\n";
                     break;
                 }
                     
@@ -48,8 +49,14 @@ void displayMenu(Image &image, string &dir) {
                     int choice;
                     cout << "1. Darken\n2. Lighten\nChoose an option: ";
                     cin >> choice;
-                    if(choice == 1) filter.darken(image);
-                    else if(choice == 2) filter.lighten(image);
+                    if(choice == 1){
+                        filter.darken(image);
+                        cout << "Filter applied successfully!\n";
+                    }
+                    else if(choice == 2){
+                        filter.lighten(image);
+                        cout << "Filter applied successfully!\n";
+                    }
                     else cout << "Invalid choice. Returning to main menu." << endl;
                     break;
                 }
@@ -60,11 +67,13 @@ void displayMenu(Image &image, string &dir) {
                     cin >> frame_image_directory;
                     Image frame_image(frame_image_directory);
                     filter.frame(image, frame_image);
+                    cout << "Filter applied successfully!\n";
                     break;
                 }
                     
                 case 6: {
                     filter.gray(image);
+                    cout << "Filter applied successfully!\n";
                     break;
                 }
                     
@@ -72,14 +81,21 @@ void displayMenu(Image &image, string &dir) {
                     int choice;
                     cout << "1. Horizontal Flip\n2. Vertical Flip\nChoose an option: ";
                     cin >> choice;
-                    if(choice == 1) filter.h_flip(image);
-                    else if(choice == 2) filter.v_flip(image);
+                    if(choice == 1){ 
+                        filter.h_flip(image);
+                        cout << "Filter applied successfully!\n";
+                    }
+                    else if(choice == 2){
+                        filter.v_flip(image);
+                        cout << "Filter applied successfully!\n";
+                    }
                     else cout << "Invalid choice. Returning to main menu." << endl;
                     break;
                 }
                     
                 case 8: {
                     filter.invert(image);
+                    cout << "Filter applied successfully!\n";
                     break;
                 }
                     
@@ -89,6 +105,7 @@ void displayMenu(Image &image, string &dir) {
                     cin >> merge_image_directory;
                     Image merge_image(merge_image_directory);
                     filter.merge(image, merge_image);
+                    cout << "Filter applied successfully!\n";
                     break;
                 }
                     
@@ -99,14 +116,20 @@ void displayMenu(Image &image, string &dir) {
                     if(choice == 1) {
                         double ratioX, ratioY;
                         cout << "Enter the ratio for width (e.g., 0.5 for half): ";
-                        cin >> ratioX >> ratioY;
+                        cin >> ratioX;
+                        cout << "Enter the ratio for height: ";
+                        cin >> ratioY;
                         filter.resize(image, ratioX, ratioY);
+                        cout << "Filter applied successfully!\n";
                     }
                     else if(choice == 2) {
                         int newWidth, newHeight;
-                        cout << "Enter the new width and height: ";
-                        cin >> newWidth >> newHeight;
+                        cout << "Enter the new width: ";
+                        cin >> newWidth;
+                        cout << "Enter the new height: ";
+                        cin >> newHeight;
                         filter.resize(image, newWidth, newHeight);
+                        cout << "Filter applied successfully!\n";
                     }
                     else cout << "Invalid choice. Returning to main menu." << endl;
                     break;
@@ -116,13 +139,17 @@ void displayMenu(Image &image, string &dir) {
                     int angle;
                     cout << "Enter the angle to rotate (90, 180, 270): ";
                     cin >> angle;
-                    if(angle == 90 || angle == 180 || angle == 270) filter.rotate(image, angle);
+                    if(angle == 90 || angle == 180 || angle == 270){ 
+                        filter.rotate(image, angle);
+                        cout << "Filter applied successfully!\n";
+                    }
                     else cout << "Invalid angle. Returning to main menu." << endl;
                     break;
                 }
                     
                 case 12: {
                     filter.blur(image);
+                    cout << "Filter applied successfully!\n";
                     break;
                 }
                     
@@ -130,18 +157,30 @@ void displayMenu(Image &image, string &dir) {
                     int x1, y1, w, h;
                     cout << "Enter the top-left x and y coordinates, width and height for cropping: ";
                     cin >> x1 >> y1 >> w >> h; 
-                    filter.crop(image, x1, y1, w, h);
+                    if(x1 < 0 || y1 < 0 || w < 0 || h < 0 || x1 + w >= image.width || y1 + h >= image.height){
+                        cout << "Invalid input. Returning to main menu\n";
+                    }
+                    else{
+                        filter.crop(image, x1, y1, w, h);
+                        cout << "Filter applied successfully!\n";
+                    } 
                     break;
                 }
                     
                 case 14: {
                     filter.edge(image);
+                    cout << "Filter applied successfully!\n";
                     break;
                 }
 
                 case 15: {
                     filter.purple(image);
+                    cout << "Filter applied successfully!\n";
                     break;
+                }
+                case 16: {
+                    filter.infrared(image);
+                    cout << "Filter applied successfully!\n";
                 }
             }
         }

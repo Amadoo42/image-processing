@@ -19,4 +19,5 @@ class Filter {
         void crop(Image &image, int x, int y, int w, int h);
         void edge(Image &image);
         void purple(Image &image);
+        void infrared(Image &image);
 };

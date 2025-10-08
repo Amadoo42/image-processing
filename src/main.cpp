@@ -7,6 +7,7 @@ TODO: Adjust frame options in menu
 TODO: Find better menu for merge
 TODO: Blur is weak 
 TODO: Edge is weak
+TODO: invalid option in menu (outside range)
 */
 
 #include <bits/stdc++.h>
