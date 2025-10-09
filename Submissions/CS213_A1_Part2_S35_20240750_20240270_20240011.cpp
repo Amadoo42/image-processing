@@ -24,7 +24,7 @@
  * (merge, frame). Implements undo/redo functionality with an interactive CLI menu.
  * Supports PNG, JPG, BMP, and TGA formats.
  * 
- * Build: g++ -std=c++11 CS213_A1_Part2_S35_20240750_20240270_20240011.cpp -o photoshop
+ * Build: g++ -std=c++17 CS213_A1_Part2_S35_20240750_20240270_20240011.cpp -o photoshop
  * Run: ./photoshop
  */
 
