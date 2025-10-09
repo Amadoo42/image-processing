@@ -1,58 +1,61 @@
 #pragma once
 #include "Filter.h"
-#include <vector>
-using namespace std;
 
 class BlurFilter : public Filter {
 private:
     int kernelSize;
     double sigma;
-    // Reference: https://en.wikipedia.org/wiki/Gaussian_blur, https://www.geeksforgeeks.org/machine-learning/gaussian-kernel/
-    vector <vector <double>> generate2DGaussianKernel() {
-        vector <vector <double>> kernel(kernelSize, vector <double>(kernelSize));
 
+    // Reference: https://en.wikipedia.org/wiki/Gaussian_blur, https://www.geeksforgeeks.org/machine-learning/gaussian-kernel/
+    vector <double> generateGaussianKernel() {
+        vector <double> kernel(kernelSize);
         int half = kernelSize / 2;
-        double sigma2 = 2 * sigma * sigma, sum = 0.0;
+        double sum = 0.0;
+
         for(int x = -half; x <= half; ++x) {
-            for(int y = -half; y <= half; ++y) { 
-                kernel[x + half][y + half] = exp(-(x * x + y * y) / (sigma2)) / (M_PI * sigma2);
-                sum += kernel[x + half][y + half];
-            }
+            kernel[x + half] = exp(-(x * x) / (2 * sigma * sigma)); 
+            sum += kernel[x + half];
         }
 
-        for(auto &i : kernel)
-            for(auto &j : i)
-                j /= sum;
+        for(auto &i : kernel) i /= sum;
 
         return kernel;
-    }   
+    }
 
 public:
-    BlurFilter(int kernel = 7, double sig = 1.0) : kernelSize(kernel), sigma(sig) {}
+    BlurFilter(int kSize = 13, double sig = 2.0) : kernelSize(kSize), sigma(sig) {}
 
     void apply(Image &image) override {
         int W = image.width, H = image.height;
-        vector <vector <double>> kernel = generate2DGaussianKernel();
+        vector <double> kernel = generateGaussianKernel();
 
-        Image newImage(W, H);
+        Image temp(W, H);
         int half = kernelSize / 2;
-        
-        for(int y = 0; y < H; ++y) {
-            for(int x = 0; x < W; ++x) {
+
+        for(int x = 0; x < W; ++x) {
+            for(int y = 0; y < H; ++y) {
                 for(int c = 0; c < 3; ++c) {
                     double weightedSum = 0.0;
-                    for(int ky = -half; ky <= half; ++ky) {
-                        for(int kx = -half; kx <= half; ++kx) {
-                            int nx = min(max(x + kx, 0), W - 1);
-                            int ny = min(max(y + ky, 0), H - 1);
-                            weightedSum += image(nx, ny, c) * kernel[kx + half][ky + half];
-                        }
+                    for(int k = -half; k <= half; ++k) {
+                        int nx = clamp(x + k, 0, W - 1);
+                        weightedSum += image(nx, y, c) * kernel[k + half];
                     }
-                    newImage(x, y, c) = round(weightedSum);
+                    temp(x, y, c) = round(weightedSum);
                 }
             }
         }
-        
-        image = newImage;
-    }      
+
+        for(int x = 0; x < W; ++x) {
+            for(int y = 0; y < H; ++y) {
+                for(int c = 0; c < 3; ++c) {
+                    double weightedSum = 0.0;
+                    for(int k = -half; k <= half; ++k) {
+                        int ny = clamp(y + k, 0, H - 1);
+                        weightedSum += temp(x, ny, c) * kernel[k + half];
+                    }
+                    image(x, y, c) = round(weightedSum);
+                }
+            }
+        }
+    }
 };

@@ -29,7 +29,7 @@ public:
             newWidth = image.width * ratioX;
             newHeight = image.height * ratioY;
         }
-        Image newImage(newWidth,newHeight);
+        Image newImage(newWidth, newHeight);
         for(int i=0; i < newWidth; i++){
             for(int j=0; j < newHeight; j++){
 
