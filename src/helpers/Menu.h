@@ -137,6 +137,11 @@ class Menu {
             cout << "2. Fancy frame!\n";
             cout << "Choice: ";
             cin >> choice;
+            while(choice != 1 && choice != 2){
+                cout << "Invalid Option. Please try again\n";
+                cout << "Choice: ";
+                cin >> choice;
+            }
             if(choice == 1)frame_image_directory = "images/normal.jpg";// put image path here
             else frame_image_directory = "images/fancy.jpg";// put image path here
         }
