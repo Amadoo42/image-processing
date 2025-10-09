@@ -28,7 +28,6 @@ public:
         if(useRatio) {
             newWidth = image.width * ratioX;
             newHeight = image.height * ratioY;
-            cout << newHeight << endl;
         }
         Image newImage(newWidth,newHeight);
         for(int i=0; i < newWidth; i++){
