@@ -171,8 +171,8 @@ private:
                 if(subChoice == 1 || subChoice == 2) break;
                 cout << "Invalid input. Please enter 1 or 2.\n";
             }
-            if(subChoice == 1) frame_image_directory = "images/normal.jpg"; 
-            else frame_image_directory = "images/fancy.jpg"; 
+            if(subChoice == 1) frame_image_directory = "../assets/frames/normal.jpg"; 
+            else frame_image_directory = "../assets/frames/fancy.jpg"; 
         }
         else {
             cout << "Enter the filename of the frame image: ";

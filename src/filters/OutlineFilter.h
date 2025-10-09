@@ -2,9 +2,6 @@
 #include "Filter.h"
 #include "GrayscaleFilter.h"
 #include "BlurFilter.h"
-#include <vector>
-#include <algorithm>
-using namespace std;
 
 class OutlineFilter : public Filter {
 public:

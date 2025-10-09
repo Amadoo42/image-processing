@@ -1,4 +1,3 @@
-
 #pragma once
 #include "Filter.h"
 using namespace std;
@@ -7,7 +6,7 @@ class OilPaintingFilter : public Filter {
 public:
     void apply(Image &image) override {
         int radius = 5, intensity = 20;
-           Image img(image.width, image.height);
+        Image img(image.width, image.height);
         for(int i = 0; i < image.width; ++i) {
             for(int j = 0; j < image.height; ++j) {
                 int i0, i1, j0, j1;
@@ -36,11 +35,11 @@ public:
                         }
                     }
                 }
-            img(i, j, 0) = avgR[idx] / mx;
-            img(i, j, 1) = avgG[idx] / mx;
-            img(i, j, 2) = avgB[idx] / mx;
+                img(i, j, 0) = avgR[idx] / mx;
+                img(i, j, 1) = avgG[idx] / mx;
+                img(i, j, 2) = avgB[idx] / mx;
             }
         }
-    image = img;
+        image = img;
     }      
 };
