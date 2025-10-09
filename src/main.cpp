@@ -12,20 +12,10 @@ TODO: invalid option in menu (outside range)
 
 #include <bits/stdc++.h>
 using namespace std;
-#include "helpers/Image_Class.h"
-#include "helpers/apply_filter.cpp"
-#include "menu.h"
+#include "helpers/Menu.h"
 
 int main() {
-    string filename;
-    // Get the filename from the user
-    cout << "Enter the filename of the image: ";
-    cin >> filename;
-    Image image(filename);
-    cout << "Image loaded successfully!" << endl;
-
-    // Main menu loop
-    displayMenu(image, filename);
-
+    Menu menu;
+    menu.run();
     return 0;
 }
