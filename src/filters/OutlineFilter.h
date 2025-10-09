@@ -3,6 +3,7 @@
 #include "GrayscaleFilter.h"
 #include "BlurFilter.h"
 
+// References: https://en.wikipedia.org/wiki/Sobel_operator
 class OutlineFilter : public Filter {
 public:
     void apply(Image &image) override {
