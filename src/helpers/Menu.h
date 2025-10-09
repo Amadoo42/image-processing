@@ -16,6 +16,9 @@
 #include "../filters/RotateFilter.h"
 #include "../filters/InvertFilter.h"
 #include "../filters/OutlineFilter.h"
+#include "../filters/Purple.h"
+#include "../filters/Infrared.h"
+#include "../filters/Wave.h"
 
 // #TODO: Lots of error handling here
 
@@ -50,6 +53,7 @@ private:
         cout << "12. Outline" << endl;
         cout << "13. Purple" << endl;
         cout << "14. Infrared" << endl;
+        cout << "15. Wave" << endl;
         cout << "0. Back to Main Menu" << endl;
         cout << "Choice: ";
     }
@@ -210,13 +214,21 @@ private:
     }
 
     void applyPurple() {
-        // Placeholder for Purple filter implementation
+        Purple filter;
+        filter.apply(processor.getCurrentImage());
         cout << "Purple filter applied successfully!\n";
     }
 
     void applyInfrared() {
-        // Placeholder for Infrared filter implementation
+        Infrared filter;
+        filter.apply(processor.getCurrentImage());
         cout << "Infrared filter applied successfully!\n";
+    }
+
+    void applyWave() {
+        Wave filter;
+        filter.apply(processor.getCurrentImage());
+        cout << "Wave filter applied successfully!\n";
     }
 
     void handleApplyFilter() {
@@ -238,6 +250,7 @@ private:
             case 12: applyOutline(); break;
             case 13: applyPurple(); break;
             case 14: applyInfrared(); break;
+            case 15: applyWave(); break;
             case 0: return; // Back to main menu
             default: cout << "Invalid choice. Returning to main menu." << endl; break;
         }
