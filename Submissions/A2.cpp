@@ -417,7 +417,7 @@ public:
                     + image(clamp(i + 1, 0, w - 1), clamp(j - 1, 0, h - 1), 0)
                     + -2 * image(clamp(i - 1, 0, w - 1), clamp(j, 0, h - 1), 0) 
                     + 2 * image(clamp(i + 1, 0, w - 1), clamp(j, 0, h - 1), 0)
-                    + -1 * image(clamp(i - 1, 0, w - 1), clamp(j - 1, 0, h - 1), 0) 
+                    + -1 * image(clamp(i - 1, 0, w - 1), clamp(j + 1, 0, h - 1), 0) 
                     + image(clamp(i + 1, 0, w - 1), clamp(j + 1, 0, h - 1), 0);
                     
                 int gy = -1 * image(clamp(i - 1, 0, w - 1), clamp(j - 1, 0, h - 1), 0) 
