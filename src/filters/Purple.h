@@ -2,9 +2,7 @@
 #include "Filter.h"
 
 class Purple : public Filter {
-public:
-    Purple() : Filter("Purple") {}
-    
+public:    
     void apply(Image &image) override {
         for(int i = 0; i < image.width; i++){
             for(int j = 0; j < image.height; j++){

@@ -59,5 +59,5 @@ public:
         return true;
     }
 
-    Image& getCurrentImage() { return currentImage; }
+    const Image& getCurrentImage() const { return currentImage; }
 };

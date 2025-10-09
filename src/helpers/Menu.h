@@ -193,7 +193,7 @@ private:
 
     void applyCrop() {
         int x1, y1, w, h;
-        Image &image = processor.getCurrentImage();
+        const Image &image = processor.getCurrentImage();
         cout << "Enter the top-left x and y coordinates, width and height for cropping: ";
         cin >> x1 >> y1 >> w >> h; 
         if(x1 < 0 || y1 < 0 || w < 0 || h < 0 || x1 + w >= image.width || y1 + h >= image.height){
@@ -214,19 +214,19 @@ private:
 
     void applyPurple() {
         Purple filter;
-        filter.apply(processor.getCurrentImage());
+        processor.applyFilter(filter);
         cout << "Purple filter applied successfully!\n";
     }
 
     void applyInfrared() {
         Infrared filter;
-        filter.apply(processor.getCurrentImage());
+        processor.applyFilter(filter);
         cout << "Infrared filter applied successfully!\n";
     }
 
     void applyWave() {
         Wave filter;
-        filter.apply(processor.getCurrentImage());
+        processor.applyFilter(filter);
         cout << "Wave filter applied successfully!\n";
     }
 

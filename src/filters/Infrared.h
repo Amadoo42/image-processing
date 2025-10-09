@@ -2,9 +2,7 @@
 #include "Filter.h"
 
 class Infrared : public Filter {
-public:
-    Infrared() : Filter("Infrared") {}
-    
+public:    
     void apply(Image &image) override {
         for(int i = 0; i < image.width; i++){
             for(int j = 0; j < image.height; j++){

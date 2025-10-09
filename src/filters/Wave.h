@@ -2,9 +2,7 @@
 #include "Filter.h"
 
 class Wave : public Filter {
-public:
-    Wave() : Filter("Wave") {}
-    
+public:    
     void apply(Image &image) override {
         Image newImage(image);
         for(int i = 0; i < image.width; i++){
