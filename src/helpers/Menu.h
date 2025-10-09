@@ -25,8 +25,9 @@
 // #TODO: Lots of error handling here
 
 class Menu {
-private:
+    private:
     ImageProcessor processor;
+    string filename;
 
     void displayMainMenu() {
         cout << "\n=== Image Processing Menu ===" << endl;
@@ -63,7 +64,6 @@ private:
     }
 
     void handleLoadImage() {
-        string filename;
         cout << "Enter image filename: ";
         cin >> filename;
         processor.loadImage(filename);
@@ -71,11 +71,27 @@ private:
     }
 
     void handleSaveImage() {
-        string filename;
-        cout << "Enter the filename to save the current image (with extension .jpg, .bmp, .png): ";
-        cin >> filename;
-        if (processor.saveImage(filename)) cout << "Image saved successfully!\n";
-        else cout << "Failed to save image. Please check the filename and try again.\n";
+        int choice;
+        cout << "Save in same directory?\n";
+        cout << "1. Yes\n";
+        cout << "2. No\n";
+        cout << "Choice: ";
+        cin >> choice;
+        while(choice != 1 && choice != 2){
+            cout << "Invalid Option. Please try again\n";
+            cout << "Choice: ";
+            cin >> choice;
+        }
+        if(choice == 1){
+            processor.saveImage(filename);
+            cout << "Image saved successfully!\n";
+        }
+        else{
+            cout << "Enter the filename to save the current image (with extension .jpg, .bmp, .png): ";
+            cin >> filename;
+            if (processor.saveImage(filename)) cout << "Image saved successfully!\n";
+            else cout << "Failed to save image. Please check the filename and try again.\n";
+        }
     }
 
     void applyBlackAndWhite() {
@@ -88,6 +104,11 @@ private:
         int choice;
         cout << "1. Darken\n2. Lighten\nChoose an option: ";
         cin >> choice;
+        while(choice != 1 && choice != 2){
+            cout << "Invalid Option. Please try again\n";
+            cout << "Choice: ";
+            cin >> choice;
+        }
         if(choice == 1){
             DarkenFilter filter;
             processor.applyFilter(filter);
@@ -98,13 +119,31 @@ private:
             processor.applyFilter(filter);
             cout << "Filter applied successfully!\n";
         }
-        else cout << "Invalid choice. Returning to main menu." << endl;
     }
 
     void applyFrame() {
         string frame_image_directory;
-        cout << "Enter the filename of the frame image: ";
-        cin >> frame_image_directory;
+        int choice;
+        cout << "1. Choose a frame\n";
+        cout << "2. Load your own frame\n";
+        cin >> choice;
+        while(choice != 1 && choice != 2){
+            cout << "Invalid Option. Please try again\n";
+            cout << "Choice: ";
+            cin >> choice;
+        }
+        if(choice == 1){
+            cout << "1. Normal frame\n";
+            cout << "2. Fancy frame!\n";
+            cout << "Choice: ";
+            cin >> choice;
+            if(choice == 1)frame_image_directory = "images/normal.jpg";// put image path here
+            else frame_image_directory = "images/fancy.jpg";// put image path here
+        }
+        else{
+            cout << "Enter the filename of the frame image: ";
+            cin >> frame_image_directory;
+        }
         Image frame_image(frame_image_directory);
         FrameFilter filter(frame_image);
         processor.applyFilter(filter);
@@ -121,6 +160,11 @@ private:
         int choice;
         cout << "1. Horizontal Flip\n2. Vertical Flip\nChoose an option: ";
         cin >> choice;
+        while(choice != 1 && choice != 2){
+            cout << "Invalid Option. Please try again\n";
+            cout << "Choice: ";
+            cin >> choice;
+        }
         if(choice == 1){
             HorizontalFlipFilter filter;
             processor.applyFilter(filter);
@@ -131,7 +175,6 @@ private:
             processor.applyFilter(filter);
             cout << "Filter applied successfully!\n";
         }
-        else cout << "Invalid choice. Returning to main menu." << endl;
     }
 
     void applyInvert() {
@@ -154,6 +197,11 @@ private:
         int choice;
         cout << "1. By Ratio\n2. By Dimensions\nChoose an option: ";
         cin >> choice;
+        while(choice != 1 && choice != 2){
+            cout << "Invalid Option. Please try again\n";
+            cout << "Choice: ";
+            cin >> choice;
+        }
         if(choice == 1) {
             double ratioX, ratioY;
             cout << "Enter the ratio for width (e.g., 0.5 for half): ";
@@ -174,19 +222,22 @@ private:
             processor.applyFilter(filter);
             cout << "Filter applied successfully!\n";
         }
-        else cout << "Invalid choice. Returning to main menu." << endl;
     }
 
     void applyRotate() {
         int angle;
         cout << "Enter rotation angle (90, 180, 270): ";
         cin >> angle;
+        while(angle != 90 && angle != 180 && angle != 270){
+            cout << "Invalid angle. Please try again\n";
+            cout << "Enter rotation angle (90, 180, 270): ";
+            cin >> angle;
+        }
         if(angle == 90 || angle == 180 || angle == 270) {
             RotateFilter filter(angle);
             processor.applyFilter(filter);
             cout << "Filter applied successfully!\n";
         }
-        else cout << "Invalid angle. Returning to main menu." << endl;
     }
 
     void applyBlur() {
