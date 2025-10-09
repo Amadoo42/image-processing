@@ -5,6 +5,7 @@ class SkewFilter : public Filter {
 private:
     double k = 0.0;
 
+    // References: https://en.wikipedia.org/wiki/Bilinear_interpolation
     double bilinearInterpolate(const Image &image, double x, double y, int channel) {
         int x1 = x;
         int y1 = y;

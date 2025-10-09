@@ -7,6 +7,7 @@ private:
     double ratioX, ratioY;
     bool useRatio = false;
 
+    // References: https://en.wikipedia.org/wiki/Bilinear_interpolation
     double color(Image &image,int i, int j, int newWidth, int newHeight, int c){
         double srci= i * image.width / newWidth;
         double srcj= j * image.height / newHeight;

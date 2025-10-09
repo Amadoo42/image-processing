@@ -184,6 +184,7 @@ private:
     double ratioX, ratioY;
     bool useRatio = false;
 
+    // References: https://en.wikipedia.org/wiki/Bilinear_interpolation
     double color(Image &image,int i, int j, int newWidth, int newHeight, int c){
         double srci= i * image.width / newWidth;
         double srcj= j * image.height / newHeight;
@@ -578,6 +579,7 @@ class SkewFilter : public Filter {
 private:
     double k = 0.0;
 
+    // References: https://en.wikipedia.org/wiki/Bilinear_interpolation
     double bilinearInterpolate(const Image &image, double x, double y, int channel) {
         int x1 = x;
         int y1 = y;
