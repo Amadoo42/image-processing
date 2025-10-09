@@ -447,25 +447,26 @@ class PurpleFilter : public Filter {
 public:    
     void apply(Image &image) override {
         for(int i = 0; i < image.width; i++){
-            for(int j = 0; j < image.height; j++){
-                double brightness = 0.299 * image(i, j, 0) + 0.587 * image(i, j, 1) + 0.114 * image(i, j, 2);
-                double alpha = 1.0 - (brightness / 255.0);
+            for(int j = 0; j < image.height; j++){                
+                int newR = image(i, j, 0) + 40;
+                int newG = image(i, j, 1) - 40;
+                int newB = image(i, j, 2) + 40;
 
-                image(i, j, 0) = (1 - alpha) * image(i, j, 0) + alpha * 128;
-                image(i, j, 1) = (1 - alpha) * image(i, j, 1) + alpha * 0;
-                image(i, j, 2) = (1 - alpha) * image(i, j, 2) + alpha * 128;
-
-                if(image(i, j, 0) < 0) image(i, j, 0) = 0;
-                if(image(i, j, 0) > 255) image(i, j, 0) = 255;
+                if(newR < 0) newR = 0;
+                if(newR > 255) newR = 255;
                 
-                if(image(i, j, 1) < 0) image(i, j, 1) = 0;
-                if(image(i, j, 1) > 255) image(i, j, 1) = 255;
+                if(newG < 0) newG = 0;
+                if(newG > 255) newG = 255;
                 
-                if(image(i, j, 2) < 0) image(i, j, 2) = 0;
-                if(image(i, j, 2) > 255) image(i, j, 2) = 255;
+                if(newB < 0) newB = 0;
+                if(newB > 255) newB = 255;
+                
+                image(i, j, 0) = newR;
+                image(i, j, 1) = newG;
+                image(i, j, 2) = newB;
             }
         }
-    }      
+    }
 };
 
 class InfraredFilter : public Filter {
