@@ -81,7 +81,7 @@ private:
     }
 
     void handleSaveImage() {
-        int choice;
+        int choice = 0;
         while(choice != 1 && choice != 2) {
             cout << "Do you want to overwrite the image?\n";
             cout << "1. Yes\n2. No\nChoice: ";
@@ -116,7 +116,7 @@ private:
     }
 
     void applyDarkenAndLighten() { 
-        int choice;
+        int choice = 0;
         while(choice != 1 && choice != 2){
             cout << "1. Darken\n2. Lighten\nChoice: ";
             cin >> choice;
@@ -143,7 +143,7 @@ private:
 
     void applyFrame() { 
         string frame_image_directory;
-        int choice;
+        int choice = 0;
 
         while(choice != 1 && choice != 2){
             cout << "1. Choose a frame\n2. Load your own frame\nChoice: ";
@@ -191,7 +191,7 @@ private:
     }
     
     void applyFlip() { 
-        int choice;
+        int choice = 0;
         while(choice != 1 && choice != 2){
             cout << "1. Horizontal Flip\n2. Vertical Flip\nChoice: ";
             cin >> choice;
@@ -233,7 +233,7 @@ private:
     }
 
     void applyResize() { // #TODO: Potential Infinite
-        int choice;
+        int choice = 0;
         while(choice != 1 && choice != 2){
             cout << "1. By Ratio\n2. By Dimensions\nChoice: ";
             cin >> choice;
@@ -401,7 +401,7 @@ private:
     }
 
     void handleApplyFilter() {
-        int choice;
+        int choice = 0;
         displayFilterMenu();
         cin >> choice;
         switch(choice) {
@@ -434,7 +434,7 @@ private:
 
 public:
     void run() {
-        int choice;
+        int choice = 0;
         while(true) {
             displayMainMenu();
             cin >> choice;
