@@ -15,7 +15,7 @@
  * 
  * Repository: https://github.com/Amadoo42/image-processing/
  * Shared Document: https://docs.google.com/document/d/1Xbj97u4e-brHcKzusMAegsY52XrPnZTmeF5VdEFN0Sk/edit?usp=sharing
- * Demo Video: [Your video demonstration link]
+ * Drive Link: https://drive.google.com/drive/u/0/folders/1zKjEmHfrS5l_Rtp4JgCAV-Hmqqm6BoK7 (Demo video is here)
  * 
  * Description:
  * A comprehensive image processing application featuring 22+ filters including
