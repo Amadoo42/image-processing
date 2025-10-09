@@ -1,3 +1,33 @@
+/*
+ * CS213 - Assignment 1 Part 2: Image Processing Application
+ * 
+ * File: CS213_A1_Part2_S35_20240750_20240270_20240011.cpp
+ * 
+ * Team Members:
+ * 1. Ahmad Amin Mahmoud El-Metwally - ID: 20240750 - Section: S35
+ * 2. Seif Mohamed Lashin - ID: 20240270 - Section: S22 
+ * 3. Ahmed Osama Ezz - ID: 20240011 - Section: All-B
+ * 
+ * Filter Contributions:
+ * Student 1: Blur (12), Frame (9), Invert (3), Rotate (6), Warmth (13), Skew (18), Saturation, Vigentte, Contrast
+ * Student 2: Black & White (2), Flip (5), Crop (8), Resize (11), Purple (16), Infrared (17), Wave
+ * Student 3: Grayscale (1), Merge (4), Darken & Lighten (7), Outline (10), Oil Painting (14), Retro (15)
+ * 
+ * Repository: https://github.com/Amadoo42/image-processing/
+ * Shared Document: https://docs.google.com/document/d/1Xbj97u4e-brHcKzusMAegsY52XrPnZTmeF5VdEFN0Sk/edit?usp=sharing
+ * Demo Video: [Your video demonstration link]
+ * 
+ * Description:
+ * A comprehensive image processing application featuring 22+ filters including
+ * basic transformations (flip, rotate, resize, crop), artistic effects (oil painting,
+ * infrared, retro), adjustments (contrast, saturation, blur), and composition tools
+ * (merge, frame). Implements undo/redo functionality with an interactive CLI menu.
+ * Supports PNG, JPG, BMP, and TGA formats.
+ * 
+ * Build: g++ -std=c++11 CS213_A1_Part2_S35_20240750_20240270_20240011.cpp -o photoshop
+ * Run: ./photoshop
+ */
+
 #include <bits/stdc++.h>
 using namespace std;
 
