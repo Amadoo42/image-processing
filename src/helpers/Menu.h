@@ -22,6 +22,10 @@
 #include "../filters/OilPaintingFilter.h"
 #include "../filters/RetroFilter.h"
 #include "../filters/SkewFilter.h"
+#include "../filters/WarmthFilter.h"
+#include "../filters/SaturationFilter.h"
+#include "../filters/ContrastFilter.h"
+#include "../filters/VigentteFilter.h"
 
 // #TODO: Lots of error handling here
 
@@ -61,6 +65,10 @@ class Menu {
         cout << "16. Oil Painting" << endl;
         cout << "17. Retro TV" << endl;
         cout << "18. Skew" << endl;
+        cout << "19. Warmth" << endl;
+        cout << "20. Saturation" << endl;
+        cout << "21. Contrast" << endl;
+        cout << "22. Vigentte" << endl;
         cout << "0. Back to Main Menu" << endl;
         cout << "Choice: ";
     }
@@ -151,8 +159,8 @@ class Menu {
                 cout << "Choice: ";
                 cin >> choice;
             }
-            if(choice == 1)frame_image_directory = "images/normal.jpg";// put image path here
-            else frame_image_directory = "images/fancy.jpg";// put image path here
+            if(choice == 1) frame_image_directory = "images/normal.jpg"; // put image path here
+            else frame_image_directory = "images/fancy.jpg"; // put image path here
         }
         else{
             cout << "Enter the filename of the frame image: ";
@@ -322,6 +330,54 @@ class Menu {
         cout << "Skew filter applied successfully!\n";
     }
 
+    void applyWarmth() {
+        double warmth;
+        cout << "Enter warmth factor (positive to increase warmth, negative to decrease): ";
+        cin >> warmth;
+        WarmthFilter filter(warmth);
+        processor.applyFilter(filter);
+        cout << "Warmth filter applied successfully!\n";
+    }
+
+    void applySaturation() {
+        double saturation;
+        cout << "Enter saturation factor (greater than 1 to increase, between 0 and 1 to decrease): ";
+        cin >> saturation;
+        while(saturation < 0) {
+            cout << "Invalid factor. Please enter a value greater than 0\n";
+            cin >> saturation;
+        }
+        SaturationFilter filter(saturation);
+        processor.applyFilter(filter);
+        cout << "Saturation filter applied successfully!\n";
+    }
+
+    void applyContrast() {
+        double contrast;
+        cout << "Enter contrast factor (greater than 1 to increase, between 0 and 1 to decrease): ";
+        cin >> contrast;
+        while(contrast < 0) {
+            cout << "Invalid factor. Please enter a value greater than 0\n";
+            cin >> contrast;
+        }
+        ContrastFilter filter(contrast);
+        processor.applyFilter(filter);
+        cout << "Contrast filter applied successfully!\n";
+    }
+
+    void applyVigentte() {
+        double vigentte;
+        cout << "Enter vigentte factor (positive to increase effect): ";
+        cin >> vigentte;
+        while(vigentte < 0) {
+            cout << "Invalid factor. Please enter a value greater than 0\n";
+            cin >> vigentte;
+        }
+        VigentteFilter filter(vigentte);
+        processor.applyFilter(filter);
+        cout << "Vigentte filter applied successfully!\n";
+    }
+
     void handleApplyFilter() {
         int choice;
         displayFilterMenu();
@@ -345,6 +401,10 @@ class Menu {
             case 16: applyOil(); break;
             case 17: applyRetro(); break;
             case 18: applySkew(); break;
+            case 19: applyWarmth(); break;
+            case 20: applySaturation(); break;
+            case 21: applyContrast(); break;
+            case 22: applyVigentte(); break;
             case 0: return; // Back to main menu
             default: cout << "Invalid choice. Returning to main menu." << endl; break;
         }
