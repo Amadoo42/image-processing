@@ -19,6 +19,8 @@
 #include "../filters/Purple.h"
 #include "../filters/Infrared.h"
 #include "../filters/Wave.h"
+#include "../filters/oilpainting.h"
+#include "../filters/retro.h"
 
 // #TODO: Lots of error handling here
 
@@ -54,6 +56,8 @@ private:
         cout << "13. Purple" << endl;
         cout << "14. Infrared" << endl;
         cout << "15. Wave" << endl;
+        cout << "16. Oil Painting" << endl;
+        cout << "17. retro TV" << endl;
         cout << "0. Back to Main Menu" << endl;
         cout << "Choice: ";
     }
@@ -229,7 +233,16 @@ private:
         processor.applyFilter(filter);
         cout << "Wave filter applied successfully!\n";
     }
-
+    void applyOil() {
+        oilpainting filter;
+        processor.applyFilter(filter);
+        cout << "Oil filter applied successfully\n";
+    }
+    void applyRetro() {
+        retro filter;
+        processor.applyFilter(filter);
+        cout << "Retro TV applied successfully\n";
+    }
     void handleApplyFilter() {
         int choice;
         displayFilterMenu();
@@ -250,6 +263,8 @@ private:
             case 13: applyPurple(); break;
             case 14: applyInfrared(); break;
             case 15: applyWave(); break;
+            case 16: applyOil(); break;
+            case 17: applyRetro(); break;
             case 0: return; // Back to main menu
             default: cout << "Invalid choice. Returning to main menu." << endl; break;
         }
