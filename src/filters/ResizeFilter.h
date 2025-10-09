@@ -21,8 +21,8 @@ private:
     }
 
 public:
-    ResizeFilter(int nW, int nH) : Filter("Resize"), newWidth(nW), newHeight(nH), useRatio(false) {}
-    ResizeFilter(double rX, double rY) : Filter("Resize"), ratioX(rX), ratioY(rY), useRatio(true) {}
+    ResizeFilter(int nW, int nH) : newWidth(nW), newHeight(nH), useRatio(false) {}
+    ResizeFilter(double rX, double rY) : ratioX(rX), ratioY(rY), useRatio(true) {}
 
     void apply(Image &image) override {
         if(useRatio) {

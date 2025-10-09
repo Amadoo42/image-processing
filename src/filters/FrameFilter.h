@@ -7,7 +7,7 @@ class FrameFilter : public Filter {
 private:
     Image frame_image;
 public:
-    FrameFilter(const Image &frame_img) : Filter("Frame"), frame_image(frame_img) {}
+    FrameFilter(const Image &frame_img) : frame_image(frame_img) {}
 
     void apply(Image &image) override {
         Image frame_image_resized = frame_image;

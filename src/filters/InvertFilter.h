@@ -4,8 +4,6 @@ using namespace std;
 
 class InvertFilter : public Filter {
 public:
-    InvertFilter() : Filter("Invert") {}
-
     void apply(Image &image) override {
         for(int i = 0; i < image.width; ++i) {
             for(int j = 0; j < image.height; ++j) {
