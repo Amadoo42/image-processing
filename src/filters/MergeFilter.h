@@ -9,7 +9,7 @@ private:
     Image other_image;
     
 public:
-    MergeFilter(Image &oth) : Filter("Merge"), other_image(oth) {}
+    MergeFilter(Image &oth) : other_image(oth) {}
 
     void apply(Image &image) override {
         // assuming same size

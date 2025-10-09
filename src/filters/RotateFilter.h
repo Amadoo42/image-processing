@@ -7,7 +7,7 @@ private:
     int degrees;
 
 public:
-    RotateFilter(int deg) : Filter("Rotate"), degrees(deg) {}
+    RotateFilter(int deg) : degrees(deg) {}
 
     void apply(Image &image) override {
         int numRotations = degrees / 90;

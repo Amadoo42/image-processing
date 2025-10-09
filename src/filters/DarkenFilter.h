@@ -4,8 +4,6 @@ using namespace std;
 
 class DarkenFilter : public Filter {
 public:
-    DarkenFilter() : Filter("Darken") {}
-
     void apply(Image &image) override {
         for(int i = 0; i < image.width; i++) {
             for(int j = 0; j < image.height; j++) {

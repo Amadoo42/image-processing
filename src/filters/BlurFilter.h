@@ -28,7 +28,7 @@ private:
     }   
 
 public:
-    BlurFilter(int kernel = 7, double sig = 1.0) : Filter("Blur"), kernelSize(kernel), sigma(sig) {}
+    BlurFilter(int kernel = 7, double sig = 1.0) : kernelSize(kernel), sigma(sig) {}
 
     void apply(Image &image) override {
         int W = image.width, H = image.height;

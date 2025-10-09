@@ -4,8 +4,6 @@ using namespace std;
 
 class VerticalFlipFilter : public Filter {
 public:
-    VerticalFlipFilter() : Filter("Vertical Flip") {}
-
     void apply(Image &image) override {
         for(int j=0;j<image.height/2;j++){
             for(int i=0;i<image.width;i++){

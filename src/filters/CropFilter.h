@@ -6,7 +6,7 @@ class CropFilter : public Filter {
 private:
     int X, Y, W, H;
 public:
-    CropFilter(int x, int y, int w, int h) : Filter("Crop"), X(x), Y(y), W(w), H(h) {}
+    CropFilter(int x, int y, int w, int h) : X(x), Y(y), W(w), H(h) {}
 
     void apply(Image &image) override {
         Image newImage(W,H);

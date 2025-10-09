@@ -7,11 +7,7 @@
 using namespace std;
 
 class OutlineFilter : public Filter {
-private:
-
 public:
-    OutlineFilter() : Filter("Outline") {}
-
     void apply(Image &image) override {
         GrayscaleFilter gray;
         BlurFilter blur;

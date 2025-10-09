@@ -150,7 +150,6 @@ private:
         int choice;
         cout << "1. By Ratio\n2. By Dimensions\nChoose an option: ";
         cin >> choice;
-        Image &image = processor.getCurrentImage();
         if(choice == 1) {
             double ratioX, ratioY;
             cout << "Enter the ratio for width (e.g., 0.5 for half): ";
@@ -158,7 +157,7 @@ private:
             cout << "Enter the ratio for height: ";
             cin >> ratioY;
             ResizeFilter filter(ratioX, ratioY);
-            filter.apply(image);
+            processor.applyFilter(filter);
             cout << "Filter applied successfully!\n";
         }
         else if(choice == 2) {
@@ -168,7 +167,7 @@ private:
             cout << "Enter the new height: ";
             cin >> newHeight;
             ResizeFilter filter(newWidth, newHeight);
-            filter.apply(image);
+            processor.applyFilter(filter);
             cout << "Filter applied successfully!\n";
         }
         else cout << "Invalid choice. Returning to main menu." << endl;
@@ -180,7 +179,7 @@ private:
         cin >> angle;
         if(angle == 90 || angle == 180 || angle == 270) {
             RotateFilter filter(angle);
-            filter.apply(processor.getCurrentImage());
+            processor.applyFilter(filter);
             cout << "Filter applied successfully!\n";
         }
         else cout << "Invalid angle. Returning to main menu." << endl;
@@ -188,7 +187,7 @@ private:
 
     void applyBlur() {
         BlurFilter filter;
-        filter.apply(processor.getCurrentImage());
+        processor.applyFilter(filter);
         cout << "Filter applied successfully!\n";
     }
 
@@ -202,14 +201,14 @@ private:
         }
         else{
             CropFilter filter(x1, y1, w, h);
-            filter.apply(image);
+            processor.applyFilter(filter);
             cout << "Filter applied successfully!\n";
         } 
     }
 
     void applyOutline() {
         OutlineFilter filter;
-        filter.apply(processor.getCurrentImage());
+        processor.applyFilter(filter);
         cout << "Filter applied successfully!\n";
     }
 

@@ -2,9 +2,7 @@
 #include "Filter.h"
 
 class BlackAndWhiteFilter : public Filter {
-public:
-    BlackAndWhiteFilter() : Filter("Black & White") {}
-    
+public:    
     void apply(Image &image) override {
         int sum=0;
         for(int i=0; i < image.width; i++){
