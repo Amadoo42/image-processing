@@ -3,7 +3,7 @@
 #include "Filter.h"
 using namespace std;
 
-class oilpainting : public Filter {
+class OilPaintingFilter : public Filter {
 public:
     void apply(Image &image) override {
         int radius = 5, intensity = 20;

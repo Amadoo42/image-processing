@@ -1,7 +1,7 @@
 #pragma once
 #include "Filter.h"
 
-class Wave : public Filter {
+class WaveFilter : public Filter {
 public:    
     void apply(Image &image) override {
         Image newImage(image);

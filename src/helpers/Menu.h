@@ -16,11 +16,12 @@
 #include "../filters/RotateFilter.h"
 #include "../filters/InvertFilter.h"
 #include "../filters/OutlineFilter.h"
-#include "../filters/Purple.h"
-#include "../filters/Infrared.h"
-#include "../filters/Wave.h"
-#include "../filters/oilpainting.h"
-#include "../filters/retro.h"
+#include "../filters/PurpleFilter.h"
+#include "../filters/InfraredFilter.h"
+#include "../filters/WaveFilter.h"
+#include "../filters/OilPaintingFilter.h"
+#include "../filters/RetroFilter.h"
+#include "../filters/SkewFilter.h"
 
 // #TODO: Lots of error handling here
 
@@ -58,7 +59,8 @@ class Menu {
         cout << "14. Infrared" << endl;
         cout << "15. Wave" << endl;
         cout << "16. Oil Painting" << endl;
-        cout << "17. retro TV" << endl;
+        cout << "17. Retro TV" << endl;
+        cout << "18. Skew" << endl;
         cout << "0. Back to Main Menu" << endl;
         cout << "Choice: ";
     }
@@ -72,21 +74,28 @@ class Menu {
 
     void handleSaveImage() {
         int choice;
-        cout << "Save in same directory?\n";
-        cout << "1. Yes\n";
-        cout << "2. No\n";
-        cout << "Choice: ";
-        cin >> choice;
-        while(choice != 1 && choice != 2){
-            cout << "Invalid Option. Please try again\n";
+        while(choice != 1 && choice != 2) {
+            cout << "Do you want to overwrite the image?\n";
+            cout << "1. Yes\n";
+            cout << "2. No\n";
             cout << "Choice: ";
             cin >> choice;
+            if(cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter 1 or 2.\n";
+                continue;
+            }
+            if(choice == 1 || choice == 2) break;
+            cout << "Invalid choice. Please enter 1 or 2.\n";
         }
-        if(choice == 1){
+
+        if(choice == 1) {
             processor.saveImage(filename);
             cout << "Image saved successfully!\n";
         }
-        else{
+
+        else {
             cout << "Enter the filename to save the current image (with extension .jpg, .bmp, .png): ";
             cin >> filename;
             if (processor.saveImage(filename)) cout << "Image saved successfully!\n";
@@ -238,11 +247,9 @@ class Menu {
             cout << "Enter rotation angle (90, 180, 270): ";
             cin >> angle;
         }
-        if(angle == 90 || angle == 180 || angle == 270) {
-            RotateFilter filter(angle);
-            processor.applyFilter(filter);
-            cout << "Filter applied successfully!\n";
-        }
+        RotateFilter filter(angle);
+        processor.applyFilter(filter);
+        cout << "Filter applied successfully!\n";
     }
 
     void applyBlur() {
@@ -273,32 +280,48 @@ class Menu {
     }
 
     void applyPurple() {
-        Purple filter;
+        PurpleFilter filter;
         processor.applyFilter(filter);
         cout << "Purple filter applied successfully!\n";
     }
 
     void applyInfrared() {
-        Infrared filter;
+        InfraredFilter filter;
         processor.applyFilter(filter);
         cout << "Infrared filter applied successfully!\n";
     }
 
     void applyWave() {
-        Wave filter;
+        WaveFilter filter;
         processor.applyFilter(filter);
         cout << "Wave filter applied successfully!\n";
     }
+
     void applyOil() {
-        oilpainting filter;
+        OilPaintingFilter filter;
         processor.applyFilter(filter);
-        cout << "Oil filter applied successfully\n";
+        cout << "Oil filter applied successfully!\n";
     }
+
     void applyRetro() {
-        retro filter;
+        RetroFilter filter;
         processor.applyFilter(filter);
-        cout << "Retro TV applied successfully\n";
+        cout << "Retro TV filter applied successfully!\n";
     }
+
+    void applySkew() {
+        int degrees;
+        cout << "Enter skew angle in degrees (positive for right skew, negative for left skew): ";
+        cin >> degrees;
+        while(degrees < -89 || degrees > 89) {
+            cout << "Invalid angle. Enter an angle between -89 and 89\n";
+            cin >> degrees;
+        }
+        SkewFilter filter(degrees);
+        processor.applyFilter(filter);
+        cout << "Skew filter applied successfully!\n";
+    }
+
     void handleApplyFilter() {
         int choice;
         displayFilterMenu();
@@ -321,6 +344,7 @@ class Menu {
             case 15: applyWave(); break;
             case 16: applyOil(); break;
             case 17: applyRetro(); break;
+            case 18: applySkew(); break;
             case 0: return; // Back to main menu
             default: cout << "Invalid choice. Returning to main menu." << endl; break;
         }
