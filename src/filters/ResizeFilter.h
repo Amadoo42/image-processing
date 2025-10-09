@@ -26,8 +26,9 @@ public:
 
     void apply(Image &image) override {
         if(useRatio) {
-            int newWidth = image.width * ratioX;
-            int newHeight = image.height * ratioY;
+            newWidth = image.width * ratioX;
+            newHeight = image.height * ratioY;
+            cout << newHeight << endl;
         }
         Image newImage(newWidth,newHeight);
         for(int i=0; i < newWidth; i++){
