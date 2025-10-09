@@ -1,7 +1,6 @@
 #pragma once
 #include "Filter.h"
 #include "ResizeFilter.h"
-using namespace std;
 
 class FrameFilter : public Filter {
 private:

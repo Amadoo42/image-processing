@@ -1,6 +1,5 @@
 #pragma once
 #include "Filter.h"
-using namespace std;
 
 class RotateFilter : public Filter {
 private:

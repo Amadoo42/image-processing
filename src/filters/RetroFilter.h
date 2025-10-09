@@ -1,7 +1,5 @@
-
 #pragma once
 #include "Filter.h"
-using namespace std;
 
 class RetroFilter : public Filter {
 public:

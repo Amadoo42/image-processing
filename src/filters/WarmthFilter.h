@@ -1,6 +1,5 @@
 #pragma once
 #include "Filter.h"
-using namespace std;
 
 class WarmthFilter : public Filter {
 private:

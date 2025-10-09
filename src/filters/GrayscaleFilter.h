@@ -1,6 +1,5 @@
 #pragma once
 #include "Filter.h"
-using namespace std;
 
 class GrayscaleFilter : public Filter {
 public:
