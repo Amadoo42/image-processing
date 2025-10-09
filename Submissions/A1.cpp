@@ -24,6 +24,7 @@ class Filter {
         void edge(Image &image);
         void purple(Image &image);
         void infrared(Image &image);
+        void wave(Image &image);
 };
 
 void Filter::blackandwhite(Image &image) {
@@ -381,10 +382,30 @@ void Filter::infrared(Image &image){
     }
 }
 
+void Filter::wave(Image &image){ 
+    Image newImage(image);
+    for(int i = 0; i < image.width; i++){
+        for(int j = 0; j < image.height; j++){
+            int srci = i + 10.0 * sin(2 * M_PI * j / 80.0);
+            int srcj = j;
+
+
+            if(srci >= image.width)srci = image.width - 1;
+            if(srci < 0)srci = 0;
+
+            if(srcj >= image.height)srcj = image.height - 1;
+            if(srcj < 0)srcj = 0;
+
+            for(int c = 0; c < 3; c++)
+                newImage(i, j, c) = image(srci, srcj, c);
+        }
+    }
+    image = newImage;
+}
 
 void displayMenu(Image &image, string &dir) {
     vector<string> filters{"Black & White", "Darken & Lighten", "Add Frame", "Grayscale", "Flip", "Invert", "Merge",
-        "Resize", "Rotate", "Blur", "Crop", "Outline", "Purple", "Infrared"};
+        "Resize", "Rotate", "Blur", "Crop", "Outline", "Purple", "Infrared", "Wave"};
     
     int input;
     do {
@@ -560,6 +581,10 @@ void displayMenu(Image &image, string &dir) {
                 }
                 case 16: {
                     filter.infrared(image);
+                    cout << "Filter applied successfully!\n";
+                }
+                case 17: {
+                    filter.wave(image);
                     cout << "Filter applied successfully!\n";
                 }
             }

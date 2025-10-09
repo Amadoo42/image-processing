@@ -4,7 +4,7 @@
 
 void displayMenu(Image &image, string &dir) {
     vector<string> filters{"Black & White", "Darken & Lighten", "Add Frame", "Grayscale", "Flip", "Invert", "Merge",
-        "Resize", "Rotate", "Blur", "Crop", "Outline", "Purple", "Infrared"};
+        "Resize", "Rotate", "Blur", "Crop", "Outline", "Purple", "Infrared", "Wave"};
     
     int input;
     do {
@@ -180,6 +180,10 @@ void displayMenu(Image &image, string &dir) {
                 }
                 case 16: {
                     filter.infrared(image);
+                    cout << "Filter applied successfully!\n";
+                }
+                case 17: {
+                    filter.wave(image);
                     cout << "Filter applied successfully!\n";
                 }
             }

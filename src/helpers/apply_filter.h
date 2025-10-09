@@ -20,4 +20,5 @@ class Filter {
         void edge(Image &image);
         void purple(Image &image);
         void infrared(Image &image);
+        void wave(Image &image);
 };
