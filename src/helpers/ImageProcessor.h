@@ -1,10 +1,8 @@
 // This will basically manage the current image and provide undo/redo functionality
-
 #pragma once
+
 #include "Image_Class.h"
 #include "../filters/Filter.h"
-#include <vector>
-using namespace std;
 
 class ImageProcessor {
 private:

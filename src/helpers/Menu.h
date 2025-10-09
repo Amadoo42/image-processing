@@ -30,7 +30,7 @@
 // #TODO: Lots of error handling here
 
 class Menu {
-    private:
+private:
     ImageProcessor processor;
     string filename;
 
@@ -84,9 +84,7 @@ class Menu {
         int choice;
         while(choice != 1 && choice != 2) {
             cout << "Do you want to overwrite the image?\n";
-            cout << "1. Yes\n";
-            cout << "2. No\n";
-            cout << "Choice: ";
+            cout << "1. Yes\n2. No\nChoice: ";
             cin >> choice;
             if(cin.fail()) {
                 cin.clear();
@@ -114,115 +112,139 @@ class Menu {
     void applyBlackAndWhite() {
         BlackAndWhiteFilter filter;
         processor.applyFilter(filter);
-        cout << "Filter applied successfully!\n";
+        cout << "Black & White Filter applied successfully!\n";
     }
 
-    void applyDarkenAndLighten() {
+    void applyDarkenAndLighten() { 
         int choice;
-        cout << "1. Darken\n2. Lighten\nChoose an option: ";
-        cin >> choice;
         while(choice != 1 && choice != 2){
-            cout << "Invalid Option. Please try again\n";
-            cout << "Choice: ";
+            cout << "1. Darken\n2. Lighten\nChoice: ";
             cin >> choice;
+            if(cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter 1 or 2.\n";
+                continue;
+            }
+            if(choice == 1 || choice == 2) break;
+            cout << "Invalid input. Please enter 1 or 2.\n";
         }
         if(choice == 1){
             DarkenFilter filter;
             processor.applyFilter(filter);
-            cout << "Filter applied successfully!\n";
+            cout << "Darken Filter applied successfully!\n";
         }
         else if(choice == 2){
             LightenFilter filter;
             processor.applyFilter(filter);
-            cout << "Filter applied successfully!\n";
+            cout << "Lighten Filter applied successfully!\n";
         }
     }
 
-    void applyFrame() {
+    void applyFrame() { 
         string frame_image_directory;
         int choice;
-        cout << "1. Choose a frame\n";
-        cout << "2. Load your own frame\n";
-        cin >> choice;
+
         while(choice != 1 && choice != 2){
-            cout << "Invalid Option. Please try again\n";
-            cout << "Choice: ";
+            cout << "1. Choose a frame\n2. Load your own frame\nChoice: ";
             cin >> choice;
+            if(cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter 1 or 2.\n";
+                continue;
+            }
+            if(choice == 1 || choice == 2) break;
+            cout << "Invalid input. Please enter 1 or 2.\n";
         }
         if(choice == 1){
-            cout << "1. Normal frame\n";
-            cout << "2. Fancy frame!\n";
-            cout << "Choice: ";
-            cin >> choice;
-            while(choice != 1 && choice != 2){
-                cout << "Invalid Option. Please try again\n";
-                cout << "Choice: ";
-                cin >> choice;
+            int subChoice;
+            while(subChoice != 1 && subChoice != 2){
+                cout << "1. Normal frame\n2. Fancy frame!\nChoice: ";
+                cin >> subChoice;
+                if(cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cout << "Invalid input. Please enter 1 or 2.\n";
+                    continue;
+                }
+                if(subChoice == 1 || subChoice == 2) break;
+                cout << "Invalid input. Please enter 1 or 2.\n";
             }
-            if(choice == 1) frame_image_directory = "images/normal.jpg"; // put image path here
-            else frame_image_directory = "images/fancy.jpg"; // put image path here
+            if(subChoice == 1) frame_image_directory = "images/normal.jpg"; 
+            else frame_image_directory = "images/fancy.jpg"; 
         }
-        else{
+        else {
             cout << "Enter the filename of the frame image: ";
             cin >> frame_image_directory;
         }
         Image frame_image(frame_image_directory);
         FrameFilter filter(frame_image);
         processor.applyFilter(filter);
-        cout << "Filter applied successfully!\n";
+        cout << "Frame Filter applied successfully!\n";
     }
 
     void applyGrayscale() {
         GrayscaleFilter filter;
         processor.applyFilter(filter);
-        cout << "Filter applied successfully!\n";
+        cout << "Grayscale Filter applied successfully!\n";
     }
     
-    void applyFlip() {
+    void applyFlip() { 
         int choice;
-        cout << "1. Horizontal Flip\n2. Vertical Flip\nChoose an option: ";
-        cin >> choice;
         while(choice != 1 && choice != 2){
-            cout << "Invalid Option. Please try again\n";
-            cout << "Choice: ";
+            cout << "1. Horizontal Flip\n2. Vertical Flip\nChoice: ";
             cin >> choice;
+            if(cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter 1 or 2.\n";
+                continue;
+            }
+            if(choice == 1 || choice == 2) break;
+            cout << "Invalid input. Please enter 1 or 2.\n";
         }
         if(choice == 1){
             HorizontalFlipFilter filter;
             processor.applyFilter(filter);
-            cout << "Filter applied successfully!\n";
+            cout << "Flip Filter applied successfully!\n";
         }
         else if(choice == 2){
             VerticalFlipFilter filter;
             processor.applyFilter(filter);
-            cout << "Filter applied successfully!\n";
+            cout << "Flip Filter applied successfully!\n";
         }
     }
 
     void applyInvert() {
         InvertFilter filter;
         processor.applyFilter(filter);
-        cout << "Filter applied successfully!\n";
+        cout << "Invert Filter applied successfully!\n";
     }
 
-    void applyMerge() {
+    void applyMerge() { 
         string merge_image_directory;
         cout << "Enter the filename of the image to merge with: ";  
         cin >> merge_image_directory;
         Image merge_image(merge_image_directory);
         MergeFilter filter(merge_image);
         processor.applyFilter(filter);
-        cout << "Filter applied successfully!\n";
+        cout << "Merge Filter applied successfully!\n";
     }
 
-    void applyResize() {
+    void applyResize() { // #TODO: Potential Infinite
         int choice;
-        cout << "1. By Ratio\n2. By Dimensions\nChoose an option: ";
-        cin >> choice;
         while(choice != 1 && choice != 2){
-            cout << "Invalid Option. Please try again\n";
-            cout << "Choice: ";
+            cout << "1. By Ratio\n2. By Dimensions\nChoice: ";
             cin >> choice;
+            if(cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter 1 or 2.\n";
+                continue;
+            }
+            if(choice == 1 || choice == 2) break;
+            cout << "Invalid input. Please enter 1 or 2.\n";
         }
         if(choice == 1) {
             double ratioX, ratioY;
@@ -242,11 +264,11 @@ class Menu {
             cin >> newHeight;
             ResizeFilter filter(newWidth, newHeight);
             processor.applyFilter(filter);
-            cout << "Filter applied successfully!\n";
+            cout << "Resize Filter applied successfully!\n";
         }
     }
 
-    void applyRotate() {
+    void applyRotate() { // #TODO: Potential Infinite
         int angle;
         cout << "Enter rotation angle (90, 180, 270): ";
         cin >> angle;
@@ -257,16 +279,16 @@ class Menu {
         }
         RotateFilter filter(angle);
         processor.applyFilter(filter);
-        cout << "Filter applied successfully!\n";
+        cout << "Rotate Filter applied successfully!\n";
     }
 
     void applyBlur() {
         BlurFilter filter;
         processor.applyFilter(filter);
-        cout << "Filter applied successfully!\n";
+        cout << "Blur Filter applied successfully!\n";
     }
 
-    void applyCrop() {
+    void applyCrop() { // #TODO: Potential Infinite
         int x1, y1, w, h;
         const Image &image = processor.getCurrentImage();
         cout << "Enter the top-left x and y coordinates, width and height for cropping: ";
@@ -277,14 +299,14 @@ class Menu {
         else{
             CropFilter filter(x1, y1, w, h);
             processor.applyFilter(filter);
-            cout << "Filter applied successfully!\n";
+            cout << "Crop Filter applied successfully!\n";
         } 
     }
 
     void applyOutline() {
         OutlineFilter filter;
         processor.applyFilter(filter);
-        cout << "Filter applied successfully!\n";
+        cout << "Outline Filter applied successfully!\n";
     }
 
     void applyPurple() {
@@ -317,7 +339,7 @@ class Menu {
         cout << "Retro TV filter applied successfully!\n";
     }
 
-    void applySkew() {
+    void applySkew() { // #TODO: Potential Infinite
         int degrees;
         cout << "Enter skew angle in degrees (positive for right skew, negative for left skew): ";
         cin >> degrees;
@@ -339,7 +361,7 @@ class Menu {
         cout << "Warmth filter applied successfully!\n";
     }
 
-    void applySaturation() {
+    void applySaturation() { // #TODO: Potential Infinite
         double saturation;
         cout << "Enter saturation factor (greater than 1 to increase, between 0 and 1 to decrease): ";
         cin >> saturation;
@@ -352,7 +374,7 @@ class Menu {
         cout << "Saturation filter applied successfully!\n";
     }
 
-    void applyContrast() {
+    void applyContrast() { // #TODO: Potential Infinite
         double contrast;
         cout << "Enter contrast factor (greater than 1 to increase, between 0 and 1 to decrease): ";
         cin >> contrast;
@@ -365,7 +387,7 @@ class Menu {
         cout << "Contrast filter applied successfully!\n";
     }
 
-    void applyVigentte() {
+    void applyVigentte() { // #TODO: Potential Infinite
         double vigentte;
         cout << "Enter vigentte factor (positive to increase effect): ";
         cin >> vigentte;
