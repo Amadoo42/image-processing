@@ -1,5 +1,7 @@
 #pragma once
 #include "Filter.h"
+#include <algorithm>
+#include <vector>
 
 class BlurFilter : public Filter {
 private:
@@ -7,8 +9,8 @@ private:
     double sigma;
 
     // Reference: https://en.wikipedia.org/wiki/Gaussian_blur, https://www.geeksforgeeks.org/machine-learning/gaussian-kernel/
-    vector <double> generateGaussianKernel() {
-        vector <double> kernel(kernelSize);
+    std::vector <double> generateGaussianKernel() {
+        std::vector <double> kernel(kernelSize);
         int half = kernelSize / 2;
         double sum = 0.0;
 
@@ -27,7 +29,7 @@ public:
 
     void apply(Image &image) override {
         int W = image.width, H = image.height;
-        vector <double> kernel = generateGaussianKernel();
+        std::vector <double> kernel = generateGaussianKernel();
 
         Image temp(W, H);
         int half = kernelSize / 2;
@@ -37,7 +39,7 @@ public:
                 for(int c = 0; c < 3; ++c) {
                     double weightedSum = 0.0;
                     for(int k = -half; k <= half; ++k) {
-                        int nx = clamp(x + k, 0, W - 1);
+                        int nx = std::clamp(x + k, 0, W - 1);
                         weightedSum += image(nx, y, c) * kernel[k + half];
                     }
                     temp(x, y, c) = round(weightedSum);
@@ -50,7 +52,7 @@ public:
                 for(int c = 0; c < 3; ++c) {
                     double weightedSum = 0.0;
                     for(int k = -half; k <= half; ++k) {
-                        int ny = clamp(y + k, 0, H - 1);
+                        int ny = std::clamp(y + k, 0, H - 1);
                         weightedSum += temp(x, ny, c) * kernel[k + half];
                     }
                     image(x, y, c) = round(weightedSum);

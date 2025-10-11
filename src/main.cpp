@@ -7,6 +7,7 @@
 #include "filters/Filter.h"
 #include "filters/GrayscaleFilter.h"
 #include "filters/InvertFilter.h"
+#include "filters/BlurFilter.h"
 
 #include <iostream>
 #include "gui/RenderGUI.h"
