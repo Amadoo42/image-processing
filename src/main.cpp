@@ -9,8 +9,10 @@
 #include "filters/InvertFilter.h"
 
 #include <iostream>
+#include <string>
+#include <array>
 #include "gui/RenderGUI.h"
-
+// #include "gui/MemoryOperation.h"
 
 int main(int argc, char* argv[]) {
     // The following reference helped a lot to learn how to set up ImGui with SDL2 and OpenGL3.
