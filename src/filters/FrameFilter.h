@@ -12,7 +12,7 @@ public:
         Image frame_image_resized = frame_image;
         ResizeFilter resizeFrame(image.width, image.height);
         resizeFrame.apply(frame_image_resized);
-        int border_size = min(image.width, image.height) / 20;
+        int border_size = std::min(image.width, image.height) / 20;
         Image newImage = frame_image_resized;
         int inner_width = image.width - 2 * border_size;
         int inner_height = image.height - 2 * border_size;

@@ -34,13 +34,13 @@ void filtersMenu(ImageProcessor &processor) {
         
         //TODO : add parameters
         if (ImGui::Button("Crop")) {
-            CropFilter filter(0,0,500,500);
+            CropFilter filter(0, 0, 500, 500);
             processor.applyFilter(filter);
             std::cout << "Crop filter applied." << std::endl;
         }
         
         if (ImGui::Button("Resize")) {
-            ResizeFilter filter;
+            ResizeFilter filter(500, 500);
             processor.applyFilter(filter);
             std::cout << "Resize filter applied." << std::endl;
         }

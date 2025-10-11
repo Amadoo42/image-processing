@@ -33,7 +33,6 @@
 #include <iostream>
 #include "gui/RenderGUI.h"
 
-
 int main(int argc, char* argv[]) {
     // The following reference helped a lot to learn how to set up ImGui with SDL2 and OpenGL3.
     // References: external/imgui/examples/example_sdl2_opengl3/main.cpp

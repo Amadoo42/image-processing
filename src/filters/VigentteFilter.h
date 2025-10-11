@@ -19,9 +19,9 @@ public:
                 double distance = sqrt(dx * dx + dy * dy);
                 double factor = 1.0 - (distance / maxDistance) * vigentteFactor;
 
-                factor = max(0.0, min(1.0, factor));
+                factor = std::max(0.0, std::min(1.0, factor));
 
-                for(int c = 0; c < 3; ++c) image(x, y, c) = clamp((int)(image(x, y, c) * factor), 0, 255);
+                for(int c = 0; c < 3; ++c) image(x, y, c) = std::clamp((int)(image(x, y, c) * factor), 0, 255);
             }
         }
     }
