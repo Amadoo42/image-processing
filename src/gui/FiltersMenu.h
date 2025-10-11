@@ -1,5 +1,6 @@
 #pragma once
 #include "core/ImageProcessor.h"
+
 void filtersMenu(ImageProcessor &processor) {
         if (ImGui::CollapsingHeader("Filters", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::Button("Grayscale")) {
@@ -18,12 +19,6 @@ void filtersMenu(ImageProcessor &processor) {
             BlurFilter filter;
             processor.applyFilter(filter);
             std::cout << "Blur filter applied." << std::endl;
-        }
-
-        if (ImGui::Button("Wave")) {
-            WaveFilter filter;
-            processor.applyFilter(filter);
-            std::cout << "Wave filter applied." << std::endl;
         }
 
         if (ImGui::Button("Black & white")) {
@@ -61,7 +56,8 @@ void filtersMenu(ImageProcessor &processor) {
 
         //TODO: add parameter here
         if (ImGui::Button("Frame")) {
-            FrameFilter filter("../assets/SampleImages/luffy.jpg");
+            Image frame_image("../assets/frames/fancy.png");
+            FrameFilter filter(frame_image);
             processor.applyFilter(filter);
             std::cout << "Frame filter applied." << std::endl;
         }
@@ -79,7 +75,8 @@ void filtersMenu(ImageProcessor &processor) {
         }
 
         if (ImGui::Button("Merge")) {
-            MergeFilter filter("../assets/SampleImages/luffy.jpg");
+            Image merge_image("../assets/SampleImages/luffy.jpg");
+            MergeFilter filter(merge_image);
             processor.applyFilter(filter);
             std::cout << "Merge filter applied." << std::endl;
         }
@@ -90,23 +87,11 @@ void filtersMenu(ImageProcessor &processor) {
             processor.applyFilter(filter);
             std::cout << "Rotate filter applied." << std::endl;
         }
-
-        if (ImGui::Button("Invert")) {
-            InvertFilter filter(90);
-            processor.applyFilter(filter);
-            std::cout << "Invert filter applied." << std::endl;
-        }
         
         if (ImGui::Button("Outline")) {
             OutlineFilter filter;
             processor.applyFilter(filter);
             std::cout << "Outline filter applied." << std::endl;
-        }
-
-        if (ImGui::Button("Rotate")) {
-            RotateFilter filter(90);
-            processor.applyFilter(filter);
-            std::cout << "Rotate filter applied." << std::endl;
         }
 
         if (ImGui::Button("Purple")) {
