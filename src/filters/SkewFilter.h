@@ -9,8 +9,8 @@ private:
     double bilinearInterpolate(const Image &image, double x, double y, int channel) {
         int x1 = x;
         int y1 = y;
-        int x2 = min(x1 + 1, image.width - 1);
-        int y2 = min(y1 + 1, image.height - 1);
+        int x2 = std::min(x1 + 1, image.width - 1);
+        int y2 = std::min(y1 + 1, image.height - 1);
 
         double dx = x - x1;
         double dy = y - y1;

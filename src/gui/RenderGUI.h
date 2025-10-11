@@ -1,5 +1,7 @@
 #pragma once
 #include "FiltersMenu.h"
+#include "LoadTexture.h"
+
 #include "MemoryOperation.h"
 void renderGUI(ImageProcessor &processor) {
     ImGui::Begin("Image Processor");
@@ -52,6 +54,17 @@ void renderGUI(ImageProcessor &processor) {
     if(ImGui::Button("Redo")) {
         if(processor.redo()) std::cout << "Redo successful." << std::endl;
         else std::cout << "Nothing to redo." << std::endl;
+    }
+
+    ImGui::End();
+
+    ImGui::Begin("Image View");
+    const Image& currentImage = processor.getCurrentImage();
+
+    GLuint currentTextureID = 0;
+    if(currentImage.width > 0 && currentImage.height > 0) {
+        if(!currentTextureID) currentTextureID = loadTexture(currentImage);
+        ImGui::Image((void*)(intptr_t)currentTextureID, ImVec2(currentImage.width, currentImage.height));
     }
 
     ImGui::End();
