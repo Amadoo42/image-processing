@@ -4,7 +4,7 @@
 
 #include "MemoryOperation.h"
 void renderGUI(ImageProcessor &processor) {
-    ImGui::Begin("Image Processor");
+    ImGui::Begin("Image Processor", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
     if(ImGui::Button("Load Image")) {
         // #TODO: Open a file dialog here
