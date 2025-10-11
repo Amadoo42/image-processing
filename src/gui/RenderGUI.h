@@ -18,7 +18,7 @@ void renderGUI(ImageProcessor &processor) {
     
     ImGui::Separator();
 
-    filtersMenu();
+    filtersMenu(processor);
 
     ImGui::Separator();
 
