@@ -4,37 +4,40 @@
 
 void filtersMenu(ImageProcessor &processor) {
         if (ImGui::CollapsingHeader("Filters", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::Button("Grayscale")) applyGrayscale();
-        if (ImGui::Button("Invert")) applyInvert();
-        if (ImGui::Button("Blur")) applyBlur();
-        if (ImGui::Button("Black & white")) applyBlackAndWhite();
+
+        FilterParameters filterParams(processor);
+
+        if (ImGui::Button("Grayscale")) filterParams.applyGrayscale();
+        if (ImGui::Button("Invert")) filterParams.applyInvert();
+        if (ImGui::Button("Blur")) filterParams.applyBlur();
+        if (ImGui::Button("Black & white")) filterParams.applyBlackAndWhite();
         //TODO : add parameters
-        if (ImGui::Button("Crop")) applyCrop();
-        if (ImGui::Button("Resize")) applyResize();
+        if (ImGui::Button("Crop")) filterParams.applyCrop();
+        if (ImGui::Button("Resize")) filterParams.applyResize();
         //TODO: ADD SLIDERS
-        if (ImGui::Button("Darken")) applyDarken();
+        if (ImGui::Button("Darken")) filterParams.applyDarken();
         //TODO: ADD Sliders
-        if (ImGui::Button("Lighten")) applyLighten();
+        if (ImGui::Button("Lighten")) filterParams.applyLighten();
         //TODO: add parameter here
-        if (ImGui::Button("Frame")) applyFrame();
-        if (ImGui::Button("Horizontal Flip")) applyHorizontalFlip();
-        if (ImGui::Button("Vertical Flip")) applyVerticalFlip();
-        if (ImGui::Button("Merge")) applyMerge();
+        if (ImGui::Button("Frame")) filterParams.applyFrame();
+        if (ImGui::Button("Horizontal Flip")) filterParams.applyHorizontalFlip();
+        if (ImGui::Button("Vertical Flip")) filterParams.applyVerticalFlip();
+        if (ImGui::Button("Merge")) filterParams.applyMerge();
         //TODO: add parameter
-        if (ImGui::Button("Rotate")) applyRotate();
-        if (ImGui::Button("Outline")) applyOutline();
-        if (ImGui::Button("Purple")) applyPurple();
-        if (ImGui::Button("Infrared")) applyInfrared();
+        if (ImGui::Button("Rotate")) filterParams.applyRotate();
+        if (ImGui::Button("Outline")) filterParams.applyOutline();
+        if (ImGui::Button("Purple")) filterParams.applyPurple();
+        if (ImGui::Button("Infrared")) filterParams.applyInfrared();
         //TODO: add slider
-        if (ImGui::Button("Wave")) applyWave();
-        if (ImGui::Button("Oil Painting")) applyOilPainting();
-        if (ImGui::Button("Retro")) applyRetro();
+        if (ImGui::Button("Wave")) filterParams.applyWave();
+        if (ImGui::Button("Oil Painting")) filterParams.applyOilPainting();
+        if (ImGui::Button("Retro")) filterParams.applyRetro();
         //TODO: Add parameters
-        if (ImGui::Button("Skew")) applySkew();
+        if (ImGui::Button("Skew")) filterParams.applySkew();
         //TODO: Add sliders to the next 4
-        if (ImGui::Button("Warmth")) applyWarmth();
-        if (ImGui::Button("Saturation")) applySaturation();
-        if (ImGui::Button("Contrast")) applyContrast();
-        if (ImGui::Button("Vigentte")) applyVigentte();
+        if (ImGui::Button("Warmth")) filterParams.applyWarmth();
+        if (ImGui::Button("Saturation")) filterParams.applySaturation();
+        if (ImGui::Button("Contrast")) filterParams.applyContrast();
+        if (ImGui::Button("Vigentte")) filterParams.applyVignette();
     }
 }
