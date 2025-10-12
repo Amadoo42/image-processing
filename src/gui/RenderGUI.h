@@ -7,20 +7,10 @@ void renderGUI(ImageProcessor &processor) {
     ImGui::Begin("Image Processor", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
     if(ImGui::Button("Load Image")) {
-        bool done = 0;
-        while(!done) {
-            std::string selected = openFileDialog_Linux();
-            bool manual_popup = 0;
-            char manual_buf[1024] = "";
-
-            if(!selected.empty()) {
-                // #TODO: Make sure the directory leads to an image
-                // std::cout << "Selected : " << selected << '\n';
-                std::cout << "Image loaded successfully!\n";
-                processor.loadImage(selected);
-                done = 1;
-            }
-            else std::cout << "Try again\n";
+        std::string selected = openFileDialog_Linux();
+        if(!selected.empty()) {
+            std::cout << "Image loaded successfully!\n";
+            processor.loadImage(selected);
         }
     }
 
