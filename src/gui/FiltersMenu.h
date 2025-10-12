@@ -14,7 +14,7 @@ void filtersMenu(ImageProcessor &processor) {
                 func();
             }
             count++;
-            if (count % 4 != 0) ImGui::SameLine(); // 4 per row
+            if (count % 1 != 0) ImGui::SameLine(); // 4 per row
         };
 
         addButton("Grayscale", [&]{
@@ -65,7 +65,7 @@ void filtersMenu(ImageProcessor &processor) {
             std::cout << "Lighten filter applied." << std::endl;
         });
 
-        addButton("Frame", [&]{
+        addButton("Add Frame", [&]{
             Image frame_image("../assets/frames/fancy.png");
             FrameFilter filter(frame_image);
             processor.applyFilter(filter);
@@ -163,10 +163,10 @@ void filtersMenu(ImageProcessor &processor) {
             std::cout << "Contrast filter applied." << std::endl;
         });
 
-        addButton("Vignetting", [&]{
+        addButton("Vigentte", [&]{
             VigentteFilter filter;
             processor.applyFilter(filter);
-            std::cout << "Vignetting filter applied." << std::endl;
+            std::cout << "Vigentte filter applied." << std::endl;
         });
     }
 }
