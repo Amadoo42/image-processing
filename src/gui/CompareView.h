@@ -81,7 +81,8 @@ void renderCompareView(ImageProcessor &processor, float &zoom_level, ImVec2 &pan
 
    
     char pctbuf[32];
-    std::snprintf(pctbuf, sizeof(pctbuf), "Before: %.0f%%", split_ratio * 100.0f);
+    float x = 1.0 - split_ratio;
+    std::snprintf(pctbuf, sizeof(pctbuf), "After: %.0f%%", x * 100.0f);
     ImVec2 txt_sz = ImGui::CalcTextSize(pctbuf);
     ImVec2 txt_pos = ImVec2(mid_x + 8.0f, p_min.y + 8.0f);
     dl->AddRectFilled(ImVec2(txt_pos.x - 6.0f, txt_pos.y - 4.0f), ImVec2(txt_pos.x + txt_sz.x + 6.0f, txt_pos.y + txt_sz.y + 4.0f), IM_COL32(0,0,0,160), 4.0f);
