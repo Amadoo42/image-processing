@@ -2,12 +2,15 @@
 #include "Filter.h"
 
 class WaveFilter : public Filter {
-public:    
+private:
+float amplitude, wavelength;
+public:
+    WaveFilter(float a, float w): amplitude(a), wavelength(w) {}
     void apply(Image &image) override {
         Image newImage(image);
         for(int i = 0; i < image.width; i++){
             for(int j = 0; j < image.height; j++){
-                int srci = i + 10.0 * sin(2 * M_PI * j / 80.0);
+                int srci = i + amplitude * sin(2 * M_PI * j / wavelength);
                 int srcj = j;
 
 

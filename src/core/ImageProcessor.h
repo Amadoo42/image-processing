@@ -1,10 +1,12 @@
 // This will basically manage the current image and provide undo/redo functionality
 #pragma once
 
+//#include "../gui/RenderGUI.h"
 #include "../external/Image_Class.h"
 #include "../filters/Filter.h"
 #include <vector>
 #include <string>
+
 
 class ImageProcessor {
 private:
@@ -41,6 +43,7 @@ public:
         pushUndo();
         redoHistory.clear();
         filter.apply(currentImage);
+        //textureNeedsUpdate = true;
     } 
 
     bool undo() {

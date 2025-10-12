@@ -136,7 +136,7 @@ void renderGUI(ImageProcessor &processor) {
     ImGui::BeginChild("Filters Panel", ImVec2(0, 0), true);
     ImGui::Text("Filters Panel");
     ImGui::Separator();
-    filtersMenu(processor);
+    filtersMenu(processor, textureNeedsUpdate);
     ImGui::EndChild();
 
     ImGui::Columns(1);
