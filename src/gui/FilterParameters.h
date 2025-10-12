@@ -27,7 +27,7 @@
 
 class FilterParameters {
 public:
-    FilterParameters(ImageProcessor &proc) : processor(proc) {};
+    FilterParameters(ImageProcessor &processor) : processor(processor) {};
 
     void applyGrayscale() {
         GrayscaleFilter filter;
@@ -148,31 +148,51 @@ public:
     }
     void applyWarmth(bool &showWarmthWindow) {
         static float factor = 1.0f;
+        static Image originalImage;
+        static bool init = false;
         if (showWarmthWindow) {
             ImGui::Begin("Warmth Parameters", &showWarmthWindow);
 
+            if(!init){
+                originalImage = processor.getCurrentImage();
+                init = true;
+            }
+
+
             ImGui::Text("Adjust warmth factor:");
             ImGui::SameLine();
-            ImGui::SliderFloat("##FactorSlider", &factor, 0.1f, 5.0f, "%.2f");
-            ImGui::SameLine();
-            ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f");
+            bool changed = false;
+            if(ImGui::SliderFloat("##FactorSlider", &factor, 0.1f, 5.0f, "%.2f"))changed = true;
 
+            
+            ImGui::SameLine();
+            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+
+            if(changed){
+                processor.setImage(originalImage);
+                WarmthFilter filter(factor);
+                processor.applyFilter(filter);
+            }
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
                 WarmthFilter filter(factor);
+                processor.setImage(originalImage);
                 processor.applyFilter(filter);
                 std::cout << "Warmth filter applied with factor: " << factor << std::endl;
-                showWarmthWindow = false; // close after applying
+                showWarmthWindow = false;
+                init = false;
             }
 
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
+                processor.setImage(originalImage);
                 showWarmthWindow = false;
+                init = false;
             }
 
             ImGui::End();
-        }
+        }else init = false;
     }
 
 private:
