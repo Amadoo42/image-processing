@@ -60,5 +60,5 @@ public:
     }
 
     const Image& getCurrentImage() const { return currentImage; }
-    void setImage(Image &newImage){currentImage = newImage;}
+    void setImage(Image &newImage) { currentImage = newImage; }
 };

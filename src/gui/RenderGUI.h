@@ -8,6 +8,8 @@ static bool is_dark_theme = true;
 static float zoom_level = 1.0f;
 static ImVec2 pan_offset = ImVec2(0, 0);
 static bool compareMode = false;
+static GLuint currentTextureID = 0;
+static bool textureNeedsUpdate = false;
 
 void renderGUI(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();
@@ -30,6 +32,7 @@ void renderGUI(ImageProcessor &processor) {
                 if(!selected.empty()) {
                     std::cout << "Image loaded successfully!\n";
                     processor.loadImage(selected);
+                    textureNeedsUpdate = true;
                 }
             }
             if(ImGui::MenuItem("Save Image As...")) {
@@ -61,6 +64,7 @@ void renderGUI(ImageProcessor &processor) {
         if(!selected.empty()) {
             std::cout << "Image loaded successfully!\n";
             processor.loadImage(selected);
+            textureNeedsUpdate = true;
         }
     }
     if(ImGui::Button("Save Image")) {
@@ -83,11 +87,17 @@ void renderGUI(ImageProcessor &processor) {
     ImGui::Separator();
     ImGui::Text("History:");
     if(ImGui::Button("Undo", ImVec2(-1, 0))) {
-        if(processor.undo()) std::cout << "Undo successful." << std::endl;
+        if(processor.undo()) {
+            std::cout << "Undo successful." << std::endl;
+            textureNeedsUpdate = true;
+        }
         else std::cout << "Nothing to undo." << std::endl;
     }
     if(ImGui::Button("Redo", ImVec2(-1, 0))) {
-        if(processor.redo()) std::cout << "Redo successful." << std::endl;
+        if(processor.redo()) {
+            std::cout << "Redo successful." << std::endl;
+            textureNeedsUpdate = true;
+        }
         else std::cout << "Nothing to redo." << std::endl;
     }
     ImGui::EndChild();
@@ -95,11 +105,13 @@ void renderGUI(ImageProcessor &processor) {
 
     ImGui::BeginChild("Image View", ImVec2(0, 0), true);
     const Image& currentImage = processor.getCurrentImage();
-    GLuint currentTextureID;
     if(currentImage.width > 0 && currentImage.height > 0) {
-        currentTextureID = loadTexture(currentImage);
+        if(textureNeedsUpdate) {
+            if(currentTextureID != 0) glDeleteTextures(1, &currentTextureID);
+            currentTextureID = loadTexture(currentImage);
+            textureNeedsUpdate = false;
+        }
         if(!compareMode) {
-
             if(ImGui::IsWindowHovered() && io.MouseWheel != 0.0f) {
                 zoom_level += io.MouseWheel * 0.1f;
                 zoom_level = std::clamp(zoom_level, 0.1f, 10.0f);
@@ -114,7 +126,7 @@ void renderGUI(ImageProcessor &processor) {
             
             ImGui::Image((void*)(intptr_t)currentTextureID, zoomed_size);
             ImGui::SetCursorScreenPos(image_pos);
-        }else {
+        } else {
             renderCompareView(processor, zoom_level, pan_offset);
         }
     }
