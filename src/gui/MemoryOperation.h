@@ -10,6 +10,7 @@ static std::string runCapture1(const char* cmd) {
     if (!result.empty() && result.back() == '\n') result.pop_back();
     return result;
 }
+
 std::string openFileDialog_Linux() {
     // try kdialog first
     std::string out = runCapture1("which kdialog >/dev/null 2>&1 && kdialog --getopenfilename 2>/dev/null || true");
@@ -17,6 +18,17 @@ std::string openFileDialog_Linux() {
     // now try zenity cuz kdialog failed for some reason
     out = runCapture1("which zenity >/dev/null 2>&1 && "
         "zenity --file-selection --title=\"Select an image\" --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.gif' 2>/dev/null || true");
+    if(!out.empty()) return out;
+    return "";
+}
+
+std::string saveFileDialog_Linux() {
+    // try kdialog first
+    std::string out = runCapture1("which kdialog >/dev/null 2>&1 && kdialog --getsavefilename 2>/dev/null || true");
+    if(!out.empty()) return out;
+    // now try zenity cuz kdialog failed for some reason
+    out = runCapture1("which zenity >/dev/null 2>&1 && "
+        "zenity --file-selection --save --title=\"Save an image\" --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.gif' 2>/dev/null || true");
     if(!out.empty()) return out;
     return "";
 }

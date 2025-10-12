@@ -1,8 +1,8 @@
 #pragma once
 #include "FiltersMenu.h"
 #include "LoadTexture.h"
-
 #include "MemoryOperation.h"
+
 void renderGUI(ImageProcessor &processor) {
     ImGui::Begin("Image Processor", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
@@ -16,8 +16,11 @@ void renderGUI(ImageProcessor &processor) {
 
     ImGui::SameLine();
     if(ImGui::Button("Save Image")) {
-        if(processor.saveImage("output.jpg")) std::cout << "Image saved to output.jpg" << std::endl;
-        else std::cerr << "Failed to save image." << std::endl;
+        std::string selected = saveFileDialog_Linux();
+        if(!selected.empty()) {
+            if(processor.saveImage(selected)) std::cout << "Image saved to " << selected << std::endl;
+            else std::cerr << "Failed to save image." << std::endl;
+        }
     }
     
     ImGui::Separator();
