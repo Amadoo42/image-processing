@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cstdio>
 
-void renderCompareView(ImageProcessor &processor, float zoom_level, ImVec2 &pan_offset) {
+void renderCompareView(ImageProcessor &processor, float &zoom_level, ImVec2 &pan_offset) {
     const Image& currentImage = processor.getCurrentImage();
     if (currentImage.width <= 0 || currentImage.height <= 0) return;
 
