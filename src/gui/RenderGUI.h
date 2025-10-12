@@ -4,6 +4,8 @@
 #include "MemoryOperation.h"
 
 static bool is_dark_theme = true;
+static float zoom_level = 1.0f;
+static ImVec2 pan_offset = ImVec2(0, 0);
 
 void renderGUI(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();
@@ -91,7 +93,20 @@ void renderGUI(ImageProcessor &processor) {
     GLuint currentTextureID;
     if(currentImage.width > 0 && currentImage.height > 0) {
         currentTextureID = loadTexture(currentImage);
-        ImGui::Image((void*)(intptr_t)currentTextureID, ImVec2(currentImage.width, currentImage.height));
+        if(ImGui::IsWindowHovered() && io.MouseWheel != 0.0f) {
+            zoom_level += io.MouseWheel * 0.1f;
+            zoom_level = std::clamp(zoom_level, 0.1f, 10.0f);
+        }
+        if(ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+            pan_offset.x += io.MouseDelta.x;
+            pan_offset.y += io.MouseDelta.y;
+        }
+        ImVec2 zoomed_size = ImVec2(currentImage.width * zoom_level, currentImage.height * zoom_level);
+        ImVec2 image_pos = ImGui::GetCursorScreenPos();
+        ImGui::SetCursorScreenPos(ImVec2(image_pos.x + pan_offset.x, image_pos.y + pan_offset.y));
+
+        ImGui::Image((void*)(intptr_t)currentTextureID, zoomed_size);
+        ImGui::SetCursorScreenPos(image_pos);
     }
     ImGui::EndChild();
     ImGui::NextColumn();
