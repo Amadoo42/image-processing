@@ -3,13 +3,15 @@
 #include "LoadTexture.h"
 #include "MemoryOperation.h"
 
+static bool is_dark_theme = true;
+
 void renderGUI(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();
     const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 
     ImGui::SetNextWindowPos(main_viewport->WorkPos);
     ImGui::SetNextWindowSize(main_viewport->WorkSize);
-    // ImGui::SetNextWindowViewport(main_viewport->ID);
+
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -63,6 +65,12 @@ void renderGUI(ImageProcessor &processor) {
             if (processor.saveImage(selected)) std::cout << "Image saved to " << selected << std::endl;
             else std::cerr << "Failed to save image." << std::endl;
         }
+    }
+    ImGui::Text("Theme:");
+    if(ImGui::Button(is_dark_theme ? "Switch to Light Theme" : "Switch to Dark Theme")) {
+        is_dark_theme = !is_dark_theme;
+        if(is_dark_theme) ImGui::StyleColorsDark();
+        else ImGui::StyleColorsLight();
     }
 
     ImGui::Separator();
