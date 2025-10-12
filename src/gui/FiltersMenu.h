@@ -1,6 +1,9 @@
 #pragma once
 #include "core/ImageProcessor.h"
 #include "FilterParameters.h"
+#include "RenderGUI.h"
+
+extern bool textureNeedsUpdate;
 
 void filtersMenu(ImageProcessor &processor) {
     FilterParameters para(processor);
@@ -12,6 +15,7 @@ void filtersMenu(ImageProcessor &processor) {
         auto addButton = [&](const char* label, auto&& func) {
             if (ImGui::Button(label, ImVec2(150, 0))) { // optional: fixed width
                 func();
+                textureNeedsUpdate = true;
             }
             count++;
             if (count % 1 != 0) ImGui::SameLine(); // 4 per row

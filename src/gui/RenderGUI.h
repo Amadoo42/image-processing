@@ -9,7 +9,7 @@ static float zoom_level = 1.0f;
 static ImVec2 pan_offset = ImVec2(0, 0);
 static bool compareMode = false;
 static GLuint currentTextureID = 0;
-static bool textureNeedsUpdate = false;
+bool textureNeedsUpdate = false;
 
 void renderGUI(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();
