@@ -70,7 +70,7 @@ public:
         std::cout << "Applied Lighten Filter\n";
     }
     void applyFrame() {
-        Image frame_image("../assets/fancy.png");
+        Image frame_image("assets/fancy.png");
         FrameFilter filter(frame_image);
         processor.applyFilter(filter);
         std::cout << "Applied Frame Filter\n";
@@ -86,7 +86,7 @@ public:
         std::cout << "Applied Vertical Flip Filter\n";
     }
     void applyMerge() {
-        Image merge_image("../assets/SampleImages/luffy.jpg");
+        Image merge_image("assets/SampleImages/luffy.jpg");
         MergeFilter filter(merge_image); 
         processor.applyFilter(filter);
         std::cout << "Applied Merge Filter\n";

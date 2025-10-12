@@ -70,7 +70,7 @@ void filtersMenu(ImageProcessor &processor) {
         });
 
         addButton("Add Frame", [&]{
-            Image frame_image("../assets/frames/fancy.png");
+            Image frame_image("assets/frames/fancy.jpg");
             FrameFilter filter(frame_image);
             processor.applyFilter(filter);
             std::cout << "Frame filter applied." << std::endl;
@@ -89,7 +89,7 @@ void filtersMenu(ImageProcessor &processor) {
         });
 
         addButton("Merge", [&]{
-            Image merge_image("../assets/SampleImages/luffy.jpg");
+            Image merge_image("assets/SampleImages/luffy.jpg");
             MergeFilter filter(merge_image);
             processor.applyFilter(filter);
             std::cout << "Merge filter applied." << std::endl;

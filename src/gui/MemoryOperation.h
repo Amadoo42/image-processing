@@ -5,7 +5,7 @@
 static std::string runCapture1(const char* cmd) {
     std::array<char, 4096> buf;
     std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(cmd, "r"), (int (*)(FILE*))pclose);
     if (!pipe) return {};
     while (fgets(buf.data(), buf.size(), pipe.get()) != nullptr) result += buf.data();
     if (!result.empty() && result.back() == '\n') result.pop_back();
