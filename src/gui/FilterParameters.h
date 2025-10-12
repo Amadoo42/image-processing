@@ -146,10 +146,33 @@ public:
         processor.applyFilter(filter);
         std::cout << "Applied Vignette Filter\n";
     }
-    void applyWarmth() {
-        WarmthFilter filter(1.5); 
-        processor.applyFilter(filter);
-        std::cout << "Applied Warmth Filter\n";
+    void applyWarmth(bool &showWarmthWindow) {
+        static float factor = 1.0f;
+        if (showWarmthWindow) {
+            ImGui::Begin("Warmth Parameters", &showWarmthWindow);
+
+            ImGui::Text("Adjust warmth factor:");
+            ImGui::SameLine();
+            ImGui::SliderFloat("##FactorSlider", &factor, 0.1f, 5.0f, "%.2f");
+            ImGui::SameLine();
+            ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f");
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Apply")) {
+                WarmthFilter filter(factor);
+                processor.applyFilter(filter);
+                std::cout << "Warmth filter applied with factor: " << factor << std::endl;
+                showWarmthWindow = false; // close after applying
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel")) {
+                showWarmthWindow = false;
+            }
+
+            ImGui::End();
+        }
     }
 
 private:
