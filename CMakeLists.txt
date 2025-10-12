@@ -27,7 +27,6 @@ set(IMGUI_SOURCES
 
 set(PROJECT_SOURCES
     src/main.cpp
-    src/gui/FilterParameters.cpp
 )
 
 add_executable(image_processor
