@@ -66,7 +66,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if(show){
-            ImGui::Begin("Oil Painting Parameters", &show);
+            ImGui::Begin("Oil Painting Parameters", &show); // Wtf???
 
             if(!init){
                 originalImage = processor.getCurrentImage();

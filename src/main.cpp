@@ -29,16 +29,12 @@
 #include "filters/VerticalFlipFilter.h"
 #include "filters/VigentteFilter.h"
 #include "filters/WarmthFilter.h"
-#include "filters/WaveFilter.h"
-
 #include <iostream>
 #include <string>
 #include <array>
 #include "gui/RenderGUI.h"
 
 int main(int argc, char* argv[]) {
-    // The following reference helped a lot to learn how to set up ImGui with SDL2 and OpenGL3.
-    // References: external/imgui/examples/example_sdl2_opengl3/main.cpp
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         printf("Error: %s\n", SDL_GetError());
         return -1;
@@ -79,6 +75,46 @@ int main(int argc, char* argv[]) {
             ImGui_ImplSDL2_ProcessEvent(&event);
             if(event.type == SDL_QUIT) done = true;
             if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) done = true;
+            if (event.type == SDL_KEYDOWN) {
+                if (io.KeyCtrl) {
+                    if (event.key.keysym.sym == SDLK_o) {
+                        std::string selected = openFileDialog_Linux();
+                        if(!selected.empty()) {
+                            imageProcessor.loadImage(selected);
+                            textureNeedsUpdate = true;
+                            statusBarMessage = "Image loaded successfully!";
+                        } else {
+                            statusBarMessage = "Failed to load image.";
+                        }
+                    }
+                    if (event.key.keysym.sym == SDLK_s) {
+                        std::string selected = saveFileDialog_Linux();
+                        if (!selected.empty()) {
+                            if (imageProcessor.saveImage(selected)) {
+                                statusBarMessage = "Image saved to " + selected;
+                            } else {
+                                statusBarMessage = "Failed to save image.";
+                            }
+                        }
+                    }
+                    if (event.key.keysym.sym == SDLK_z) {
+                        if(imageProcessor.undo()) {
+                            textureNeedsUpdate = true;
+                            statusBarMessage = "Undo successful.";
+                        } else {
+                            statusBarMessage = "Nothing to undo.";
+                        }
+                    }
+                    if (event.key.keysym.sym == SDLK_y) {
+                        if(imageProcessor.redo()) {
+                            textureNeedsUpdate = true;
+                            statusBarMessage = "Redo successful.";
+                        } else {
+                            statusBarMessage = "Nothing to redo.";
+                        }
+                    }
+                }
+            }
         }
         
         ImGui_ImplOpenGL3_NewFrame();
