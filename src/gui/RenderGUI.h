@@ -1,14 +1,20 @@
 #pragma once
 #include "FiltersMenu.h"
+#include "Icons.h"
+#include "FilterDefs.h"
 #include "LoadTexture.h"
 #include "MemoryOperation.h"
 #include "CompareView.h"
 #include <string>
 
 static bool is_dark_theme = true;
+static int preferences_theme = 1; // 0 Light, 1 Dark, 2 Classic
 static float zoom_level = 1.0f;
 static ImVec2 pan_offset = ImVec2(0, 0);
 static bool compareMode = false;
+static bool showPreferencesWindow = false;
+static bool showAboutWindow = false;
+static FilterType gSelectedFilter = FilterType::None;
 static GLuint currentTextureID = 0;
 bool textureNeedsUpdate = false;
 static std::string statusBarMessage = "Welcome to Image Processor!";
@@ -89,7 +95,7 @@ void renderGUI(ImageProcessor &processor) {
 
     if(ImGui::BeginMainMenuBar()) {
         if(ImGui::BeginMenu("File")) {
-            if(ImGui::MenuItem("Load Image...")) {
+            if(ImGui::MenuItem(iconLabel(ICON_FA_FOLDER_OPEN, "Open").c_str(), "Ctrl+O")) {
                 std::string selected = openFileDialog_Linux();
                 if(!selected.empty()) {
                     std::cout << "Image loaded successfully!\n";
@@ -102,7 +108,7 @@ void renderGUI(ImageProcessor &processor) {
                     statusBarMessage = "Failed to load image.";
                 }
             }
-            if(ImGui::MenuItem("Save Image As...")) {
+            if(ImGui::MenuItem(iconLabel(ICON_FA_FLOPPY_DISK, "Save").c_str(), "Ctrl+S")) {
                 std::string selected = saveFileDialog_Linux();
                 if (!selected.empty()) {
                     if (processor.saveImage(selected)) {
@@ -115,24 +121,122 @@ void renderGUI(ImageProcessor &processor) {
                     }
                 }
             }
+            if(ImGui::MenuItem(iconLabel(ICON_FA_FLOPPY_DISK_CIRCLE_ARROW_RIGHT, "Save As").c_str())) {
+                std::string selected = saveFileDialog_Linux();
+                if (!selected.empty()) {
+                    if (processor.saveImage(selected)) {
+                        std::cout << "Image saved to " << selected << std::endl;
+                        statusBarMessage = "Image saved to " + selected;
+                    }
+                    else {
+                        std::cerr << "Failed to save image." << std::endl;
+                        statusBarMessage = "Failed to save image.";
+                    }
+                }
+            }
+            if (ImGui::MenuItem(iconLabel(ICON_FA_RIGHT_FROM_BRACKET, "Exit").c_str())) {
+                statusBarMessage = "Use window close button to exit.";
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Edit")) {
+            if (ImGui::MenuItem(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str(), "Ctrl+Z")) {
+                if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; }
+                else { statusBarMessage = "Nothing to undo."; }
+            }
+            if (ImGui::MenuItem(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str(), "Ctrl+Y")) {
+                if(processor.redo()) { textureNeedsUpdate = true; statusBarMessage = "Redo successful."; }
+                else { statusBarMessage = "Nothing to redo."; }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(iconLabel(ICON_FA_GEAR, "Preferences").c_str())) {
+                showPreferencesWindow = true;
+            }
+            if (ImGui::BeginMenu("Filters")) {
+                if (ImGui::BeginMenu("Basic")) {
+                    if (ImGui::MenuItem("Grayscale", nullptr, gSelectedFilter == FilterType::Grayscale)) gSelectedFilter = FilterType::Grayscale;
+                    if (ImGui::MenuItem("Invert", nullptr, gSelectedFilter == FilterType::Invert)) gSelectedFilter = FilterType::Invert;
+                    if (ImGui::MenuItem("Black & White", nullptr, gSelectedFilter == FilterType::BlackAndWhite)) gSelectedFilter = FilterType::BlackAndWhite;
+                    if (ImGui::MenuItem("Brightness", nullptr, gSelectedFilter == FilterType::Brightness)) gSelectedFilter = FilterType::Brightness;
+                    if (ImGui::MenuItem("Contrast", nullptr, gSelectedFilter == FilterType::Contrast)) gSelectedFilter = FilterType::Contrast;
+                    if (ImGui::MenuItem("Saturation", nullptr, gSelectedFilter == FilterType::Saturation)) gSelectedFilter = FilterType::Saturation;
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Transform")) {
+                    if (ImGui::MenuItem("Crop", nullptr, gSelectedFilter == FilterType::Crop)) gSelectedFilter = FilterType::Crop;
+                    if (ImGui::MenuItem("Resize", nullptr, gSelectedFilter == FilterType::Resize)) gSelectedFilter = FilterType::Resize;
+                    if (ImGui::MenuItem("Horizontal Flip", nullptr, gSelectedFilter == FilterType::HorizontalFlip)) gSelectedFilter = FilterType::HorizontalFlip;
+                    if (ImGui::MenuItem("Vertical Flip", nullptr, gSelectedFilter == FilterType::VerticalFlip)) gSelectedFilter = FilterType::VerticalFlip;
+                    if (ImGui::MenuItem("Rotate", nullptr, gSelectedFilter == FilterType::Rotate)) gSelectedFilter = FilterType::Rotate;
+                    if (ImGui::MenuItem("Skew", nullptr, gSelectedFilter == FilterType::Skew)) gSelectedFilter = FilterType::Skew;
+                    if (ImGui::MenuItem("Merge", nullptr, gSelectedFilter == FilterType::Merge)) gSelectedFilter = FilterType::Merge;
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Effects")) {
+                    if (ImGui::MenuItem("Blur", nullptr, gSelectedFilter == FilterType::Blur)) gSelectedFilter = FilterType::Blur;
+                    if (ImGui::MenuItem("Frame", nullptr, gSelectedFilter == FilterType::Frame)) gSelectedFilter = FilterType::Frame;
+                    if (ImGui::MenuItem("Outline", nullptr, gSelectedFilter == FilterType::Outline)) gSelectedFilter = FilterType::Outline;
+                    if (ImGui::MenuItem("Purple", nullptr, gSelectedFilter == FilterType::Purple)) gSelectedFilter = FilterType::Purple;
+                    if (ImGui::MenuItem("Infrared", nullptr, gSelectedFilter == FilterType::Infrared)) gSelectedFilter = FilterType::Infrared;
+                    if (ImGui::MenuItem("Wave", nullptr, gSelectedFilter == FilterType::Wave)) gSelectedFilter = FilterType::Wave;
+                    if (ImGui::MenuItem("Oil Painting", nullptr, gSelectedFilter == FilterType::OilPainting)) gSelectedFilter = FilterType::OilPainting;
+                    if (ImGui::MenuItem("Retro", nullptr, gSelectedFilter == FilterType::Retro)) gSelectedFilter = FilterType::Retro;
+                    if (ImGui::MenuItem("Vignette", nullptr, gSelectedFilter == FilterType::Vignette)) gSelectedFilter = FilterType::Vignette;
+                    if (ImGui::MenuItem("Warmth", nullptr, gSelectedFilter == FilterType::Warmth)) gSelectedFilter = FilterType::Warmth;
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("View")) {
+            if (ImGui::MenuItem(iconLabel(ICON_FA_SQUARE_SPLIT, "Compare Side-by-Side").c_str(), nullptr, compareMode)) {
+                compareMode = !compareMode;
+            }
             ImGui::EndMenu();
         }
         if(ImGui::BeginMenu("Help")) {
-            ImGui::MenuItem("About");
+            if (ImGui::MenuItem(iconLabel(ICON_FA_QUESTION_CIRCLE, "About").c_str())) {
+                showAboutWindow = true;
+            }
+            ImGui::MenuItem(iconLabel(ICON_FA_BOOK, "Documentation").c_str(), nullptr, false, false);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
     }
 
+    // Preferences window
+    if (showPreferencesWindow) {
+        if (ImGui::Begin("Preferences", &showPreferencesWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
+            const char* themes[] = {"Light", "Dark", "Classic"};
+            ImGui::Text("Theme");
+            ImGui::Separator();
+            ImGui::Combo("Color Theme", &preferences_theme, themes, IM_ARRAYSIZE(themes));
+            if (ImGui::Button("Apply Theme")) {
+                if (preferences_theme == 0) { ImGui::StyleColorsLight(); is_dark_theme = false; }
+                else if (preferences_theme == 1) { setModernStyle(); is_dark_theme = true; }
+                else { ImGui::StyleColorsClassic(); is_dark_theme = false; }
+            }
+        }
+        ImGui::End();
+    }
+
+    if (showAboutWindow) {
+        if (ImGui::Begin("About", &showAboutWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Image Processing GUI");
+            ImGui::Text("Using Dear ImGui");
+        }
+        ImGui::End();
+    }
+
     ImGui::Columns(3, "main_layout", false);
-    ImGui::SetColumnWidth(0, 250.0f); 
-    ImGui::SetColumnWidth(1, ImGui::GetWindowWidth() - 500.0f); 
-    ImGui::SetColumnWidth(2, 250.0f); 
+    ImGui::SetColumnWidth(0, 250.0f);
+    ImGui::SetColumnWidth(2, 300.0f);
 
     ImGui::BeginChild("Tool Panel", ImVec2(0, 0), true);
-    ImGui::Text("Tool Panel:");
+    ImGui::Text("Tools");
     ImGui::Separator();
-    if(ImGui::Button("Load Image")) {
+    if(ImGui::Button("Open")) {
         std::string selected = openFileDialog_Linux();
         if(!selected.empty()) {
             std::cout << "Image loaded successfully!\n";
@@ -145,7 +249,7 @@ void renderGUI(ImageProcessor &processor) {
             statusBarMessage = "Failed to load image.";
         }
     }
-    if(ImGui::Button("Save Image")) {
+    if(ImGui::Button("Save")) {
         std::string selected = saveFileDialog_Linux();
         if (!selected.empty()) {
             if (processor.saveImage(selected)) {
@@ -158,15 +262,7 @@ void renderGUI(ImageProcessor &processor) {
             }
         }
     }
-     if (ImGui::Button(compareMode ? "Compare: ON" : "Compare: OFF")) {
-        compareMode = !compareMode;
-    }
-    ImGui::Text("Theme:");
-    if(ImGui::Button(is_dark_theme ? "Switch to Light Theme" : "Switch to Dark Theme")) {
-        is_dark_theme = !is_dark_theme;
-        if(is_dark_theme) setModernStyle();
-        else ImGui::StyleColorsLight();
-    }
+    if (ImGui::Button(compareMode ? "Compare: ON" : "Compare: OFF")) { compareMode = !compareMode; }
     ImGui::Separator();
     if(ImGui::Button("Reset Zoom & Pan", ImVec2(-1, 0))) {
         zoom_level = 1.0f;
@@ -237,7 +333,7 @@ void renderGUI(ImageProcessor &processor) {
     ImGui::BeginChild("Filters Panel", ImVec2(0, 0), true);
     ImGui::Text("Filters Panel");
     ImGui::Separator();
-    filtersMenu(processor, textureNeedsUpdate);
+    filtersMenu(processor, textureNeedsUpdate, gSelectedFilter);
     ImGui::EndChild();
 
     ImGui::Columns(1);
