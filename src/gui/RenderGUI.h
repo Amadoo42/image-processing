@@ -241,9 +241,117 @@ void renderGUI(ImageProcessor &processor) {
     ImGui::EndChild();
 
     ImGui::Columns(1);
-    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing());
+    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing() - 100.0f);
     ImGui::BeginChild("Status Bar", ImVec2(ImGui::GetWindowWidth(), 20), false);
     ImGui::Text("%s", statusBarMessage.c_str());
     ImGui::EndChild();
     ImGui::End();
+
+    
+    {
+        const int maxThumbs = 6;
+        const ImVec2 thumbSize = ImVec2(120, 72);
+        static std::vector<GLuint> historyTexCache;
+        static std::vector<Image> historyImageCache;
+        static bool cacheValid = false;
+
+        static bool showVersionPreview = false;
+        static GLuint previewTex = 0;
+        static Image previewImage;
+
+        if (textureNeedsUpdate || !cacheValid) {
+            if (!historyTexCache.empty()) {
+                for (GLuint t : historyTexCache) {
+                    if (t != 0) glDeleteTextures(1, &t);
+                }
+                historyTexCache.clear();
+            }
+            historyImageCache.clear();
+
+            for (int i = 1; i <= maxThumbs; ++i) {
+               
+                bool ok = true;
+                ImageProcessor copyProc;
+                try {
+                    copyProc = processor; 
+                } catch (...) {
+                    ok = false;
+                }
+                if (!ok) break;
+
+                for (int s = 0; s < i; ++s) {
+                    if (!copyProc.undo()) { ok = false; break; }
+                }
+                if (!ok) break;
+
+                const Image &histImg = copyProc.getCurrentImage();
+                if (histImg.width > 0 && histImg.height > 0) {
+                    historyImageCache.push_back(histImg);
+                    GLuint tex = loadTexture(histImg); 
+                    historyTexCache.push_back(tex);
+                } else {
+                    break;
+                }
+            }
+
+            cacheValid = true;
+            textureNeedsUpdate = true;
+        }
+
+        ImVec2 overlayPos = ImVec2(main_viewport->WorkPos.x + 10.0f,
+                                   main_viewport->WorkPos.y + main_viewport->WorkSize.y - (thumbSize.y + 20.0f));
+        ImGui::SetNextWindowPos(overlayPos, ImGuiCond_Always);
+        ImGui::SetNextWindowBgAlpha(0.0f);
+        if (ImGui::Begin("History Thumbs Overlay", nullptr,
+                         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
+                         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing)) {
+
+            ImGui::BeginGroup();
+            ImGui::Text("History:");
+            ImGui::SameLine();
+
+            for (size_t i = 0; i < historyTexCache.size(); ++i) {
+                GLuint tex = historyTexCache[i];
+                char idbuf[32];
+                std::snprintf(idbuf, sizeof(idbuf), "hist_thumb_%zu", i);
+
+                if (ImGui::ImageButton(idbuf, (void*)(intptr_t)tex, thumbSize)) {
+                    previewImage = historyImageCache[i];
+                    previewTex = tex;
+                    showVersionPreview = true;
+                    ImGui::OpenPopup("Version Preview");
+                }
+                ImGui::SameLine();
+            }
+            ImGui::EndGroup();
+
+            ImGui::End();
+        }
+
+        if (showVersionPreview) {
+            if (ImGui::BeginPopupModal("Version Preview", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                ImVec2 avail = ImGui::GetContentRegionAvail();
+                float maxW = std::min(avail.x, 800.0f);
+                float maxH = 600.0f;
+                float iw = (float)previewImage.width;
+                float ih = (float)previewImage.height;
+                float scale = 1.0f;
+                if (iw > 0 && ih > 0) scale = std::min(maxW / iw, maxH / ih);
+                if (scale <= 0.0f) scale = 1.0f;
+                ImVec2 previewSize = ImVec2(iw * scale, ih * scale);
+
+                if (previewTex != 0 && previewImage.width > 0 && previewImage.height > 0) {
+                    ImGui::Image((void*)(intptr_t)previewTex, previewSize);
+                } else {
+                    ImGui::Text("Unable to display preview.");
+                }
+
+                if (ImGui::Button("Close")) {
+                    ImGui::CloseCurrentPopup();
+                    showVersionPreview = false;
+                }
+                ImGui::EndPopup();
+            }
+        }
+    }
 }
