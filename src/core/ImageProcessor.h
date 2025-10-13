@@ -1,7 +1,6 @@
 // This will basically manage the current image and provide undo/redo functionality
 #pragma once
 
-//#include "../gui/RenderGUI.h"
 #include "../external/Image_Class.h"
 #include "../filters/Filter.h"
 #include <vector>
@@ -10,6 +9,7 @@
 
 class ImageProcessor {
 private:
+    GLuint currentTextureID;
     Image currentImage;
     std::vector <Image> undoHistory;
     std::vector <Image> redoHistory;
@@ -64,4 +64,6 @@ public:
 
     const Image& getCurrentImage() const { return currentImage; }
     void setImage(Image &newImage) { currentImage = newImage; }
+
+    const GLuint& getTextureID() const { return currentTextureID; }
 };

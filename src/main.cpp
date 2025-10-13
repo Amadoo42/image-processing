@@ -1,6 +1,7 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
-#include "imgui.h"
+#include "../external/imgui/imgui.h"
+#include "../external/imgui/imgui_internal.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "core/ImageProcessor.h"
