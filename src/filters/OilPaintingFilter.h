@@ -2,15 +2,17 @@
 #include "Filter.h"
 
 class OilPaintingFilter : public Filter {
+private:
+    int radius, intensity;
 public:
+    OilPaintingFilter(int r = 5, int i = 20): radius(r), intensity(i) {}
     void apply(Image &image) override {
-        int radius = 5, intensity = 20;
         Image img(image.width, image.height);
         for(int i = 0; i < image.width; ++i) {
             for(int j = 0; j < image.height; ++j) {
                 int i0, i1, j0, j1;
-                i0 = max(0, i - radius), i1 = min(image.width - 1, i + radius);
-                j0 = max(0, j - radius), j1 = min(image.height - 1, j + radius);
+                i0 = std::max(0, i - radius), i1 = std::min(image.width - 1, i + radius);
+                j0 = std::max(0, j - radius), j1 = std::min(image.height - 1, j + radius);
                 int freq[intensity + 1] = {};
                 int avgR[intensity + 1] = {};
                 int avgG[intensity + 1] = {};

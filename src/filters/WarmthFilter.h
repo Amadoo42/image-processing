@@ -15,9 +15,9 @@ public:
                 double gMul = 1.0 + warmthFactor * 0.12;
                 double bMul = 1.0 - warmthFactor * 0.06;
 
-                image(x, y, 0) = clamp((int)(image(x, y, 0) * rMul), 0, 255);
-                image(x, y, 1) = clamp((int)(image(x, y, 1) * gMul), 0, 255);
-                image(x, y, 2) = clamp((int)(image(x, y, 2) * bMul), 0, 255);
+                image(x, y, 0) = std::clamp((int)(image(x, y, 0) * rMul), 0, 255);
+                image(x, y, 1) = std::clamp((int)(image(x, y, 1) * gMul), 0, 255);
+                image(x, y, 2) = std::clamp((int)(image(x, y, 2) * bMul), 0, 255);
             }
         }
     }

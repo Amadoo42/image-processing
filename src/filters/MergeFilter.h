@@ -12,32 +12,32 @@ public:
 
     void apply(Image &image) override {
         // Assuming the images are the same size
-        int x = min(image.width, other_image.width);
-        int y = min(image.height, other_image.height);
+        int x = std::min(image.width, other_image.width);
+        int y = std::min(image.height, other_image.height);
         if(x != image.width || x != other_image.width || y != image.height || y != other_image.height) {
             // #TODO: Handle this elsewhere?
-            cout << "Images are not the same size.\n";
-            cout << "1. Resize the smaller image to the size of the larger one.\n";
-            cout << "2. Crop the larger image to the size of the smaller image.\n";
+            std::cout << "Images are not the same size.\n";
+            std::cout << "1. Resize the smaller image to the size of the larger one.\n";
+            std::cout << "2. Crop the larger image to the size of the smaller image.\n";
             while(true) {
-                int x; cin >> x;
+                int x; std::cin >> x;
                 int w1, h1, w2, h2;
                 w1 = image.width, h1 = image.height;
                 w2 = other_image.width, h2 = other_image.height;
                 bool z = (w2 * h2 < w1 * h1); // z = 0 means first image is smaller
                 if(x == 1) {
-                    ResizeFilter resize(max(w1, w2), max(h1, h2));
+                    ResizeFilter resize(std::max(w1, w2), std::max(h1, h2));
                     resize.apply(image);
                     resize.apply(other_image);
                     break;
                 }
                 else if(x == 2) {
-                    CropFilter crop(0, 0, min(w1, w2), min(h1, h2));
+                    CropFilter crop(0, 0, std::min(w1, w2), std::min(h1, h2));
                     crop.apply(image);
                     crop.apply(other_image);
                     break;
                 }
-                else cout << "invalid input please try again (input 1 or 2) \n";
+                else std::cout << "invalid input please try again (input 1 or 2) \n";
             }
         }
         for(int i = 0; i < image.width; i++) {

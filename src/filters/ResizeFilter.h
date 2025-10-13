@@ -12,7 +12,7 @@ private:
         double srci= i * image.width / newWidth;
         double srcj= j * image.height / newHeight;
                 
-        int x1 = srci, y1 = srcj, x2 = min(image.width - 1, x1 + 1), y2 = min(image.height - 1, y1 + 1);
+        int x1 = srci, y1 = srcj, x2 = std::min(image.width - 1, x1 + 1), y2 = std::min(image.height - 1, y1 + 1);
 
         return (x2 - srci) * (y2 - srcj) / ((x2 - x1) * (y2 -y1)) * image(x1,y1,c)
                         + (srci - x1) * (y2 - srcj) / ((x2 - x1) * (y2 -y1)) * image(x2, y1, c)
