@@ -15,62 +15,62 @@ static std::string statusBarMessage = "Welcome to Image Processor!";
 
 void setModernStyle() {
     ImGuiStyle& style = ImGui::GetStyle();
-    
-    style.WindowRounding = 5.0f;
-    style.FrameRounding = 5.0f;
-    style.PopupRounding = 5.0f;
-    style.ScrollbarRounding = 9.0f;
-    style.GrabRounding = 5.0f;
-    style.TabRounding = 5.0f;
 
-    style.Colors[ImGuiCol_Text]                  = ImVec4(0.80f, 0.80f, 0.80f, 1.00f);
-    style.Colors[ImGuiCol_TextDisabled]          = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-    style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);
-    style.Colors[ImGuiCol_ChildBg]               = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);
-    style.Colors[ImGuiCol_PopupBg]               = ImVec4(0.18f, 0.18f, 0.18f, 0.94f);
-    style.Colors[ImGuiCol_Border]                = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
-    style.Colors[ImGuiCol_BorderShadow]          = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-    style.Colors[ImGuiCol_FrameBg]               = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
-    style.Colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.25f, 0.26f, 0.27f, 1.00f);
-    style.Colors[ImGuiCol_FrameBgActive]         = ImVec4(0.30f, 0.31f, 0.32f, 1.00f);
-    style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
-    style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
-    style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.04f, 0.04f, 0.04f, 0.70f);
-    style.Colors[ImGuiCol_MenuBarBg]             = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);
-    style.Colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.18f, 0.18f, 0.18f, 0.53f);
-    style.Colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.30f, 0.31f, 0.32f, 1.00f);
-    style.Colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.40f, 0.41f, 0.42f, 1.00f);
-    style.Colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.50f, 0.51f, 0.52f, 1.00f);
-    style.Colors[ImGuiCol_CheckMark]             = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-    style.Colors[ImGuiCol_SliderGrab]            = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-    style.Colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-    style.Colors[ImGuiCol_Button]                = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
-    style.Colors[ImGuiCol_ButtonHovered]         = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-    style.Colors[ImGuiCol_ButtonActive]          = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
-    style.Colors[ImGuiCol_Header]                = ImVec4(0.26f, 0.59f, 0.98f, 0.31f);
-    style.Colors[ImGuiCol_HeaderHovered]         = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
-    style.Colors[ImGuiCol_HeaderActive]          = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-    style.Colors[ImGuiCol_Separator]             = style.Colors[ImGuiCol_Border];
-    style.Colors[ImGuiCol_SeparatorHovered]      = ImVec4(0.26f, 0.59f, 0.98f, 0.78f);
-    style.Colors[ImGuiCol_SeparatorActive]       = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-    style.Colors[ImGuiCol_ResizeGrip]            = ImVec4(0.26f, 0.59f, 0.98f, 0.25f);
-    style.Colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
-    style.Colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
-    style.Colors[ImGuiCol_Tab]                   = ImLerp(style.Colors[ImGuiCol_Header],       style.Colors[ImGuiCol_TitleBgActive], 0.80f);
-    style.Colors[ImGuiCol_TabHovered]            = style.Colors[ImGuiCol_HeaderHovered];
-    style.Colors[ImGuiCol_TabActive]             = ImLerp(style.Colors[ImGuiCol_HeaderActive], style.Colors[ImGuiCol_TitleBgActive], 0.60f);
-    style.Colors[ImGuiCol_TabUnfocused]          = ImLerp(style.Colors[ImGuiCol_Tab],          style.Colors[ImGuiCol_TitleBg], 0.80f);
-    style.Colors[ImGuiCol_TabUnfocusedActive]    = ImLerp(style.Colors[ImGuiCol_TabActive],    style.Colors[ImGuiCol_TitleBg], 0.40f);
-    style.Colors[ImGuiCol_PlotLines]             = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
-    style.Colors[ImGuiCol_PlotLinesHovered]      = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-    style.Colors[ImGuiCol_PlotHistogram]         = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-    style.Colors[ImGuiCol_PlotHistogramHovered]  = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-    style.Colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
-    style.Colors[ImGuiCol_DragDropTarget]        = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-    style.Colors[ImGuiCol_NavHighlight]          = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    style.WindowRounding = 8.0f;
+    style.FrameRounding = 6.0f;
+    style.PopupRounding = 6.0f;
+    style.ScrollbarRounding = 9.0f;
+    style.GrabRounding = 6.0f;
+    style.TabRounding = 6.0f;
+
+    style.Colors[ImGuiCol_Text] = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
+    style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.25f, 0.25f, 0.25f, 0.94f);
+    style.Colors[ImGuiCol_Border] = ImVec4(0.40f, 0.40f, 0.40f, 0.50f);
+    style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
+    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
+    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+    style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.10f, 0.10f, 0.10f, 0.70f);
+    style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+    style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.18f, 0.18f, 0.18f, 0.53f);
+    style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+    style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.45f, 0.45f, 0.45f, 1.00f);
+    style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
+    style.Colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    style.Colors[ImGuiCol_Button] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
+    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
+    style.Colors[ImGuiCol_Header] = ImVec4(0.26f, 0.59f, 0.98f, 0.31f);
+    style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
+    style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    style.Colors[ImGuiCol_Separator] = style.Colors[ImGuiCol_Border];
+    style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.78f);
+    style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.26f, 0.59f, 0.98f, 0.25f);
+    style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+    style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+    style.Colors[ImGuiCol_Tab] = ImLerp(style.Colors[ImGuiCol_Header], style.Colors[ImGuiCol_TitleBgActive], 0.80f);
+    style.Colors[ImGuiCol_TabHovered] = style.Colors[ImGuiCol_HeaderHovered];
+    style.Colors[ImGuiCol_TabActive] = ImLerp(style.Colors[ImGuiCol_HeaderActive], style.Colors[ImGuiCol_TitleBgActive], 0.60f);
+    style.Colors[ImGuiCol_TabUnfocused] = ImLerp(style.Colors[ImGuiCol_Tab], style.Colors[ImGuiCol_TitleBg], 0.80f);
+    style.Colors[ImGuiCol_TabUnfocusedActive] = ImLerp(style.Colors[ImGuiCol_TabActive], style.Colors[ImGuiCol_TitleBg], 0.40f);
+    style.Colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+    style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+    style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+    style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+    style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
+    style.Colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+    style.Colors[ImGuiCol_NavCursor] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
     style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
-    style.Colors[ImGuiCol_NavWindowingDimBg]     = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
-    style.Colors[ImGuiCol_ModalWindowDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+    style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+    style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 }
 
 void renderGUI(ImageProcessor &processor) {
@@ -125,9 +125,9 @@ void renderGUI(ImageProcessor &processor) {
     }
 
     ImGui::Columns(3, "main_layout", false);
-    ImGui::SetColumnWidth(0, 200.0f);
-    ImGui::SetColumnWidth(1, ImGui::GetWindowWidth() - 400.0f);
-    ImGui::SetColumnWidth(2, 200.0f);
+    ImGui::SetColumnWidth(0, 250.0f); 
+    ImGui::SetColumnWidth(1, ImGui::GetWindowWidth() - 500.0f); 
+    ImGui::SetColumnWidth(2, 250.0f); 
 
     ImGui::BeginChild("Tool Panel", ImVec2(0, 0), true);
     ImGui::Text("Tool Panel:");
@@ -241,117 +241,120 @@ void renderGUI(ImageProcessor &processor) {
     ImGui::EndChild();
 
     ImGui::Columns(1);
-    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing() - 100.0f);
+    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing());
     ImGui::BeginChild("Status Bar", ImVec2(ImGui::GetWindowWidth(), 20), false);
+    float text_width = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
+    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - text_width) * 0.5f);
     ImGui::Text("%s", statusBarMessage.c_str());
     ImGui::EndChild();
     ImGui::End();
 
     
-    {
-        const int maxThumbs = 6;
-        const ImVec2 thumbSize = ImVec2(120, 72);
-        static std::vector<GLuint> historyTexCache;
-        static std::vector<Image> historyImageCache;
-        static bool cacheValid = false;
+    // This has a lot of major issues, it is a mess with the current layout and it also doesn't work well with real-time preview.
+    // {
+    //     const int maxThumbs = 6;
+    //     const ImVec2 thumbSize = ImVec2(120, 72);
+    //     static std::vector<GLuint> historyTexCache;
+    //     static std::vector<Image> historyImageCache;
+    //     static bool cacheValid = false;
 
-        static bool showVersionPreview = false;
-        static GLuint previewTex = 0;
-        static Image previewImage;
+    //     static bool showVersionPreview = false;
+    //     static GLuint previewTex = 0;
+    //     static Image previewImage;
 
-        if (textureNeedsUpdate || !cacheValid) {
-            if (!historyTexCache.empty()) {
-                for (GLuint t : historyTexCache) {
-                    if (t != 0) glDeleteTextures(1, &t);
-                }
-                historyTexCache.clear();
-            }
-            historyImageCache.clear();
+    //     if (textureNeedsUpdate || !cacheValid) {
+    //         if (!historyTexCache.empty()) {
+    //             for (GLuint t : historyTexCache) {
+    //                 if (t != 0) glDeleteTextures(1, &t);
+    //             }
+    //             historyTexCache.clear();
+    //         }
+    //         historyImageCache.clear();
 
-            for (int i = 1; i <= maxThumbs; ++i) {
+    //         for (int i = 1; i <= maxThumbs; ++i) {
                
-                bool ok = true;
-                ImageProcessor copyProc;
-                try {
-                    copyProc = processor; 
-                } catch (...) {
-                    ok = false;
-                }
-                if (!ok) break;
+    //             bool ok = true;
+    //             ImageProcessor copyProc;
+    //             try {
+    //                 copyProc = processor; 
+    //             } catch (...) {
+    //                 ok = false;
+    //             }
+    //             if (!ok) break;
 
-                for (int s = 0; s < i; ++s) {
-                    if (!copyProc.undo()) { ok = false; break; }
-                }
-                if (!ok) break;
+    //             for (int s = 0; s < i; ++s) {
+    //                 if (!copyProc.undo()) { ok = false; break; }
+    //             }
+    //             if (!ok) break;
 
-                const Image &histImg = copyProc.getCurrentImage();
-                if (histImg.width > 0 && histImg.height > 0) {
-                    historyImageCache.push_back(histImg);
-                    GLuint tex = loadTexture(histImg); 
-                    historyTexCache.push_back(tex);
-                } else {
-                    break;
-                }
-            }
+    //             const Image &histImg = copyProc.getCurrentImage();
+    //             if (histImg.width > 0 && histImg.height > 0) {
+    //                 historyImageCache.push_back(histImg);
+    //                 GLuint tex = loadTexture(histImg); 
+    //                 historyTexCache.push_back(tex);
+    //             } else {
+    //                 break;
+    //             }
+    //         }
 
-            cacheValid = true;
-            textureNeedsUpdate = true;
-        }
+    //         cacheValid = true;
+    //         textureNeedsUpdate = true;
+    //     }
 
-        ImVec2 overlayPos = ImVec2(main_viewport->WorkPos.x + 10.0f,
-                                   main_viewport->WorkPos.y + main_viewport->WorkSize.y - (thumbSize.y + 20.0f));
-        ImGui::SetNextWindowPos(overlayPos, ImGuiCond_Always);
-        ImGui::SetNextWindowBgAlpha(0.0f);
-        if (ImGui::Begin("History Thumbs Overlay", nullptr,
-                         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
-                         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing)) {
+    //     ImVec2 overlayPos = ImVec2(main_viewport->WorkPos.x + 10.0f,
+    //                                main_viewport->WorkPos.y + main_viewport->WorkSize.y - (thumbSize.y + 20.0f));
+    //     ImGui::SetNextWindowPos(overlayPos, ImGuiCond_Always);
+    //     ImGui::SetNextWindowBgAlpha(0.0f);
+    //     if (ImGui::Begin("History Thumbs Overlay", nullptr,
+    //                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
+    //                      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing)) {
 
-            ImGui::BeginGroup();
-            ImGui::Text("History:");
-            ImGui::SameLine();
+    //         ImGui::BeginGroup();
+    //         ImGui::Text("History:");
+    //         ImGui::SameLine();
 
-            for (size_t i = 0; i < historyTexCache.size(); ++i) {
-                GLuint tex = historyTexCache[i];
-                char idbuf[32];
-                std::snprintf(idbuf, sizeof(idbuf), "hist_thumb_%zu", i);
+    //         for (size_t i = 0; i < historyTexCache.size(); ++i) {
+    //             GLuint tex = historyTexCache[i];
+    //             char idbuf[32];
+    //             std::snprintf(idbuf, sizeof(idbuf), "hist_thumb_%zu", i);
 
-                if (ImGui::ImageButton(idbuf, (void*)(intptr_t)tex, thumbSize)) {
-                    previewImage = historyImageCache[i];
-                    previewTex = tex;
-                    showVersionPreview = true;
-                    ImGui::OpenPopup("Version Preview");
-                }
-                ImGui::SameLine();
-            }
-            ImGui::EndGroup();
+    //             if (ImGui::ImageButton(idbuf, (void*)(intptr_t)tex, thumbSize)) {
+    //                 previewImage = historyImageCache[i];
+    //                 previewTex = tex;
+    //                 showVersionPreview = true;
+    //                 ImGui::OpenPopup("Version Preview");
+    //             }
+    //             ImGui::SameLine();
+    //         }
+    //         ImGui::EndGroup();
 
-            ImGui::End();
-        }
+    //         ImGui::End();
+    //     }
 
-        if (showVersionPreview) {
-            if (ImGui::BeginPopupModal("Version Preview", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-                ImVec2 avail = ImGui::GetContentRegionAvail();
-                float maxW = std::min(avail.x, 800.0f);
-                float maxH = 600.0f;
-                float iw = (float)previewImage.width;
-                float ih = (float)previewImage.height;
-                float scale = 1.0f;
-                if (iw > 0 && ih > 0) scale = std::min(maxW / iw, maxH / ih);
-                if (scale <= 0.0f) scale = 1.0f;
-                ImVec2 previewSize = ImVec2(iw * scale, ih * scale);
+    //     if (showVersionPreview) {
+    //         if (ImGui::BeginPopupModal("Version Preview", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    //             ImVec2 avail = ImGui::GetContentRegionAvail();
+    //             float maxW = std::min(avail.x, 800.0f);
+    //             float maxH = 600.0f;
+    //             float iw = (float)previewImage.width;
+    //             float ih = (float)previewImage.height;
+    //             float scale = 1.0f;
+    //             if (iw > 0 && ih > 0) scale = std::min(maxW / iw, maxH / ih);
+    //             if (scale <= 0.0f) scale = 1.0f;
+    //             ImVec2 previewSize = ImVec2(iw * scale, ih * scale);
 
-                if (previewTex != 0 && previewImage.width > 0 && previewImage.height > 0) {
-                    ImGui::Image((void*)(intptr_t)previewTex, previewSize);
-                } else {
-                    ImGui::Text("Unable to display preview.");
-                }
+    //             if (previewTex != 0 && previewImage.width > 0 && previewImage.height > 0) {
+    //                 ImGui::Image((void*)(intptr_t)previewTex, previewSize);
+    //             } else {
+    //                 ImGui::Text("Unable to display preview.");
+    //             }
 
-                if (ImGui::Button("Close")) {
-                    ImGui::CloseCurrentPopup();
-                    showVersionPreview = false;
-                }
-                ImGui::EndPopup();
-            }
-        }
-    }
+    //             if (ImGui::Button("Close")) {
+    //                 ImGui::CloseCurrentPopup();
+    //                 showVersionPreview = false;
+    //             }
+    //             ImGui::EndPopup();
+    //         }
+    //     }
+    // }
 }

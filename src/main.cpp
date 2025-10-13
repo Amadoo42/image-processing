@@ -61,6 +61,9 @@ int main(int argc, char* argv[]) {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
+    ImGuiIO& fonts_io = ImGui::GetIO();
+    fonts_io.Fonts->AddFontFromFileTTF("assets/fonts/Inter-Regular.ttf", 16.0f);
+
     setModernStyle();
 
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
