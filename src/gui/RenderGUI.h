@@ -5,6 +5,7 @@
 #include "LoadTexture.h"
 #include "MemoryOperation.h"
 #include "CompareView.h"
+#include "FilterPreviewPanel.h"
 #include <string>
 
 static bool is_dark_theme = true;
@@ -18,6 +19,10 @@ static FilterType gSelectedFilter = FilterType::None;
 static GLuint currentTextureID = 0;
 bool textureNeedsUpdate = false;
 static std::string statusBarMessage = "Welcome to Image Processor!";
+static std::unique_ptr<FilterPreviewPanel> gFilterPreviewPanel;
+
+// Function to handle filter selection from preview panel
+void handleFilterSelection(FilterType selectedFilter, ImageProcessor& processor, bool& textureNeedsUpdate);
 
 void setModernStyle() {
     ImGuiStyle& style = ImGui::GetStyle();
@@ -82,6 +87,20 @@ void setModernStyle() {
 void renderGUI(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();
     const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+    
+    // Initialize preview panel if not already done
+    if (!gFilterPreviewPanel) {
+        gFilterPreviewPanel = std::make_unique<FilterPreviewPanel>();
+        gFilterPreviewPanel->setOnFilterSelected([&processor](FilterType filterType) {
+            handleFilterSelection(filterType, processor, textureNeedsUpdate);
+        });
+    }
+    
+    // Update preview panel with current image
+    const Image& currentImageForPreview = processor.getCurrentImage();
+    if (currentImageForPreview.width > 0 && currentImageForPreview.height > 0) {
+        gFilterPreviewPanel->updateImage(currentImageForPreview);
+    }
 
     ImGui::SetNextWindowPos(main_viewport->WorkPos);
     ImGui::SetNextWindowSize(main_viewport->WorkSize);
@@ -331,7 +350,24 @@ void renderGUI(ImageProcessor &processor) {
     ImGui::BeginChild("Filters Panel", ImVec2(0, 0), true);
     ImGui::Text("Filters Panel");
     ImGui::Separator();
-    filtersMenu(processor, textureNeedsUpdate, gSelectedFilter);
+    
+    // Add tabs for different filter views
+    if (ImGui::BeginTabBar("FilterTabs")) {
+        if (ImGui::BeginTabItem("Filter List")) {
+            filtersMenu(processor, textureNeedsUpdate, gSelectedFilter);
+            ImGui::EndTabItem();
+        }
+        
+        if (ImGui::BeginTabItem("Filter Previews")) {
+            if (gFilterPreviewPanel) {
+                gFilterPreviewPanel->render();
+            }
+            ImGui::EndTabItem();
+        }
+        
+        ImGui::EndTabBar();
+    }
+    
     ImGui::EndChild();
 
     ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing());
@@ -450,4 +486,20 @@ void renderGUI(ImageProcessor &processor) {
     //         }
     //     }
     // }
+}
+
+// Implementation of filter selection handler
+void handleFilterSelection(FilterType selectedFilter, ImageProcessor& processor, bool& textureNeedsUpdate) {
+    if (selectedFilter == FilterType::None) {
+        return;
+    }
+    
+    // Update the global selected filter
+    gSelectedFilter = selectedFilter;
+    
+    // Apply the filter to the current image
+    // This is a simplified version - in a real implementation, you'd want to
+    // create the appropriate filter instance and apply it
+    statusBarMessage = "Filter selected: " + std::string(filterTypeName(selectedFilter));
+    textureNeedsUpdate = true;
 }

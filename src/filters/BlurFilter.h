@@ -2,6 +2,7 @@
 #include "Filter.h"
 #include <algorithm>
 #include <vector>
+#include <cmath>
 
 class BlurFilter : public Filter {
 private:

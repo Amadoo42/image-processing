@@ -1,5 +1,6 @@
 #pragma once
 #include "Filter.h"
+#include <cmath>
 
 class WaveFilter : public Filter {
 private:

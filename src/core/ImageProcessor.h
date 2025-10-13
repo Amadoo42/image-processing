@@ -3,6 +3,7 @@
 
 #include "../external/Image_Class.h"
 #include "../filters/Filter.h"
+#include <GL/gl.h>
 #include <vector>
 #include <string>
 

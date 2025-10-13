@@ -1,5 +1,6 @@
 #pragma once
 #include "Filter.h"
+#include <cmath>
 #include "GrayscaleFilter.h"
 #include "BlurFilter.h"
 #include <vector>
