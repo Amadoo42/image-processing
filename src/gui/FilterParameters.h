@@ -32,6 +32,25 @@ inline ImVec2 operator+(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x + 
 inline ImVec2 operator-(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x - b.x, a.y - b.y); }
 inline ImVec2 operator*(const ImVec2& a, float b) { return ImVec2(a.x * b, a.y * b); }
 
+// Inline rendering flag for parameter UIs. When true, parameter widgets
+// are rendered inline without opening separate windows.
+static bool g_params_inline_mode = false;
+
+inline bool BeginParamsUI(const char* title, bool* p_open)
+{
+    if (g_params_inline_mode) {
+        ImGui::TextUnformatted(title);
+        ImGui::Separator();
+        return true;
+    }
+    return ImGui::Begin(title, p_open);
+}
+
+inline void EndParamsUI()
+{
+    if (!g_params_inline_mode) ImGui::End();
+}
+
 class FilterParameters {
 public:
     FilterParameters(ImageProcessor &processor) : processor(processor) {};
@@ -66,7 +85,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if(show){
-            ImGui::Begin("Oil Painting Parameters", &show); // Wtf???
+            if (!BeginParamsUI("Blur Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -76,7 +95,7 @@ public:
             ImGui::Text("Intenisty:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::Combo("Intenisty", &currentItem, items, IM_ARRAYSIZE(items))) changed = true;
+            if(ImGui::Combo("##Intenisty", &currentItem, items, IM_ARRAYSIZE(items))) changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -103,7 +122,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
     void applyBlackAndWhite(bool &show, bool &textureNeedsUpdate) {
@@ -345,7 +364,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if(show){
-            ImGui::Begin("Resize Parameters", &show);
+            if (!BeginParamsUI("Resize Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -389,7 +408,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
 
@@ -398,7 +417,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if (show) {
-            ImGui::Begin("Brightness Parameters", &show);
+            if (!BeginParamsUI("Brightness Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -442,7 +461,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
 
@@ -496,7 +515,7 @@ public:
     static Image originalImage;
     static bool init = false;
     if(show){
-        ImGui::Begin("Rotate Parameters", &show);
+        if (!BeginParamsUI("Rotate Parameters", &show)) return;
 
         if(!init){
             originalImage = processor.getCurrentImage();
@@ -534,7 +553,7 @@ public:
             textureNeedsUpdate = true;
         }
 
-        ImGui::End();
+        EndParamsUI();
     }else init = false;
 }
 
@@ -553,7 +572,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if (show) {
-            ImGui::Begin("Purple Parameters", &show);
+            if (!BeginParamsUI("Purple Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -597,7 +616,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
 
@@ -617,7 +636,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if(show){
-            ImGui::Begin("Wave Parameters", &show);
+            if (!BeginParamsUI("Wave Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -661,7 +680,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
 
@@ -675,7 +694,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if(show){
-            ImGui::Begin("Oil Painting Parameters", &show);
+            if (!BeginParamsUI("Oil Painting Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -712,7 +731,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
 
@@ -721,7 +740,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if (show) {
-            ImGui::Begin("Contrast Parameters", &show);
+            if (!BeginParamsUI("Contrast Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -765,7 +784,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
 
@@ -784,7 +803,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if (show) {
-            ImGui::Begin("Saturation Parameters", &show);
+            if (!BeginParamsUI("Saturation Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -828,7 +847,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
     void applySkew(bool &show, bool &textureNeedsUpdate) {
@@ -836,7 +855,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if (show) {
-            ImGui::Begin("Skew Parameters", &show);
+            if (!BeginParamsUI("Skew Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -880,7 +899,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
     void applyVignette(bool &show, bool &textureNeedsUpdate) {
@@ -888,7 +907,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if (show) {
-            ImGui::Begin("Vignette Parameters", &show);
+            if (!BeginParamsUI("Vignette Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -932,7 +951,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
     void applyWarmth(bool &show, bool &textureNeedsUpdate) {
@@ -940,7 +959,7 @@ public:
         static Image originalImage;
         static bool init = false;
         if (show) {
-            ImGui::Begin("Warmth Parameters", &show);
+            if (!BeginParamsUI("Warmth Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
@@ -984,7 +1003,7 @@ public:
                 textureNeedsUpdate = true;
             }
 
-            ImGui::End();
+            EndParamsUI();
         }else init = false;
     }
 

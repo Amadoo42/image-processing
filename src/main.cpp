@@ -59,6 +59,16 @@ int main(int argc, char* argv[]) {
 
     ImGuiIO& fonts_io = ImGui::GetIO();
     fonts_io.Fonts->AddFontFromFileTTF("assets/fonts/Inter-Regular.ttf", 16.0f);
+    // Try to load Font Awesome (optional). If not present, icons will fallback.
+    {
+        ImFontConfig cfg;
+        cfg.MergeMode = true; // merge into previous font
+        cfg.PixelSnapH = true;
+        static const ImWchar ranges1[] = { 0xf000, 0xf8ff, 0 }; // FA private use area
+        static const ImWchar ranges2[] = { 0xe000, 0xefff, 0 }; // newer private use
+        fonts_io.Fonts->AddFontFromFileTTF("assets/fonts/fa-solid-900.ttf", 15.0f, &cfg, ranges1);
+        fonts_io.Fonts->AddFontFromFileTTF("assets/fonts/fa-solid-900.ttf", 15.0f, &cfg, ranges2);
+    }
 
     setModernStyle();
 
