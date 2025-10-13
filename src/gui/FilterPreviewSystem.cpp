@@ -159,6 +159,7 @@ FilterPreviewSystem::FilterPreviewSystem()
     , isGeneratingPreviews(false)
     , imageChanged(false)
     , previewsGenerated(false)
+    , generationAttempts(0)
     , lastUpdateTime(std::chrono::steady_clock::now()) {
 }
 
@@ -185,6 +186,7 @@ void FilterPreviewSystem::updateImage(const Image& image) {
         currentImage = image;
         imageChanged = true;
         previewsGenerated = false;
+        generationAttempts = 0;
         invalidateAllPreviews();
         
         // Clean up completed tasks to prevent memory leaks
@@ -203,6 +205,14 @@ void FilterPreviewSystem::generateAllPreviews() {
         return;
     }
     
+    // Limit generation attempts to prevent infinite loops
+    if (generationAttempts > 3) {
+        std::cerr << "Maximum generation attempts reached, stopping preview generation" << std::endl;
+        previewsGenerated = true;
+        return;
+    }
+    
+    generationAttempts++;
     isGeneratingPreviews = true;
     lastUpdateTime = std::chrono::steady_clock::now();
     
@@ -258,11 +268,30 @@ void FilterPreviewSystem::generatePreviewAsync(FilterType filterType) {
     preview->isGenerating = true;
     preview->isValid = false;
     
+    // Clean up completed tasks first
+    cleanupCompletedTasks();
+    
     // Launch async task
     auto future = std::async(std::launch::async, [this, filterType]() {
+        auto startTime = std::chrono::steady_clock::now();
+        
         try {
             // Check if current image is valid
             if (currentImage.width == 0 || currentImage.height == 0 || currentImage.imageData == nullptr) {
+                std::lock_guard<std::mutex> lock(previewMutex);
+                auto it = previews.find(filterType);
+                if (it != previews.end()) {
+                    it->second->isGenerating = false;
+                    it->second->isValid = false;
+                }
+                return;
+            }
+            
+            // Check timeout
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime);
+            if (elapsed.count() > PREVIEW_TIMEOUT_MS) {
+                std::cerr << "Preview generation timeout for filter " << static_cast<int>(filterType) << std::endl;
                 std::lock_guard<std::mutex> lock(previewMutex);
                 auto it = previews.find(filterType);
                 if (it != previews.end()) {
@@ -288,6 +317,20 @@ void FilterPreviewSystem::generatePreviewAsync(FilterType filterType) {
             
             // Create a copy for filter application
             Image filteredThumbnail = thumbnail;
+            
+            // Check timeout before applying filter
+            elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime);
+            if (elapsed.count() > PREVIEW_TIMEOUT_MS) {
+                std::cerr << "Preview generation timeout before filter application for filter " << static_cast<int>(filterType) << std::endl;
+                std::lock_guard<std::mutex> lock(previewMutex);
+                auto it = previews.find(filterType);
+                if (it != previews.end()) {
+                    it->second->isGenerating = false;
+                    it->second->isValid = false;
+                }
+                return;
+            }
             
             // Apply filter
             auto filter = FilterFactory::createFilter(filterType);
@@ -322,18 +365,8 @@ void FilterPreviewSystem::generatePreviewAsync(FilterType filterType) {
                 preview->isValid = true;
                 preview->isGenerating = false;
                 
-                // Check if all previews are done
-                bool allDone = true;
-                for (const auto& [ft, p] : previews) {
-                    if (!p->isValid && !p->isGenerating) {
-                        allDone = false;
-                        break;
-                    }
-                }
-                if (allDone) {
-                    previewsGenerated = true;
-                    isGeneratingPreviews = false;
-                }
+                // Check if all previews are complete
+                checkAllPreviewsComplete();
             }
         } catch (const std::exception& e) {
             std::cerr << "Error generating preview for filter " << static_cast<int>(filterType) 
@@ -458,9 +491,24 @@ void FilterPreviewSystem::cleanupCompletedTasks() {
     activeTasks.erase(
         std::remove_if(activeTasks.begin(), activeTasks.end(),
             [](const std::future<void>& future) {
-                return future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+                if (future.valid()) {
+                    return future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+                }
+                return true; // Remove invalid futures
             }),
         activeTasks.end());
+    
+    // Limit the number of active tasks to prevent memory issues
+    if (activeTasks.size() > 10) {
+        // Wait for some tasks to complete
+        for (auto it = activeTasks.begin(); it != activeTasks.end(); ) {
+            if (it->valid() && it->wait_for(std::chrono::milliseconds(1)) == std::future_status::ready) {
+                it = activeTasks.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
 }
 
 bool FilterPreviewSystem::shouldUpdatePreviews() const {
@@ -477,5 +525,21 @@ void FilterPreviewSystem::invalidateAllPreviews() {
             glDeleteTextures(1, &preview->textureID);
             preview->textureID = 0;
         }
+    }
+}
+
+void FilterPreviewSystem::checkAllPreviewsComplete() {
+    // Check if all previews are done
+    bool allDone = true;
+    for (const auto& [filterType, preview] : previews) {
+        if (!preview->isValid && !preview->isGenerating) {
+            allDone = false;
+            break;
+        }
+    }
+    
+    if (allDone) {
+        previewsGenerated = true;
+        isGeneratingPreviews = false;
     }
 }

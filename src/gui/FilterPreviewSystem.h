@@ -65,8 +65,8 @@ struct FilterPreview {
 
 class FilterPreviewSystem {
 private:
-    static constexpr int THUMBNAIL_WIDTH = 200;
-    static constexpr int THUMBNAIL_HEIGHT = 150;
+    static constexpr int THUMBNAIL_WIDTH = 120;
+    static constexpr int THUMBNAIL_HEIGHT = 80;
     static constexpr int MAX_PREVIEW_CACHE_SIZE = 50;
     
     std::unordered_map<FilterType, std::unique_ptr<FilterPreview>> previews;
@@ -83,10 +83,12 @@ private:
     Image currentImage;
     bool imageChanged;
     bool previewsGenerated;
+    int generationAttempts;
     
     // Performance tracking
     std::chrono::steady_clock::time_point lastUpdateTime;
     static constexpr int UPDATE_THROTTLE_MS = 100; // Minimum time between updates
+    static constexpr int PREVIEW_TIMEOUT_MS = 5000; // 5 second timeout for individual previews
     
 public:
     FilterPreviewSystem();
@@ -117,4 +119,5 @@ private:
     void cleanupCompletedTasks();
     bool shouldUpdatePreviews() const;
     void invalidateAllPreviews();
+    void checkAllPreviewsComplete();
 };
