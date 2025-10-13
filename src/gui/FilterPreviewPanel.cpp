@@ -59,16 +59,16 @@ void FilterPreviewPanel::renderPreviewGrid() {
     ImVec2 startPos = ImGui::GetCursorPos();
     ImVec2 currentPos = startPos;
     
-    // Get available filters
+    // Get available filters (skip filters that require additional parameters)
     std::vector<FilterType> filterTypes = {
         FilterType::Grayscale, FilterType::Invert, FilterType::BlackAndWhite,
         FilterType::Blur, FilterType::Contrast, FilterType::Saturation,
         FilterType::Brightness, FilterType::HorizontalFlip, FilterType::VerticalFlip,
         FilterType::Rotate, FilterType::Crop, FilterType::Resize,
-        FilterType::Skew, FilterType::Merge, FilterType::Frame,
-        FilterType::Outline, FilterType::Purple, FilterType::Infrared,
-        FilterType::Wave, FilterType::OilPainting, FilterType::Retro,
-        FilterType::Vignette, FilterType::Warmth
+        FilterType::Skew, FilterType::Outline, FilterType::Purple, 
+        FilterType::Infrared, FilterType::Wave, FilterType::OilPainting, 
+        FilterType::Retro, FilterType::Vignette, FilterType::Warmth
+        // Note: Merge and Frame filters require additional parameters, so we skip them
     };
     
     int itemCount = 0;
@@ -193,10 +193,10 @@ ImVec2 FilterPreviewPanel::calculateGridSize() const {
         FilterType::Blur, FilterType::Contrast, FilterType::Saturation,
         FilterType::Brightness, FilterType::HorizontalFlip, FilterType::VerticalFlip,
         FilterType::Rotate, FilterType::Crop, FilterType::Resize,
-        FilterType::Skew, FilterType::Merge, FilterType::Frame,
-        FilterType::Outline, FilterType::Purple, FilterType::Infrared,
-        FilterType::Wave, FilterType::OilPainting, FilterType::Retro,
-        FilterType::Vignette, FilterType::Warmth
+        FilterType::Skew, FilterType::Outline, FilterType::Purple, 
+        FilterType::Infrared, FilterType::Wave, FilterType::OilPainting, 
+        FilterType::Retro, FilterType::Vignette, FilterType::Warmth
+        // Note: Merge and Frame filters require additional parameters, so we skip them
     };
     
     int numItems = static_cast<int>(filterTypes.size());

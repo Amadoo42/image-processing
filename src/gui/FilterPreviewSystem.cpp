@@ -70,15 +70,24 @@ public:
         // Simple nearest-neighbor scaling
         for (int y = 0; y < newHeight; ++y) {
             for (int x = 0; x < newWidth; ++x) {
+                // Calculate source coordinates with proper bounds checking
                 int srcX = static_cast<int>(x / scale);
                 int srcY = static_cast<int>(y / scale);
                 
-                // Clamp to source image bounds
-                srcX = std::min(srcX, source.width - 1);
-                srcY = std::min(srcY, source.height - 1);
+                // Clamp to source image bounds (ensure we don't go out of bounds)
+                srcX = std::max(0, std::min(srcX, source.width - 1));
+                srcY = std::max(0, std::min(srcY, source.height - 1));
                 
-                for (int c = 0; c < source.channels; ++c) {
-                    thumbnail(x, y, c) = source(srcX, srcY, c);
+                // Additional safety check
+                if (srcX >= 0 && srcX < source.width && srcY >= 0 && srcY < source.height) {
+                    for (int c = 0; c < source.channels; ++c) {
+                        thumbnail(x, y, c) = source(srcX, srcY, c);
+                    }
+                } else {
+                    // Fill with black if out of bounds (shouldn't happen with proper clamping)
+                    for (int c = 0; c < source.channels; ++c) {
+                        thumbnail(x, y, c) = 0;
+                    }
                 }
             }
         }
@@ -160,14 +169,24 @@ void FilterPreviewSystem::updateImage(const Image& image) {
     std::lock_guard<std::mutex> lock(previewMutex);
     
     // Check if image actually changed
+    bool imageHasChanged = false;
+    
     if (currentImage.width != image.width || 
         currentImage.height != image.height ||
-        currentImage.channels != image.channels ||
-        currentImage.imageData != image.imageData) {
-        
+        currentImage.channels != image.channels) {
+        imageHasChanged = true;
+    } else if (currentImage.imageData != image.imageData) {
+        // Only check data pointer if dimensions match
+        imageHasChanged = true;
+    }
+    
+    if (imageHasChanged) {
         currentImage = image;
         imageChanged = true;
         invalidateAllPreviews();
+        
+        // Clean up completed tasks to prevent memory leaks
+        cleanupCompletedTasks();
     }
 }
 
@@ -185,16 +204,19 @@ void FilterPreviewSystem::generateAllPreviews() {
     isGeneratingPreviews = true;
     lastUpdateTime = std::chrono::steady_clock::now();
     
-    // Generate previews for all available filter types
+    // Reset image changed flag to prevent immediate regeneration
+    imageChanged = false;
+    
+    // Generate previews for available filter types (skip filters that require additional parameters)
     std::vector<FilterType> filterTypes = {
         FilterType::Grayscale, FilterType::Invert, FilterType::BlackAndWhite,
         FilterType::Blur, FilterType::Contrast, FilterType::Saturation,
         FilterType::Brightness, FilterType::HorizontalFlip, FilterType::VerticalFlip,
         FilterType::Rotate, FilterType::Crop, FilterType::Resize,
-        FilterType::Skew, FilterType::Merge, FilterType::Frame,
-        FilterType::Outline, FilterType::Purple, FilterType::Infrared,
-        FilterType::Wave, FilterType::OilPainting, FilterType::Retro,
-        FilterType::Vignette, FilterType::Warmth
+        FilterType::Skew, FilterType::Outline, FilterType::Purple, 
+        FilterType::Infrared, FilterType::Wave, FilterType::OilPainting, 
+        FilterType::Retro, FilterType::Vignette, FilterType::Warmth
+        // Note: Merge and Frame filters require additional parameters, so we skip them
     };
     
     for (FilterType filterType : filterTypes) {
@@ -225,17 +247,40 @@ void FilterPreviewSystem::generatePreviewAsync(FilterType filterType) {
     }
     
     auto& preview = previews[filterType];
+    
+    // Skip if already generating or valid
+    if (preview->isGenerating || preview->isValid) {
+        return;
+    }
+    
     preview->isGenerating = true;
     preview->isValid = false;
     
     // Launch async task
     auto future = std::async(std::launch::async, [this, filterType]() {
         try {
+            // Check if current image is valid
+            if (currentImage.width == 0 || currentImage.height == 0 || currentImage.imageData == nullptr) {
+                std::lock_guard<std::mutex> lock(previewMutex);
+                auto it = previews.find(filterType);
+                if (it != previews.end()) {
+                    it->second->isGenerating = false;
+                    it->second->isValid = false;
+                }
+                return;
+            }
+            
             // Create thumbnail
             Image thumbnail = ThumbnailGenerator::createThumbnail(
                 currentImage, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
             
             if (thumbnail.width == 0 || thumbnail.height == 0) {
+                std::lock_guard<std::mutex> lock(previewMutex);
+                auto it = previews.find(filterType);
+                if (it != previews.end()) {
+                    it->second->isGenerating = false;
+                    it->second->isValid = false;
+                }
                 return;
             }
             
@@ -245,7 +290,17 @@ void FilterPreviewSystem::generatePreviewAsync(FilterType filterType) {
             // Apply filter
             auto filter = FilterFactory::createFilter(filterType);
             if (filter) {
-                filter->apply(filteredThumbnail);
+                try {
+                    filter->apply(filteredThumbnail);
+                } catch (const std::exception& e) {
+                    std::cerr << "Error applying filter " << static_cast<int>(filterType) 
+                              << ": " << e.what() << std::endl;
+                    // Use original thumbnail if filter fails
+                    filteredThumbnail = thumbnail;
+                }
+            } else {
+                // Use original thumbnail if no filter available
+                filteredThumbnail = thumbnail;
             }
             
             // Update preview in main thread
