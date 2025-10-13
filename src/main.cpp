@@ -1,9 +1,9 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
-#include "../external/imgui/imgui.h"
-#include "../external/imgui/imgui_internal.h"
-#include "backends/imgui_impl_sdl2.h"
-#include "backends/imgui_impl_opengl3.h"
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 #include "core/ImageProcessor.h"
 #include "filters/Filter.h"
 #include "filters/GrayscaleFilter.h"
@@ -35,7 +35,6 @@
 #include <string>
 #include <array>
 #include "gui/RenderGUI.h"
-// #include "gui/MemoryOperation.h"
 
 int main(int argc, char* argv[]) {
     // The following reference helped a lot to learn how to set up ImGui with SDL2 and OpenGL3.
@@ -62,7 +61,7 @@ int main(int argc, char* argv[]) {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-    ImGui::StyleColorsDark();
+    setModernStyle();
 
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
