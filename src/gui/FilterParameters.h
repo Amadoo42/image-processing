@@ -95,7 +95,7 @@ public:
             ImGui::Text("Intenisty:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::Combo("Intenisty", &currentItem, items, IM_ARRAYSIZE(items))) changed = true;
+            if(ImGui::Combo("##Intenisty", &currentItem, items, IM_ARRAYSIZE(items))) changed = true;
 
             if(changed){
                 processor.setImage(originalImage);

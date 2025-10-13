@@ -228,12 +228,8 @@ void renderGUI(ImageProcessor &processor) {
         }
         ImGui::End();
     }
-
-    ImGui::Columns(3, "main_layout", false);
-    ImGui::SetColumnWidth(0, 250.0f);
-    ImGui::SetColumnWidth(2, 300.0f);
-
-    ImGui::BeginChild("Tool Panel", ImVec2(0, 0), true);
+    
+    ImGui::BeginChild("Tool Panel", ImVec2(250, 0), true);
     ImGui::Text("Tools");
     ImGui::Separator();
     if(ImGui::Button("Open")) {
@@ -294,9 +290,10 @@ void renderGUI(ImageProcessor &processor) {
         }
     }
     ImGui::EndChild();
-    ImGui::NextColumn();
+    
+    ImGui::SameLine();
 
-    ImGui::BeginChild("Image View", ImVec2(0, 0), true);
+    ImGui::BeginChild("Image View", ImVec2(-350, 0), true); // Negative width means "fill the rest of the space except for this amount"
     const Image& currentImage = processor.getCurrentImage();
     if(currentImage.width > 0 && currentImage.height > 0) {
         if(textureNeedsUpdate) {
@@ -328,7 +325,8 @@ void renderGUI(ImageProcessor &processor) {
         }
     }
     ImGui::EndChild();
-    ImGui::NextColumn();
+    
+    ImGui::SameLine();
 
     ImGui::BeginChild("Filters Panel", ImVec2(0, 0), true);
     ImGui::Text("Filters Panel");
@@ -336,7 +334,6 @@ void renderGUI(ImageProcessor &processor) {
     filtersMenu(processor, textureNeedsUpdate, gSelectedFilter);
     ImGui::EndChild();
 
-    ImGui::Columns(1);
     ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing());
     ImGui::BeginChild("Status Bar", ImVec2(ImGui::GetWindowWidth(), 20), false);
     float text_width = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
