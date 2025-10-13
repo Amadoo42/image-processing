@@ -70,24 +70,21 @@ public:
         // Simple nearest-neighbor scaling
         for (int y = 0; y < newHeight; ++y) {
             for (int x = 0; x < newWidth; ++x) {
-                // Calculate source coordinates with proper bounds checking
-                int srcX = static_cast<int>(x / scale);
-                int srcY = static_cast<int>(y / scale);
+                // Calculate source coordinates with proper scaling
+                float srcX_f = (x + 0.5f) * source.width / newWidth;
+                float srcY_f = (y + 0.5f) * source.height / newHeight;
+                
+                // Convert to integer coordinates
+                int srcX = static_cast<int>(srcX_f);
+                int srcY = static_cast<int>(srcY_f);
                 
                 // Clamp to source image bounds (ensure we don't go out of bounds)
                 srcX = std::max(0, std::min(srcX, source.width - 1));
                 srcY = std::max(0, std::min(srcY, source.height - 1));
                 
-                // Additional safety check
-                if (srcX >= 0 && srcX < source.width && srcY >= 0 && srcY < source.height) {
-                    for (int c = 0; c < source.channels; ++c) {
-                        thumbnail(x, y, c) = source(srcX, srcY, c);
-                    }
-                } else {
-                    // Fill with black if out of bounds (shouldn't happen with proper clamping)
-                    for (int c = 0; c < source.channels; ++c) {
-                        thumbnail(x, y, c) = 0;
-                    }
+                // Copy pixel data
+                for (int c = 0; c < source.channels; ++c) {
+                    thumbnail(x, y, c) = source(srcX, srcY, c);
                 }
             }
         }
@@ -187,6 +184,7 @@ void FilterPreviewSystem::updateImage(const Image& image) {
         imageChanged = true;
         previewsGenerated = false;
         generationAttempts = 0;
+        filterFailureCount.clear();
         invalidateAllPreviews();
         
         // Clean up completed tasks to prevent memory leaks
@@ -219,16 +217,14 @@ void FilterPreviewSystem::generateAllPreviews() {
     // Reset image changed flag to prevent immediate regeneration
     imageChanged = false;
     
-    // Generate previews for available filter types (skip filters that require additional parameters)
+    // Generate previews for visual filters only (skip filters that require parameters or are not suitable for preview)
     std::vector<FilterType> filterTypes = {
         FilterType::Grayscale, FilterType::Invert, FilterType::BlackAndWhite,
         FilterType::Blur, FilterType::Contrast, FilterType::Saturation,
         FilterType::Brightness, FilterType::HorizontalFlip, FilterType::VerticalFlip,
-        FilterType::Rotate, FilterType::Crop, FilterType::Resize,
-        FilterType::Skew, FilterType::Outline, FilterType::Purple, 
-        FilterType::Infrared, FilterType::Wave, FilterType::OilPainting, 
-        FilterType::Retro, FilterType::Vignette, FilterType::Warmth
-        // Note: Merge and Frame filters require additional parameters, so we skip them
+        FilterType::Outline, FilterType::Purple, FilterType::Infrared, 
+        FilterType::OilPainting, FilterType::Retro, FilterType::Vignette, FilterType::Warmth
+        // Note: Rotate, Crop, Resize, Skew, Merge, Frame, Wave filters are skipped as they require parameters or are not suitable for preview
     };
     
     for (FilterType filterType : filterTypes) {
@@ -242,6 +238,12 @@ void FilterPreviewSystem::generatePreview(FilterType filterType) {
     }
     
     std::lock_guard<std::mutex> lock(previewMutex);
+    
+    // Check if this filter has failed too many times
+    if (filterFailureCount[filterType] > 3) {
+        std::cerr << "Skipping filter " << static_cast<int>(filterType) << " due to repeated failures" << std::endl;
+        return;
+    }
     
     // Check if preview already exists and is valid
     auto it = previews.find(filterType);
@@ -378,6 +380,9 @@ void FilterPreviewSystem::generatePreviewAsync(FilterType filterType) {
                 it->second->isGenerating = false;
                 it->second->isValid = false;
             }
+            
+            // Increment failure count for this filter
+            filterFailureCount[filterType]++;
         }
     });
     

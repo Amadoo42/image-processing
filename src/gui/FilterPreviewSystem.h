@@ -84,6 +84,7 @@ private:
     bool imageChanged;
     bool previewsGenerated;
     int generationAttempts;
+    std::unordered_map<FilterType, int> filterFailureCount;
     
     // Performance tracking
     std::chrono::steady_clock::time_point lastUpdateTime;
