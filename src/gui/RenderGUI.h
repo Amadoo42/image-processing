@@ -3,6 +3,7 @@
 #include "LoadTexture.h"
 #include "MemoryOperation.h"
 #include "CompareView.h"
+#include <string>
 
 static bool is_dark_theme = true;
 static float zoom_level = 1.0f;
@@ -10,6 +11,7 @@ static ImVec2 pan_offset = ImVec2(0, 0);
 static bool compareMode = false;
 static GLuint currentTextureID = 0;
 bool textureNeedsUpdate = false;
+static std::string statusBarMessage = "Welcome to Image Processor!";
 
 void setModernStyle() {
     ImGuiStyle& style = ImGui::GetStyle();
@@ -93,13 +95,24 @@ void renderGUI(ImageProcessor &processor) {
                     std::cout << "Image loaded successfully!\n";
                     processor.loadImage(selected);
                     textureNeedsUpdate = true;
+                    statusBarMessage = "Image loaded successfully!";
+                }
+                else {
+                    std::cerr << "Failed to load image." << std::endl;
+                    statusBarMessage = "Failed to load image.";
                 }
             }
             if(ImGui::MenuItem("Save Image As...")) {
                 std::string selected = saveFileDialog_Linux();
                 if (!selected.empty()) {
-                    if (processor.saveImage(selected)) std::cout << "Image saved to " << selected << std::endl;
-                    else std::cerr << "Failed to save image." << std::endl;
+                    if (processor.saveImage(selected)) {
+                        std::cout << "Image saved to " << selected << std::endl;
+                        statusBarMessage = "Image saved to " + selected;
+                    }
+                    else {
+                        std::cerr << "Failed to save image." << std::endl;
+                        statusBarMessage = "Failed to save image.";
+                    }
                 }
             }
             ImGui::EndMenu();
@@ -125,13 +138,24 @@ void renderGUI(ImageProcessor &processor) {
             std::cout << "Image loaded successfully!\n";
             processor.loadImage(selected);
             textureNeedsUpdate = true;
+            statusBarMessage = "Image loaded successfully!";
+        }
+        else {
+            std::cerr << "Failed to load image." << std::endl;
+            statusBarMessage = "Failed to load image.";
         }
     }
     if(ImGui::Button("Save Image")) {
         std::string selected = saveFileDialog_Linux();
         if (!selected.empty()) {
-            if (processor.saveImage(selected)) std::cout << "Image saved to " << selected << std::endl;
-            else std::cerr << "Failed to save image." << std::endl;
+            if (processor.saveImage(selected)) {
+                std::cout << "Image saved to " << selected << std::endl;
+                statusBarMessage = "Image saved to " + selected;
+            }
+            else {
+                std::cerr << "Failed to save image." << std::endl;
+                statusBarMessage = "Failed to save image.";
+            }
         }
     }
      if (ImGui::Button(compareMode ? "Compare: ON" : "Compare: OFF")) {
@@ -155,15 +179,23 @@ void renderGUI(ImageProcessor &processor) {
         if(processor.undo()) {
             std::cout << "Undo successful." << std::endl;
             textureNeedsUpdate = true;
+            statusBarMessage = "Undo successful.";
         }
-        else std::cout << "Nothing to undo." << std::endl;
+        else {
+            std::cout << "Nothing to undo." << std::endl;
+            statusBarMessage = "Nothing to undo.";
+        }
     }
     if(ImGui::Button("Redo", ImVec2(-1, 0))) {
         if(processor.redo()) {
             std::cout << "Redo successful." << std::endl;
             textureNeedsUpdate = true;
+            statusBarMessage = "Redo successful.";
         }
-        else std::cout << "Nothing to redo." << std::endl;
+        else {
+            std::cout << "Nothing to redo." << std::endl;
+            statusBarMessage = "Nothing to redo.";
+        }
     }
     ImGui::EndChild();
     ImGui::NextColumn();
@@ -209,5 +241,9 @@ void renderGUI(ImageProcessor &processor) {
     ImGui::EndChild();
 
     ImGui::Columns(1);
+    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing());
+    ImGui::BeginChild("Status Bar", ImVec2(ImGui::GetWindowWidth(), 20), false);
+    ImGui::Text("%s", statusBarMessage.c_str());
+    ImGui::EndChild();
     ImGui::End();
 }
