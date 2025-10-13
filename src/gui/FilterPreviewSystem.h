@@ -65,8 +65,8 @@ struct FilterPreview {
 
 class FilterPreviewSystem {
 private:
-    static constexpr int THUMBNAIL_WIDTH = 120;
-    static constexpr int THUMBNAIL_HEIGHT = 80;
+    static constexpr int THUMBNAIL_WIDTH = 200;
+    static constexpr int THUMBNAIL_HEIGHT = 150;
     static constexpr int MAX_PREVIEW_CACHE_SIZE = 50;
     
     std::unordered_map<FilterType, std::unique_ptr<FilterPreview>> previews;
@@ -82,6 +82,7 @@ private:
     // Current image reference for preview generation
     Image currentImage;
     bool imageChanged;
+    bool previewsGenerated;
     
     // Performance tracking
     std::chrono::steady_clock::time_point lastUpdateTime;

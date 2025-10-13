@@ -158,6 +158,7 @@ FilterPreviewSystem::FilterPreviewSystem()
     , filterFactory(std::make_unique<FilterFactory>())
     , isGeneratingPreviews(false)
     , imageChanged(false)
+    , previewsGenerated(false)
     , lastUpdateTime(std::chrono::steady_clock::now()) {
 }
 
@@ -183,6 +184,7 @@ void FilterPreviewSystem::updateImage(const Image& image) {
     if (imageHasChanged) {
         currentImage = image;
         imageChanged = true;
+        previewsGenerated = false;
         invalidateAllPreviews();
         
         // Clean up completed tasks to prevent memory leaks
@@ -197,7 +199,7 @@ void FilterPreviewSystem::generateAllPreviews() {
     
     std::lock_guard<std::mutex> lock(previewMutex);
     
-    if (isGeneratingPreviews) {
+    if (isGeneratingPreviews || previewsGenerated) {
         return;
     }
     
@@ -319,6 +321,19 @@ void FilterPreviewSystem::generatePreviewAsync(FilterType filterType) {
                 preview->thumbnail = std::move(filteredThumbnail);
                 preview->isValid = true;
                 preview->isGenerating = false;
+                
+                // Check if all previews are done
+                bool allDone = true;
+                for (const auto& [ft, p] : previews) {
+                    if (!p->isValid && !p->isGenerating) {
+                        allDone = false;
+                        break;
+                    }
+                }
+                if (allDone) {
+                    previewsGenerated = true;
+                    isGeneratingPreviews = false;
+                }
             }
         } catch (const std::exception& e) {
             std::cerr << "Error generating preview for filter " << static_cast<int>(filterType) 
@@ -455,6 +470,7 @@ bool FilterPreviewSystem::shouldUpdatePreviews() const {
 }
 
 void FilterPreviewSystem::invalidateAllPreviews() {
+    previewsGenerated = false;
     for (auto& [filterType, preview] : previews) {
         preview->isValid = false;
         if (preview->textureID != 0) {

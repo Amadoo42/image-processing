@@ -246,34 +246,34 @@ public:
      * @throws std::out_of_range If the coordinates or channel index is out of bounds.
      */
     unsigned char& getPixel(int x, int y, int c) {
-        if (x > width || x < 0) {
-            std::cerr << "Out of width bounds" << '\n';
+        if (x >= width || x < 0) {
+            std::cerr << "Out of width bounds: x=" << x << ", width=" << width << '\n';
             throw std::out_of_range("Out of bounds, Cannot exceed width value");
         }
-        if (y > height || y < 0) {
-            std::cerr << "Out of height bounds" << '\n';
+        if (y >= height || y < 0) {
+            std::cerr << "Out of height bounds: y=" << y << ", height=" << height << '\n';
             throw std::out_of_range("Out of bounds, Cannot exceed height value");
         }
-        if (c < 0 || c > 2) {
-            std::cerr << "Out of channels bounds" << '\n';
-            throw std::out_of_range("Out of bounds, You only have 3 channels in RGB");
+        if (c < 0 || c >= channels) {
+            std::cerr << "Out of channels bounds: c=" << c << ", channels=" << channels << '\n';
+            throw std::out_of_range("Out of bounds, You only have " + std::to_string(channels) + " channels");
         }
 
         return imageData[(y * width + x) * channels + c];
     }
 
     const unsigned char& getPixel(int x, int y, int c) const {
-        if (x > width || x < 0) {
-            std::cerr << "Out of width bounds" << '\n';
+        if (x >= width || x < 0) {
+            std::cerr << "Out of width bounds: x=" << x << ", width=" << width << '\n';
             throw std::out_of_range("Out of bounds, Cannot exceed width value");
         }
-        if (y > height || y < 0) {
-            std::cerr << "Out of height bounds" << '\n';
+        if (y >= height || y < 0) {
+            std::cerr << "Out of height bounds: y=" << y << ", height=" << height << '\n';
             throw std::out_of_range("Out of bounds, Cannot exceed height value");
         }
-        if (c < 0 || c > 2) {
-            std::cerr << "Out of channels bounds" << '\n';
-            throw std::out_of_range("Out of bounds, You only have 3 channels in RGB");
+        if (c < 0 || c >= channels) {
+            std::cerr << "Out of channels bounds: c=" << c << ", channels=" << channels << '\n';
+            throw std::out_of_range("Out of bounds, You only have " + std::to_string(channels) + " channels");
         }
 
         return imageData[(y * width + x) * channels + c];
