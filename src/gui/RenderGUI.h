@@ -241,7 +241,7 @@ void renderGUI(ImageProcessor &processor) {
     ImGui::EndChild();
 
     ImGui::Columns(1);
-    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing());
+    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing() - 100.0f);
     ImGui::BeginChild("Status Bar", ImVec2(ImGui::GetWindowWidth(), 20), false);
     ImGui::Text("%s", statusBarMessage.c_str());
     ImGui::EndChild();
