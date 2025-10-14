@@ -29,7 +29,7 @@ static char gSearchBuffer[128] = {0};             // Top-right quick action sear
 static ImVec2 gLastCanvasAvail = ImVec2(0, 0);    // For Fit-to-screen calculations
 static float kLeftPanelPct = 0.26f;               // wider left: params panel
 static float kRightPanelPct = 0.26f;              // right as wide as left
-static bool  gPreviewCacheNeedsUpdate = true;     // controls when thumbnails rebuild
+bool  gPreviewCacheNeedsUpdate = true;            // controls when thumbnails rebuild (exported)
 static std::string gCurrentImagePath;             // last opened/saved path for display
 
 inline void guiSetCurrentImagePath(const std::string &path) { gCurrentImagePath = path; }

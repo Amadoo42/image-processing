@@ -3,6 +3,10 @@
 #include "FilterDefs.h"
 #include "FilterParameters.h"
 
+// Global flag controlling when filter preview thumbnails should refresh.
+// Defined in main.cpp
+extern bool gPreviewCacheNeedsUpdate;
+
 // Render inline parameter panels by forcing inline mode for parameter windows.
 struct ParamsInlineScope {
     ParamsInlineScope() { g_params_inline_mode = true; }
