@@ -93,6 +93,7 @@ int main(int argc, char* argv[]) {
                             imageProcessor.loadImage(selected);
                             textureNeedsUpdate = true;
                             statusBarMessage = "Image loaded successfully!";
+                            guiSetCurrentImagePath(selected);
                         } else {
                             statusBarMessage = "Failed to load image.";
                         }
@@ -102,6 +103,7 @@ int main(int argc, char* argv[]) {
                         if (!selected.empty()) {
                             if (imageProcessor.saveImage(selected)) {
                                 statusBarMessage = "Image saved to " + selected;
+                                guiSetCurrentImagePath(selected);
                             } else {
                                 statusBarMessage = "Failed to save image.";
                             }
