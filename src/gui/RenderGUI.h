@@ -297,11 +297,18 @@ static void drawTopNavBar(ImageProcessor &processor) {
 // --- Left Parameters Panel --------------------------------------------------
 static void drawLeftParamsPanel(ImageProcessor &processor, float width) {
     ImGui::BeginChild("LeftParamsPanel", ImVec2(width, 0), true);
+    // Filter parameters first
+    ImGui::TextUnformatted("Filter Parameters");
+    ImGui::Separator();
+    renderFilterParamsPanel(processor, gSelectedFilter, textureNeedsUpdate);
+
+    ImGui::NewLine();
     ImGui::TextUnformatted("History");
     ImGui::Separator();
     {
         static std::vector<GLuint> historyTextures;
         static bool historyValid = false;
+        static size_t lastUndoCount = (size_t)-1;
 
         auto releaseHistoryTextures = [&]() {
             for (GLuint t : historyTextures) {
@@ -310,56 +317,53 @@ static void drawLeftParamsPanel(ImageProcessor &processor, float width) {
             historyTextures.clear();
         };
 
-        if (textureNeedsUpdate || !historyValid) {
+        const auto &undoH = processor.getUndoHistory();
+        bool needRebuild = !historyValid || textureNeedsUpdate || gPreviewCacheNeedsUpdate || (undoH.size() != lastUndoCount);
+        if (needRebuild) {
             releaseHistoryTextures();
 
             std::vector<const Image*> states;
-            const auto &undoH = processor.getUndoHistory();
             for (const Image &img : undoH) states.push_back(&img);
             states.push_back(&processor.getCurrentImage());
 
             historyTextures.reserve(states.size());
 
-            const int thumbLongEdge = 140;
+            // Downscale to fit within preview thumbnail size to reduce memory
+            const int targetW = 120;
+            const int targetH = 90;
             for (const Image* src : states) {
                 if (!src || src->width <= 0 || src->height <= 0) { historyTextures.push_back(0); continue; }
-                int newW = src->width, newH = src->height;
-                if (src->width >= src->height) {
-                    if (src->width > thumbLongEdge) { newW = thumbLongEdge; newH = std::max(1, src->height * thumbLongEdge / src->width); }
-                } else {
-                    if (src->height > thumbLongEdge) { newH = thumbLongEdge; newW = std::max(1, src->width * thumbLongEdge / src->height); }
-                }
+                float scale = std::min(targetW / (float)src->width, targetH / (float)src->height);
+                int newW = std::max(1, (int)std::floor(src->width * scale));
+                int newH = std::max(1, (int)std::floor(src->height * scale));
                 Image thumb = *src;
-                if (newW != src->width || newH != src->height) { ResizeFilter rf(newW, newH); rf.apply(thumb); }
+                if (newW != src->width || newH != src->height) {
+                    ResizeFilter rf(newW, newH);
+                    rf.apply(thumb);
+                }
                 GLuint tex = loadTexture(thumb);
                 historyTextures.push_back(tex);
             }
+            lastUndoCount = undoH.size();
             historyValid = true;
         }
 
-        ImGui::BeginChild("HistoryList", ImVec2(0, 220), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+        // Display at the same size as filter preview thumbnails
+        const ImVec2 thumbSize = ImVec2(120, 90);
+        ImGui::BeginChild("HistoryList", ImVec2(0, 240), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
         for (size_t i = 0; i < historyTextures.size(); ++i) {
             GLuint tex = historyTextures[i];
-            float maxW = std::max(80.0f, ImGui::GetContentRegionAvail().x - 8.0f);
-            float w = maxW;
-            float h = maxW * 0.66f;
             if (tex != 0) {
                 ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.0f);
-                ImGui::Image((void*)(intptr_t)tex, ImVec2(w, h));
+                ImGui::Image((void*)(intptr_t)tex, thumbSize);
             } else {
-                ImGui::Dummy(ImVec2(w, h));
+                ImGui::Dummy(thumbSize);
             }
             if (i + 1 < historyTextures.size()) ImGui::Separator();
         }
         ImGui::EndChild();
-
-        if (textureNeedsUpdate) historyValid = false;
     }
 
-    ImGui::NewLine();
-    ImGui::TextUnformatted("Filter Parameters");
-    ImGui::Separator();
-    renderFilterParamsPanel(processor, gSelectedFilter, textureNeedsUpdate);
     ImGui::EndChild();
 }
 
@@ -487,8 +491,8 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
             ImVec2 zoomed_size = ImVec2(currentImage.width * zoom_level, currentImage.height * zoom_level);
             ImVec2 window_size = ImGui::GetContentRegionAvail();
             ImVec2 image_pos = ImVec2(
-                (window_size.x - zoomed_size.x) * 0.5f,
-                (window_size.y - zoomed_size.y) * 0.5f
+                (window_size.x - zoomed_size.x) * 0.5f + pan_offset.x,
+                (window_size.y - zoomed_size.y) * 0.5f + pan_offset.y
             );
             ImGui::SetCursorPos(image_pos);
             ImGui::Image((void*)(intptr_t)currentTextureID, zoomed_size);
