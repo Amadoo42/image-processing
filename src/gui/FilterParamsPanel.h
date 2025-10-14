@@ -3,6 +3,10 @@
 #include "FilterDefs.h"
 #include "FilterParameters.h"
 
+// Global flag controlling when filter preview thumbnails should refresh.
+// Defined in main.cpp
+extern bool gPreviewCacheNeedsUpdate;
+
 // Render inline parameter panels by forcing inline mode for parameter windows.
 struct ParamsInlineScope {
     ParamsInlineScope() { g_params_inline_mode = true; }
@@ -19,6 +23,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             auto f = makeFilter();
             processor.applyFilter(f);
             textureNeedsUpdate = true;
+            gPreviewCacheNeedsUpdate = true;
         }
     };
 
@@ -68,6 +73,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 FrameFilter filter(frame_image);
                 processor.applyFilter(filter);
                 textureNeedsUpdate = true;
+                gPreviewCacheNeedsUpdate = true;
             }
             break;
         }
@@ -78,6 +84,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 MergeFilter filter(merge_image);
                 processor.applyFilter(filter);
                 textureNeedsUpdate = true;
+                gPreviewCacheNeedsUpdate = true;
             }
             break;
         }
@@ -86,66 +93,77 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             static bool show = true;
             ImGui::TextUnformatted("Blur");
             params.applyBlur(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Brightness: {
             static bool show = true;
             ImGui::TextUnformatted("Brightness");
             params.applyBrightness(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Contrast: {
             static bool show = true;
             ImGui::TextUnformatted("Contrast");
             params.applyContrast(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Saturation: {
             static bool show = true;
             ImGui::TextUnformatted("Saturation");
             params.applySaturation(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::OilPainting: {
             static bool show = true;
             ImGui::TextUnformatted("Oil Painting");
             params.applyOilPainting(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Rotate: {
             static bool show = true;
             ImGui::TextUnformatted("Rotate");
             params.applyRotate(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Wave: {
             static bool show = true;
             ImGui::TextUnformatted("Wave");
             params.applyWave(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Purple: {
             static bool show = true;
             ImGui::TextUnformatted("Purple");
             params.applyPurple(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Skew: {
             static bool show = true;
             ImGui::TextUnformatted("Skew");
             params.applySkew(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Vignette: {
             static bool show = true;
             ImGui::TextUnformatted("Vignette");
             params.applyVignette(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Warmth: {
             static bool show = true;
             ImGui::TextUnformatted("Warmth");
             params.applyWarmth(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Outline: {
@@ -157,6 +175,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             static bool show = true;
             ImGui::TextUnformatted("Resize");
             params.applyResize(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Crop: {
@@ -166,6 +185,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 show = true;
             }
             params.applyCrop(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
     }

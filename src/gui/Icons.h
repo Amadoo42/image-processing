@@ -21,6 +21,9 @@
 #ifndef ICON_FA_ROTATE_RIGHT
 #define ICON_FA_ROTATE_RIGHT u8"\uf2f9" // Redo
 #endif
+#ifndef ICON_FA_ARROWS_ROTATE
+#define ICON_FA_ARROWS_ROTATE u8"\uf021" // Reset/Refresh
+#endif
 #ifndef ICON_FA_GEAR
 #define ICON_FA_GEAR u8"\uf013" // Preferences
 #endif
