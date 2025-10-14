@@ -331,6 +331,11 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
 
     static FilterPreviewCache previewCache;
     bool invalidate = gPreviewCacheNeedsUpdate;
+    // Use a frozen snapshot for previews so slider live previews do not mutate thumbnails
+    static Image frozenForPreviews;
+    if (invalidate || frozenForPreviews.width == 0) {
+        frozenForPreviews = processor.getCurrentImage();
+    }
     ImGui::BeginChild("FiltersContent", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
     if (categoryIndex == 0) {
         // Basic adjustments with previews
@@ -342,7 +347,7 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
             FilterType::Contrast,
             FilterType::Saturation
         };
-        renderFilterPreviewGrid(previewCache, processor, basics, gSelectedFilter, invalidate, "basic_sidebar", 2, ImVec2(120, 90));
+        renderFilterPreviewGrid(previewCache, processor, basics, gSelectedFilter, invalidate, "basic_sidebar", 2, ImVec2(120, 90), &frozenForPreviews);
     } else if (categoryIndex == 1) {
         // Transformations as text list
         auto addItem = [&](const char* label, FilterType t) {
@@ -368,11 +373,11 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
             FilterType::Vignette,
             FilterType::Warmth
         };
-        renderFilterPreviewGrid(previewCache, processor, effectsPreview, gSelectedFilter, invalidate, "effects_sidebar", 2, ImVec2(120, 90));
+        renderFilterPreviewGrid(previewCache, processor, effectsPreview, gSelectedFilter, invalidate, "effects_sidebar", 2, ImVec2(120, 90), &frozenForPreviews);
         if (ImGui::Selectable("Frame", gSelectedFilter == FilterType::Frame)) gSelectedFilter = FilterType::Frame;
     }
     ImGui::EndChild();
-    if (invalidate) gPreviewCacheNeedsUpdate = false;
+    if (invalidate) { gPreviewCacheNeedsUpdate = false; }
 
     ImGui::EndChild();
 }

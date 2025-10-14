@@ -189,10 +189,12 @@ inline bool renderFilterPreviewGrid(FilterPreviewCache &cache,
                                     bool invalidateCache,
                                     const char* tableIdSuffix,
                                     int columns = 3,
-                                    ImVec2 thumbSize = ImVec2(120, 80))
+                                    ImVec2 thumbSize = ImVec2(120, 80),
+                                    const Image* srcOverride = nullptr)
 {
     if (invalidateCache) cache.invalidate();
-    cache.ensureBuilt(processor.getCurrentImage(), filters);
+    const Image &src = srcOverride ? *srcOverride : processor.getCurrentImage();
+    cache.ensureBuilt(src, filters);
 
     bool clicked = false;
     ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV;
