@@ -360,57 +360,215 @@ public:
 
     // #TODO: overlay
     void applyResize(bool &show, bool &textureNeedsUpdate) {
-        static int newWidth, newHeight;
+        static int newWidth = 0, newHeight = 0;
         static Image originalImage;
         static bool init = false;
-        if(show){
-            if (!BeginParamsUI("Resize Parameters", &show)) return;
+        static GLuint textureID = 0;
 
-            if(!init){
-                originalImage = processor.getCurrentImage();
-                init = true;
+        static bool resizing = false;
+        static int resizeHandle = -1;
+        static ImVec2 dragStart;
+        static int startW, startH;
+
+        if (!show) {
+            if (textureID != 0) {
+                glDeleteTextures(1, &textureID);
+                textureID = 0;
+            }
+            init = false;
+            resizing = false;
+            resizeHandle = -1;
+            return;
+        }
+
+        ImGuiIO &io = ImGui::GetIO();
+
+        if (!init) {
+            ImGui::OpenPopup("Resize Overlay");
+            originalImage = processor.getCurrentImage();
+            newWidth = originalImage.width;
+            newHeight = originalImage.height;
+            textureID = loadTexture(originalImage);
+            init = true;
+        }
+
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(io.DisplaySize);
+        ImGuiWindowFlags flags =
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoCollapse;
+
+        if (!ImGui::BeginPopupModal("Resize Overlay", &show, flags))
+            return;
+
+        ImDrawList *draw = ImGui::GetWindowDrawList();
+        draw->AddRectFilled(ImVec2(0, 0), io.DisplaySize, IM_COL32(0, 0, 0, 220));
+
+        float displayedWidth = (float)originalImage.width;
+        float displayedHeight = (float)originalImage.height;
+
+        float scale = 1.0f;
+        if (displayedWidth > io.DisplaySize.x) scale = io.DisplaySize.x / displayedWidth;
+        if (displayedHeight * scale > io.DisplaySize.y) scale = io.DisplaySize.y / displayedHeight;
+        displayedWidth *= scale;
+        displayedHeight *= scale;
+
+        ImVec2 imagePos(
+            (io.DisplaySize.x - displayedWidth) * 0.5f,
+            (io.DisplaySize.y - displayedHeight) * 0.5f
+        );
+
+        ImVec2 imageMax(imagePos.x + displayedWidth, imagePos.y + displayedHeight);
+        draw->AddImage((void *)(intptr_t)textureID, imagePos, imageMax);
+
+        // === Controls ===
+        ImGui::SetCursorPos(ImVec2(20, 20));
+        ImGui::BeginChild("Resize Controls", ImVec2(280, 180), true);
+        ImGui::Text("Resize Parameters");
+        ImGui::Separator();
+
+        static bool keepAspect = true;
+        float aspect = (float)originalImage.width / (float)originalImage.height;
+
+        // FIX: Validate minimum values and handle aspect ratio consistently
+        if (ImGui::InputInt("Width", &newWidth)) {
+            newWidth = std::max(1, newWidth);
+            if (keepAspect) newHeight = std::max(1, (int)(newWidth / aspect));
+        }
+        if (ImGui::InputInt("Height", &newHeight)) {
+            newHeight = std::max(1, newHeight);
+            if (keepAspect) newWidth = std::max(1, (int)(newHeight * aspect));
+        }
+
+        ImGui::Checkbox("Keep Aspect Ratio", &keepAspect);
+        ImGui::Text("Scale: %.2fx", (float)newWidth / originalImage.width);
+
+        if (ImGui::Button("Apply")) {
+            processor.setImage(originalImage);
+            ResizeFilter f(newWidth, newHeight);
+            processor.applyFilter(f);
+            textureNeedsUpdate = true;
+            glDeleteTextures(1, &textureID);
+            show = false;
+            init = false;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) {
+            processor.setImage(originalImage);
+            textureNeedsUpdate = true;
+            glDeleteTextures(1, &textureID);
+            show = false;
+            init = false;
+        }
+        ImGui::EndChild();
+
+        // === Draw frame ===
+        float previewScaleX = (float)newWidth / originalImage.width;
+        float previewScaleY = (float)newHeight / originalImage.height;
+        float previewW = displayedWidth * previewScaleX;
+        float previewH = displayedHeight * previewScaleY;
+
+        ImVec2 previewPos((io.DisplaySize.x - previewW) * 0.5f, (io.DisplaySize.y - previewH) * 0.5f);
+        ImVec2 previewMax(previewPos.x + previewW, previewPos.y + previewH);
+        draw->AddRect(previewPos, previewMax, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
+
+        // === Handles ===
+        ImVec2 corners[4] = {
+            previewPos,
+            ImVec2(previewMax.x, previewPos.y),
+            previewMax,
+            ImVec2(previewPos.x, previewMax.y)
+        };
+
+        const float handleSize = 10.0f;
+        for (auto &c : corners)
+            draw->AddCircleFilled(c, handleSize, IM_COL32(255, 255, 255, 255));
+
+        ImVec2 mouse = io.MousePos;
+        int hovered = -1;
+
+        auto isInside = [&](ImVec2 center) {
+            return (fabs(mouse.x - center.x) <= handleSize * 1.5f &&
+                    fabs(mouse.y - center.y) <= handleSize * 1.5f);
+        };
+
+        for (int i = 0; i < 4; ++i)
+            if (isInside(corners[i])) hovered = i;
+
+        // === Dragging ===
+        if (hovered != -1 && ImGui::IsMouseClicked(0)) {
+            resizing = true;
+            resizeHandle = hovered;
+            dragStart = mouse;
+            startW = newWidth;
+            startH = newHeight;
+        }
+
+        if (resizing && ImGui::IsMouseDragging(0)) {
+            ImVec2 delta(mouse.x - dragStart.x, mouse.y - dragStart.y);
+            
+            // FIX: Use the actual preview scale for accurate pixel mapping
+            float previewScale = displayedWidth / (float)originalImage.width;
+            int dx = (int)(delta.x / previewScale);
+            int dy = (int)(delta.y / previewScale);
+
+            // FIX: Calculate new dimensions based on handle position
+            int tempWidth = startW;
+            int tempHeight = startH;
+            
+            switch (resizeHandle) {
+                case 0: tempWidth = startW - dx; tempHeight = startH - dy; break;
+                case 1: tempWidth = startW + dx; tempHeight = startH - dy; break;
+                case 2: tempWidth = startW + dx; tempHeight = startH + dy; break;
+                case 3: tempWidth = startW - dx; tempHeight = startH + dy; break;
             }
 
-            bool changed = false;
-            
-            ImGui::Text("Width:");
-            ImGui::SameLine();
-            if(ImGui::InputInt("##Width", &newWidth, 0, 0))changed = true;
-            
-            ImGui::Text("Height:");
-            ImGui::SameLine();
-            if(ImGui::InputInt("##Height", &newHeight, 0, 0))changed = true;
-
-            if(changed){
-                processor.setImage(originalImage);
-                ResizeFilter filter(newWidth, newHeight);
-                processor.applyFilter(filter);
-                textureNeedsUpdate = true;
+            // FIX: Apply aspect ratio constraint more cleanly
+            if (keepAspect) {
+                // Use the dimension with larger change
+                if (fabs(delta.x) > fabs(delta.y)) {
+                    newWidth = std::max(1, tempWidth);
+                    newHeight = std::max(1, (int)(newWidth / aspect));
+                } else {
+                    newHeight = std::max(1, tempHeight);
+                    newWidth = std::max(1, (int)(newHeight * aspect));
+                }
+            } else {
+                newWidth = std::max(1, tempWidth);
+                newHeight = std::max(1, tempHeight);
             }
-            
-            ImGui::Separator();
-            
-            if(ImGui::Button("Apply")){
-                ResizeFilter filter(newWidth, newHeight);
-                processor.setImage(originalImage);
-                processor.applyFilter(filter);
-                std::cout << "Resize filter applied with Parameters: " << newWidth << " " << newHeight << std::endl;
-                show = false;
-                init = false;
-                textureNeedsUpdate = true;
-            }
+        }
 
-            ImGui::SameLine();
-            if(ImGui::Button("Cancel")){
-                processor.setImage(originalImage);
-                show = false;
-                init = false;
-                textureNeedsUpdate = true;
-            }
+        // FIX: Auto-apply resize when mouse is released after dragging
+        if (resizing && !ImGui::IsMouseDown(0)) {
+            resizing = false;
+            resizeHandle = -1;
+            
+            // Apply the resize immediately
+            processor.setImage(originalImage);
+            ResizeFilter f(newWidth, newHeight);
+            processor.applyFilter(f);
+            textureNeedsUpdate = true;
+            
+            // Update originalImage and texture to reflect the new state
+            originalImage = processor.getCurrentImage();
+            glDeleteTextures(1, &textureID);
+            textureID = loadTexture(originalImage);
+            
+            // Reset dimensions to match the new image
+            newWidth = originalImage.width;
+            newHeight = originalImage.height;
+        }
 
-            EndParamsUI();
-        }else init = false;
+        ImGui::EndPopup();
     }
+
+
+
+
 
     void applyBrightness(bool &show, bool &textureNeedsUpdate) {
         static float factor = 1.0f;
@@ -507,55 +665,56 @@ public:
             show = false;
         }
     }
+
     void applyRotate(bool &show, bool &textureNeedsUpdate) {
-    static int currentItem = 0;
-    const char* items[] = {"90", "180", "270"};
-    int values[] = {90, 180, 270};
+        static int currentItem = 0;
+        const char* items[] = {"90", "180", "270"};
+        int values[] = {90, 180, 270};
 
-    static Image originalImage;
-    static bool init = false;
-    if(show){
-        if (!BeginParamsUI("Rotate Parameters", &show)) return;
+        static Image originalImage;
+        static bool init = false;
+        if(show){
+            if (!BeginParamsUI("Rotate Parameters", &show)) return;
 
-        if(!init){
-            originalImage = processor.getCurrentImage();
-            init = true;
-        }
+            if(!init){
+                originalImage = processor.getCurrentImage();
+                init = true;
+            }
 
-        ImGui::Text("Angle:");
-        ImGui::SameLine();
-        bool changed = false;
-        if(ImGui::Combo("Angle", &currentItem, items, IM_ARRAYSIZE(items))) changed = true; // fixed
+            ImGui::Text("Angle:");
+            ImGui::SameLine();
+            bool changed = false;
+            if(ImGui::Combo("Angle", &currentItem, items, IM_ARRAYSIZE(items))) changed = true; // fixed
 
-        if(changed){
-            processor.setImage(originalImage);
-            RotateFilter filter(values[currentItem]); 
-            processor.applyFilter(filter);
-            textureNeedsUpdate = true;
-        }
-        ImGui::Separator();
+            if(changed){
+                processor.setImage(originalImage);
+                RotateFilter filter(values[currentItem]); 
+                processor.applyFilter(filter);
+                textureNeedsUpdate = true;
+            }
+            ImGui::Separator();
 
-        if(ImGui::Button("Apply")){
-            RotateFilter filter(values[currentItem]); 
-            processor.setImage(originalImage);
-            processor.applyFilter(filter);
-            std::cout << "Rotated by: " << values[currentItem] << std::endl;
-            show = false;
-            init = false;
-            textureNeedsUpdate = true;
-        }
+            if(ImGui::Button("Apply")){
+                RotateFilter filter(values[currentItem]); 
+                processor.setImage(originalImage);
+                processor.applyFilter(filter);
+                std::cout << "Rotated by: " << values[currentItem] << std::endl;
+                show = false;
+                init = false;
+                textureNeedsUpdate = true;
+            }
 
-        ImGui::SameLine();
-        if(ImGui::Button("Cancel")){
-            processor.setImage(originalImage);
-            show = false;
-            init = false;
-            textureNeedsUpdate = true;
-        }
+            ImGui::SameLine();
+            if(ImGui::Button("Cancel")){
+                processor.setImage(originalImage);
+                show = false;
+                init = false;
+                textureNeedsUpdate = true;
+            }
 
-        EndParamsUI();
-    }else init = false;
-}
+            EndParamsUI();
+        }else init = false;
+    }
 
     void applyOutline(bool &show, bool &textureNeedsUpdate) {
         if(show){
@@ -684,7 +843,7 @@ public:
         }else init = false;
     }
 
-    // #TODO: change oil painting to a combo box
+    
     void applyOilPainting(bool &show, bool &textureNeedsUpdate) {
         
         static int currentItem = 0;
