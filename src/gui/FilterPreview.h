@@ -49,9 +49,7 @@ public:
         }
     }
 
-    void invalidate() {
-        cacheValid = false;
-    }
+    void invalidate() { cacheValid = false; }
 
     // Build previews if needed for the provided filter list
     void ensureBuilt(const Image &src, const std::vector<FilterType> &filters) {

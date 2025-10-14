@@ -27,8 +27,9 @@ static std::string statusBarMessage = "Welcome to Image Processor!";
 // Left panel is now dedicated filter parameter panel
 static char gSearchBuffer[128] = {0};             // Top-right quick action search
 static ImVec2 gLastCanvasAvail = ImVec2(0, 0);    // For Fit-to-screen calculations
-static float kLeftPanelPct = 0.24f;               // wider left: params panel
-static float kRightPanelPct = 0.20f;              // narrower right: effects list
+static float kLeftPanelPct = 0.26f;               // wider left: params panel
+static float kRightPanelPct = 0.26f;              // right as wide as left
+static bool  gPreviewCacheNeedsUpdate = true;     // controls when thumbnails rebuild
 static std::string gCurrentImagePath;             // last opened/saved path for display
 
 inline void guiSetCurrentImagePath(const std::string &path) { gCurrentImagePath = path; }
@@ -232,8 +233,41 @@ static void drawTopNavBar(ImageProcessor &processor) {
                 if (img.width > 0 && img.height > 0 && gLastCanvasAvail.x > 0.0f && gLastCanvasAvail.y > 0.0f) {
                     float zx = gLastCanvasAvail.x / img.width; float zy = gLastCanvasAvail.y / img.height; zoom_level = std::max(0.1f, std::min(zx, zy));
                 }
+            } else if (q.find("compare") != std::string::npos) {
+                compareMode = !compareMode;
             }
             gSearchBuffer[0] = '\0';
+        }
+        // Autocomplete popup
+        static const struct { const char* cmd; const char* hint; const char* shortcut; } kCmds[] = {
+            {"open",   "Open image",           "Ctrl+O"},
+            {"save",   "Save image",           "Ctrl+S"},
+            {"undo",   "Undo last edit",       "Ctrl+Z"},
+            {"redo",   "Redo last edit",       "Ctrl+Y"},
+            {"reset",  "Reset zoom/pan",       ""},
+            {"fit",    "Fit image to view",    ""},
+            {"compare","Toggle compare view",   ""},
+        };
+        if (ImGui::IsItemActive()) {
+            ImGui::SetNextWindowPos(ImGui::GetItemRectMin());
+            ImGui::SetNextWindowSize(ImVec2(300, 0));
+            ImGui::Begin("##autocomplete", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+            std::string q = gSearchBuffer; for (auto &c : q) c = (char)tolower(c);
+            int shown = 0;
+            for (auto &cdef : kCmds) {
+                std::string name = cdef.cmd; std::string hint = cdef.hint;
+                std::string combined = name + " " + hint;
+                if (q.empty() || combined.find(q) != std::string::npos) {
+                    ImGui::BeginGroup();
+                    if (ImGui::Selectable((name + " — " + hint).c_str())) {
+                        std::snprintf(gSearchBuffer, sizeof(gSearchBuffer), "%s", name.c_str());
+                    }
+                    if (cdef.shortcut && *cdef.shortcut) { ImGui::SameLine(); ImGui::TextDisabled("%s", cdef.shortcut); }
+                    ImGui::EndGroup();
+                    if (++shown >= 6) break;
+                }
+            }
+            ImGui::End();
         }
         ImGui::EndMainMenuBar();
     }
@@ -296,7 +330,7 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
     }
 
     static FilterPreviewCache previewCache;
-    bool invalidate = textureNeedsUpdate;
+    bool invalidate = gPreviewCacheNeedsUpdate;
     ImGui::BeginChild("FiltersContent", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
     if (categoryIndex == 0) {
         // Basic adjustments with previews
@@ -338,6 +372,7 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
         if (ImGui::Selectable("Frame", gSelectedFilter == FilterType::Frame)) gSelectedFilter = FilterType::Frame;
     }
     ImGui::EndChild();
+    if (invalidate) gPreviewCacheNeedsUpdate = false;
 
     ImGui::EndChild();
 }
@@ -497,7 +532,7 @@ void renderGUI(ImageProcessor &processor) {
         // Layout widths (responsive)
         ImVec2 avail = ImGui::GetContentRegionAvail();
         float leftW  = std::max(260.0f, avail.x * kLeftPanelPct);
-        float rightW = std::max(260.0f, avail.x * kRightPanelPct);
+        float rightW = std::max(leftW, avail.x * kRightPanelPct); // keep right as wide as left
         float centerW = std::max(100.0f, avail.x - leftW - rightW);
 
         // Left parameters panel
