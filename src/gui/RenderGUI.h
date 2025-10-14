@@ -244,6 +244,9 @@ static void drawTopNavBar(ImageProcessor &processor) {
             gSearchBuffer[0] = '\0';
             searchPopupOpen = false; // close only on Enter
         }
+        else if (ImGui::IsItemDeactivated()) {
+            searchPopupOpen = false;
+        }
         if (ImGui::IsItemActivated()) searchPopupOpen = true; // open when focus enters
 
         // Autocomplete popup window stays while user interacts with it
@@ -273,7 +276,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
                         gSearchBuffer[0] = '\0';
                         searchPopupOpen = false; // close when a function is clicked
                     }
-                    if (++shown >= 6) break;
+                    if (++shown >= 7) break;
                 }
             }
             ImGui::End();
@@ -370,7 +373,7 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
         addItem("Skew", FilterType::Skew);
         addItem("Merge", FilterType::Merge);
     } else {
-        // Effects: preview grid for previewables + text entries for non-previewables (Frame)
+        // Effects: preview grid for previewables + text entries for non-previewables
         std::vector<FilterType> effectsPreview = {
             FilterType::Blur,
             FilterType::Outline,
@@ -380,10 +383,10 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
             FilterType::OilPainting,
             FilterType::Retro,
             FilterType::Vignette,
-            FilterType::Warmth
+            FilterType::Warmth,
+            FilterType::Frame
         };
         renderFilterPreviewGrid(previewCache, processor, effectsPreview, gSelectedFilter, invalidate, "effects_sidebar", 2, ImVec2(120, 90), &frozenForPreviews);
-        if (ImGui::Selectable("Frame", gSelectedFilter == FilterType::Frame)) gSelectedFilter = FilterType::Frame;
     }
     ImGui::EndChild();
     if (invalidate) { gPreviewCacheNeedsUpdate = false; }
@@ -546,7 +549,7 @@ void renderGUI(ImageProcessor &processor) {
         // Layout widths (responsive)
         ImVec2 avail = ImGui::GetContentRegionAvail();
         float leftW  = std::max(260.0f, avail.x * kLeftPanelPct);
-        float rightW = std::max(leftW, avail.x * kRightPanelPct); // keep right as wide as left
+        float rightW = std::max(300.0f, avail.x * kRightPanelPct); // keep right as wide as left
         float centerW = std::max(100.0f, avail.x - leftW - rightW);
 
         // Left parameters panel

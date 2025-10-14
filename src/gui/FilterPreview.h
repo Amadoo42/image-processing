@@ -43,7 +43,6 @@ public:
             case FilterType::Crop:
             case FilterType::Skew:
             case FilterType::Merge:
-            case FilterType::Frame:
                 return false;
             default: return true;
         }
@@ -165,6 +164,7 @@ private:
             case FilterType::Retro: { RetroFilter f; f.apply(img); break; }
             case FilterType::Vignette: { VigentteFilter f(1.2); f.apply(img); break; }
             case FilterType::Warmth: { WarmthFilter f(1.0); f.apply(img); break; }
+            case FilterType::Frame: { Image f_img("../assets/frames/normal.jpg"); FrameFilter f(f_img); f.apply(img); break; }
             // Not previewed / not applicable
             default: break;
         }
