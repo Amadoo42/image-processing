@@ -5,7 +5,11 @@
 #include "LoadTexture.h"
 #include "MemoryOperation.h"
 #include "CompareView.h"
+#include "FilterPreview.h"
+#include "FilterParamsPanel.h"
 #include <string>
+#include <algorithm>
+#include <cmath>
 
 static bool is_dark_theme = true;
 static int preferences_theme = 1; // 0 Light, 1 Dark, 2 Classic
@@ -18,6 +22,15 @@ static FilterType gSelectedFilter = FilterType::None;
 static GLuint currentTextureID = 0;
 bool textureNeedsUpdate = false;
 static std::string statusBarMessage = "Welcome to Image Processor!";
+
+// New UI state for refactored layout
+enum class LeftTab { Enhancement = 0, Tools, Retouch, Effects, Captions };
+static LeftTab gActiveLeftTab = LeftTab::Effects; // Effects active by default
+static float gBlendSlider = 0.5f;                 // Original <-> Effect slider value
+static char gSearchBuffer[128] = {0};             // Top-right quick action search
+static ImVec2 gLastCanvasAvail = ImVec2(0, 0);    // For Fit-to-screen calculations
+static float kLeftPanelPct = 0.14f;               // ≈14% left
+static float kRightPanelPct = 0.26f;              // ≈26% right
 
 void setModernStyle() {
     ImGuiStyle& style = ImGui::GetStyle();
@@ -79,20 +92,9 @@ void setModernStyle() {
     style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 }
 
-void renderGUI(ImageProcessor &processor) {
+// --- Top Navigation Bar ----------------------------------------------------
+static void drawTopNavBar(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();
-    const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-
-    ImGui::SetNextWindowPos(main_viewport->WorkPos);
-    ImGui::SetNextWindowSize(main_viewport->WorkSize);
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-    ImGui::Begin("Main Window", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus);
-    ImGui::PopStyleVar(3);
-
     if(ImGui::BeginMainMenuBar()) {
         if(ImGui::BeginMenu("File")) {
             if(ImGui::MenuItem(iconLabel(ICON_FA_FOLDER_OPEN, "Open").c_str(), "Ctrl+O")) {
@@ -137,6 +139,22 @@ void renderGUI(ImageProcessor &processor) {
             if (ImGui::MenuItem(iconLabel(ICON_FA_RIGHT_FROM_BRACKET, "Exit").c_str())) {
                 statusBarMessage = "Use window close button to exit.";
             }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Tools")) {
+            if (ImGui::MenuItem("Reset Zoom & Pan")) { zoom_level = 1.0f; pan_offset = ImVec2(0, 0); }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Retouch")) {
+            ImGui::MenuItem("Blemish Remover", nullptr, false, false);
+            ImGui::MenuItem("Heal/Clone", nullptr, false, false);
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Effects")) {
+            // Quick access to some effects
+            if (ImGui::MenuItem("Retro", nullptr, gSelectedFilter == FilterType::Retro)) gSelectedFilter = FilterType::Retro;
+            if (ImGui::MenuItem("Oil Painting", nullptr, gSelectedFilter == FilterType::OilPainting)) gSelectedFilter = FilterType::OilPainting;
+            if (ImGui::MenuItem("Vignette", nullptr, gSelectedFilter == FilterType::Vignette)) gSelectedFilter = FilterType::Vignette;
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
@@ -202,8 +220,206 @@ void renderGUI(ImageProcessor &processor) {
             ImGui::MenuItem(iconLabel(ICON_FA_BOOK, "Documentation").c_str(), nullptr, false, false);
             ImGui::EndMenu();
         }
+
+        // Right-aligned search field
+        float rightSpace = ImGui::GetWindowWidth();
+        ImGui::SameLine(rightSpace - 320.0f);
+        ImGui::SetNextItemWidth(300.0f);
+        ImGui::InputTextWithHint("##top_search", "What do you want to do?", gSearchBuffer, IM_ARRAYSIZE(gSearchBuffer));
         ImGui::EndMainMenuBar();
     }
+}
+
+// --- Left Side Tabs --------------------------------------------------------
+static void drawLeftSideTabs(float width) {
+    ImGui::BeginChild("LeftSideTabs", ImVec2(width, 0), true);
+    ImGui::TextUnformatted(" "); // small top padding
+    const char* labels[] = {"Enhancement", "Tools", "Retouch", "Effects", "Captions"};
+    for (int i = 0; i < 5; ++i) {
+        bool selected = static_cast<int>(gActiveLeftTab) == i;
+        if (ImGui::Selectable(labels[i], selected, 0, ImVec2(-1, 36))) {
+            gActiveLeftTab = static_cast<LeftTab>(i);
+        }
+    }
+    ImGui::EndChild();
+}
+
+// --- Histogram Placeholder --------------------------------------------------
+static void drawHistogramPlaceholder(const Image &img) {
+    ImGui::TextUnformatted("Histogram");
+    ImGui::BeginChild("HistogramBox", ImVec2(0, 120), true);
+    // Simple grayscale histogram placeholder; if image is empty, draw noise
+    const int N = 64;
+    static float values[N] = {0};
+    static float t = 0.0f;
+    t += 0.02f;
+    for (int i = 0; i < N; ++i) values[i] = 0.5f + 0.5f * sinf(t + i * 0.15f);
+    ImGui::PlotLines("##hist", values, N, 0, nullptr, 0.0f, 1.0f, ImVec2(0, 100));
+    ImGui::EndChild();
+}
+
+// --- Right Panel ------------------------------------------------------------
+static void drawRightPanel(ImageProcessor &processor, float width) {
+    ImGui::BeginChild("RightPanel", ImVec2(width, 0), true);
+
+    // Action buttons aligned to the right
+    float full = ImGui::GetContentRegionAvail().x;
+    float btnW = 80.0f;
+    ImGui::SetCursorPosX(std::max(0.0f, full - (btnW * 2 + 8.0f)));
+    if (ImGui::Button("Save", ImVec2(btnW, 0))) {
+        std::string selected = saveFileDialog_Linux();
+        if (!selected.empty()) {
+            if (processor.saveImage(selected)) { statusBarMessage = std::string("Image saved to ") + selected; }
+            else { statusBarMessage = "Failed to save image."; }
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Print", ImVec2(btnW, 0))) {
+        statusBarMessage = "Print is not implemented.";
+    }
+
+    ImGui::Separator();
+    drawHistogramPlaceholder(processor.getCurrentImage());
+    ImGui::Separator();
+    ImGui::TextUnformatted("Choose an effect:");
+
+    // Scrollable grid of effect thumbnails
+    ImGui::BeginChild("EffectsScroll", ImVec2(0, -180), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+    static FilterPreviewCache previewCache;
+    std::vector<FilterType> effects = {
+        FilterType::Retro, FilterType::OilPainting, FilterType::Blur, FilterType::Outline, FilterType::Purple,
+        FilterType::Infrared, FilterType::Wave, FilterType::Vignette, FilterType::Warmth
+    };
+    bool invalidate = textureNeedsUpdate;
+    renderFilterPreviewGrid(previewCache, processor, effects, gSelectedFilter, invalidate, "sidebar_effects", 2, ImVec2(120, 90));
+    ImGui::EndChild();
+
+    ImGui::Separator();
+    ImGui::TextUnformatted("Filter Parameters");
+    renderFilterParamsPanel(processor, gSelectedFilter, textureNeedsUpdate);
+
+    ImGui::EndChild();
+}
+
+// --- Image Canvas -----------------------------------------------------------
+static void drawImageCanvas(ImageProcessor &processor, float width) {
+    ImGui::BeginChild("ImageCanvas", ImVec2(width, 0), true);
+    const Image& currentImage = processor.getCurrentImage();
+    gLastCanvasAvail = ImGui::GetContentRegionAvail();
+    if(currentImage.width > 0 && currentImage.height > 0) {
+        if(textureNeedsUpdate) {
+            if(currentTextureID != 0) glDeleteTextures(1, &currentTextureID);
+            currentTextureID = loadTexture(currentImage);
+            textureNeedsUpdate = false;
+        }
+        if(!compareMode) {
+            ImGuiIO& io = ImGui::GetIO();
+            if(ImGui::IsWindowHovered() && io.MouseWheel != 0.0f) {
+                zoom_level += io.MouseWheel * 0.1f;
+                zoom_level = std::clamp(zoom_level, 0.1f, 10.0f);
+            }
+            if(ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+                pan_offset.x += io.MouseDelta.x;
+                pan_offset.y += io.MouseDelta.y;
+            }
+            ImVec2 zoomed_size = ImVec2(currentImage.width * zoom_level, currentImage.height * zoom_level);
+            ImVec2 window_size = ImGui::GetContentRegionAvail();
+            ImVec2 image_pos = ImVec2(
+                (window_size.x - zoomed_size.x) * 0.5f,
+                (window_size.y - zoomed_size.y) * 0.5f
+            );
+            ImGui::SetCursorPos(image_pos);
+            ImGui::Image((void*)(intptr_t)currentTextureID, zoomed_size);
+        } else {
+            renderCompareView(processor, zoom_level, pan_offset);
+        }
+
+        // Bottom overlay: Original <-> Effect slider
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImVec2 wpos = ImGui::GetWindowPos();
+        ImVec2 wsz  = ImGui::GetWindowSize();
+        ImVec2 overlayPos = ImVec2(wpos.x + 12.0f, wpos.y + wsz.y - 36.0f);
+        ImVec2 overlaySize = ImVec2(wsz.x - 24.0f, 24.0f);
+        dl->AddRectFilled(overlayPos, ImVec2(overlayPos.x + overlaySize.x, overlayPos.y + overlaySize.y), IM_COL32(20,20,20,160), 6.0f);
+        ImGui::SetCursorScreenPos(ImVec2(overlayPos.x + 8.0f, overlayPos.y + 4.0f));
+        ImGui::TextUnformatted("Original");
+        ImGui::SameLine();
+        float sliderW = overlaySize.x - 160.0f;
+        ImGui::SetNextItemWidth(sliderW);
+        ImGui::SliderFloat("##blend", &gBlendSlider, 0.0f, 1.0f, "", ImGuiSliderFlags_NoInput);
+        ImGui::SameLine();
+        ImGui::TextUnformatted("Effect");
+    }
+    ImGui::EndChild();
+}
+
+// --- Bottom Toolbar ---------------------------------------------------------
+static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
+    float height = 36.0f;
+    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - height);
+    ImGui::BeginChild("BottomToolbar", ImVec2(fullWidth, height), true);
+
+    if(ImGui::Button("Undo")) {
+        if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; }
+        else { statusBarMessage = "Nothing to undo."; }
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Redo")) {
+        if(processor.redo()) { textureNeedsUpdate = true; statusBarMessage = "Redo successful."; }
+        else { statusBarMessage = "Nothing to redo."; }
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Reset")) { zoom_level = 1.0f; pan_offset = ImVec2(0,0); }
+
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(8, 1));
+    ImGui::SameLine();
+
+    // Zoom control
+    ImGui::TextUnformatted("Zoom");
+    ImGui::SameLine();
+    float percent = zoom_level * 100.0f;
+    ImGui::SetNextItemWidth(160.0f);
+    if (ImGui::SliderFloat("##zoom", &percent, 10.0f, 400.0f, "%.0f%%")) {
+        zoom_level = percent / 100.0f;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("1:1")) zoom_level = 1.0f;
+    ImGui::SameLine();
+    if (ImGui::Button("Fit")) {
+        const Image& img = processor.getCurrentImage();
+        if (img.width > 0 && img.height > 0 && gLastCanvasAvail.x > 0.0f && gLastCanvasAvail.y > 0.0f) {
+            float zx = gLastCanvasAvail.x / img.width;
+            float zy = gLastCanvasAvail.y / img.height;
+            zoom_level = std::max(0.1f, std::min(zx, zy));
+        }
+    }
+
+    // Centered transient status text
+    float toolbarWidth = ImGui::GetWindowWidth();
+    float text_width = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
+    ImGui::SameLine(toolbarWidth * 0.5f - text_width * 0.5f);
+    ImGui::Text("%s", statusBarMessage.c_str());
+
+    ImGui::EndChild();
+}
+
+void renderGUI(ImageProcessor &processor) {
+    ImGuiIO& io = ImGui::GetIO();
+    const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+
+    ImGui::SetNextWindowPos(main_viewport->WorkPos);
+    ImGui::SetNextWindowSize(main_viewport->WorkSize);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+    ImGui::Begin("Main Window", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus);
+    ImGui::PopStyleVar(3);
+
+    // Top navigation bar
+    drawTopNavBar(processor);
 
     // Preferences window
     if (showPreferencesWindow) {
@@ -228,122 +444,29 @@ void renderGUI(ImageProcessor &processor) {
         }
         ImGui::End();
     }
-    
-    ImGui::BeginChild("Tool Panel", ImVec2(250, 0), true);
-    ImGui::Text("Tools");
-    ImGui::Separator();
-    if(ImGui::Button("Open")) {
-        std::string selected = openFileDialog_Linux();
-        if(!selected.empty()) {
-            std::cout << "Image loaded successfully!\n";
-            processor.loadImage(selected);
-            textureNeedsUpdate = true;
-            statusBarMessage = "Image loaded successfully!";
-        }
-        else {
-            std::cerr << "Failed to load image." << std::endl;
-            statusBarMessage = "Failed to load image.";
-        }
-    }
-    if(ImGui::Button("Save")) {
-        std::string selected = saveFileDialog_Linux();
-        if (!selected.empty()) {
-            if (processor.saveImage(selected)) {
-                std::cout << "Image saved to " << selected << std::endl;
-                statusBarMessage = "Image saved to " + selected;
-            }
-            else {
-                std::cerr << "Failed to save image." << std::endl;
-                statusBarMessage = "Failed to save image.";
-            }
-        }
-    }
-    if (ImGui::Button(compareMode ? "Compare: ON" : "Compare: OFF")) { compareMode = !compareMode; }
-    ImGui::Separator();
-    if(ImGui::Button("Reset Zoom & Pan", ImVec2(-1, 0))) {
-        zoom_level = 1.0f;
-        pan_offset = ImVec2(0, 0);
-    }
+    // Layout widths (responsive)
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+    float leftW  = std::max(180.0f, avail.x * kLeftPanelPct);
+    float rightW = std::max(300.0f, avail.x * kRightPanelPct);
+    float centerW = std::max(100.0f, avail.x - leftW - rightW);
 
-    ImGui::Separator();
-    ImGui::Text("History:");
-    if(ImGui::Button("Undo", ImVec2(-1, 0))) {
-        if(processor.undo()) {
-            std::cout << "Undo successful." << std::endl;
-            textureNeedsUpdate = true;
-            statusBarMessage = "Undo successful.";
-        }
-        else {
-            std::cout << "Nothing to undo." << std::endl;
-            statusBarMessage = "Nothing to undo.";
-        }
-    }
-    if(ImGui::Button("Redo", ImVec2(-1, 0))) {
-        if(processor.redo()) {
-            std::cout << "Redo successful." << std::endl;
-            textureNeedsUpdate = true;
-            statusBarMessage = "Redo successful.";
-        }
-        else {
-            std::cout << "Nothing to redo." << std::endl;
-            statusBarMessage = "Nothing to redo.";
-        }
-    }
-    ImGui::EndChild();
-    
+    // Left tabs
+    drawLeftSideTabs(leftW);
     ImGui::SameLine();
 
-    ImGui::BeginChild("Image View", ImVec2(-350, 0), true); // Negative width means "fill the rest of the space except for this amount"
-    const Image& currentImage = processor.getCurrentImage();
-    if(currentImage.width > 0 && currentImage.height > 0) {
-        if(textureNeedsUpdate) {
-            if(currentTextureID != 0) glDeleteTextures(1, &currentTextureID);
-            currentTextureID = loadTexture(currentImage);
-            textureNeedsUpdate = false;
-        }
-        if(!compareMode) {
-            if(ImGui::IsWindowHovered() && io.MouseWheel != 0.0f) {
-                zoom_level += io.MouseWheel * 0.1f;
-                zoom_level = std::clamp(zoom_level, 0.1f, 10.0f);
-            }
-            if(ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
-                pan_offset.x += io.MouseDelta.x;
-                pan_offset.y += io.MouseDelta.y;
-            }
-            ImVec2 zoomed_size = ImVec2(currentImage.width * zoom_level, currentImage.height * zoom_level);
-            ImVec2 window_size = ImGui::GetContentRegionAvail();
-            ImVec2 image_pos = ImVec2(
-                (window_size.x - zoomed_size.x) * 0.5f,
-                (window_size.y - zoomed_size.y) * 0.5f  
-            );
-
-            ImGui::SetCursorPos(image_pos);
-            
-            ImGui::Image((void*)(intptr_t)currentTextureID, zoomed_size);
-        } else {
-            renderCompareView(processor, zoom_level, pan_offset);
-        }
-    }
-    ImGui::EndChild();
-    
+    // Center canvas
+    drawImageCanvas(processor, centerW);
     ImGui::SameLine();
 
-    ImGui::BeginChild("Filters Panel", ImVec2(0, 0), true);
-    ImGui::Text("Filters Panel");
-    ImGui::Separator();
-    filtersMenu(processor, textureNeedsUpdate, gSelectedFilter);
-    ImGui::EndChild();
+    // Right sidebar
+    drawRightPanel(processor, rightW);
 
-    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing());
-    ImGui::BeginChild("Status Bar", ImVec2(ImGui::GetWindowWidth(), 20), false);
-    float text_width = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
-    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - text_width) * 0.5f);
-    ImGui::Text("%s", statusBarMessage.c_str());
-    ImGui::EndChild();
+    // Bottom toolbar across main window width
+    drawBottomToolbar(processor, ImGui::GetWindowWidth());
     ImGui::End();
 
     
-    // This has a lot of major issues, it is a mess with the current layout and it also doesn't work well with real-time preview.
+    // Below was an experimental history overlay left as a reference; disabled for now.
     // {
     //     const int maxThumbs = 6;
     //     const ImVec2 thumbSize = ImVec2(120, 72);
