@@ -107,6 +107,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
                     processor.loadImage(selected);
                     guiSetCurrentImagePath(selected);
                     textureNeedsUpdate = true;
+                    gPreviewCacheNeedsUpdate = true;
                     statusBarMessage = "Image loaded successfully!";
                 }
                 else {
@@ -216,7 +217,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
             std::string q = qraw; for (auto &c : q) c = (char)tolower(c);
             if (q.find("open") != std::string::npos || q == "load") {
                 std::string selected = openFileDialog_Linux();
-                if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; statusBarMessage = "Image loaded successfully!"; }
+                if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Image loaded successfully!"; }
             } else if (q.find("save") != std::string::npos) {
                 std::string selected = saveFileDialog_Linux();
                 if (!selected.empty()) { if (processor.saveImage(selected)) { guiSetCurrentImagePath(selected); statusBarMessage = "Image saved to " + selected; } }
@@ -350,7 +351,8 @@ static void drawLeftParamsPanel(ImageProcessor &processor, float width) {
 
         // Display at the same size as filter preview thumbnails
         const ImVec2 thumbSize = ImVec2(120, 90);
-        ImGui::BeginChild("HistoryList", ImVec2(0, 240), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+        // Take the remaining vertical space in the left panel
+        ImGui::BeginChild("HistoryList", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
         for (size_t i = 0; i < historyTextures.size(); ++i) {
             GLuint tex = historyTextures[i];
             if (tex != 0) {

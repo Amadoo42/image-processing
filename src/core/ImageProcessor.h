@@ -46,6 +46,12 @@ public:
         //textureNeedsUpdate = true;
     } 
 
+    // Apply a filter without affecting undo/redo history.
+    // Intended for live previews; caller should manage resetting or committing.
+    void applyFilterNoHistory(Filter &filter) {
+        filter.apply(currentImage);
+    }
+
     bool undo() {
         if(undoHistory.empty()) return false;
         pushRedo();

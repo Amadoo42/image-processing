@@ -100,7 +100,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 BlurFilter filter(values1[currentItem], values2[currentItem]); 
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -595,7 +595,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 DarkenFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -689,7 +689,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 RotateFilter filter(values[currentItem]); 
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -751,7 +751,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 PurpleFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -815,7 +815,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 WaveFilter filter(amplitude, wavelength);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             
@@ -868,7 +868,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 OilPaintingFilter filter(5, values[currentItem]); 
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -919,7 +919,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 ContrastFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -982,7 +982,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 SaturationFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -1034,7 +1034,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 SkewFilter filter(Angle);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -1086,7 +1086,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 VigentteFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -1138,7 +1138,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 WarmthFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }

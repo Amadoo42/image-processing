@@ -94,6 +94,7 @@ int main(int argc, char* argv[]) {
                             textureNeedsUpdate = true;
                             statusBarMessage = "Image loaded successfully!";
                             guiSetCurrentImagePath(selected);
+                            gPreviewCacheNeedsUpdate = true;
                         } else {
                             statusBarMessage = "Failed to load image.";
                         }
