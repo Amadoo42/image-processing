@@ -565,6 +565,7 @@ void renderGUI(ImageProcessor &processor) {
 
     // Presets management window
     if (showPresetsWindow) {
+        ImGui::SetNextWindowSize(ImVec2(420, 360), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Preset Manager", &showPresetsWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
             static int selectedIndex = -1;
             const auto &presets = gPresetManager.getPresets();
@@ -580,22 +581,27 @@ void renderGUI(ImageProcessor &processor) {
             ImGui::Separator();
             if (ImGui::Button("Create New")) { showPresetBuilderWindow = true; }
             ImGui::SameLine();
-            if (selectedIndex < 0) ImGui::BeginDisabled();
+            bool disableActions = (selectedIndex < 0);
+            if (disableActions) ImGui::BeginDisabled();
             if (ImGui::Button("Rename")) ImGui::OpenPopup("RenamePresetPopup");
             ImGui::SameLine();
             if (ImGui::Button("Delete")) { gPresetManager.deletePreset(selectedIndex); selectedIndex = -1; }
-            if (selectedIndex < 0) ImGui::EndDisabled();
+            if (disableActions) ImGui::EndDisabled();
 
             if (ImGui::BeginPopupModal("CreatePresetPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
                 static char nameBuf[128] = {0};
+                const auto &steps = gPresetManager.getSessionSteps();
+                ImGui::Text("Filters recorded: %zu", steps.size());
+                if (steps.empty()) ImGui::TextDisabled("No filters recorded yet.");
                 ImGui::InputText("Preset Name", nameBuf, IM_ARRAYSIZE(nameBuf));
+                bool canSave = nameBuf[0] != '\0' && !steps.empty();
+                if (!canSave) ImGui::BeginDisabled();
                 if (ImGui::Button("Save")) {
-                    if (nameBuf[0] != '\0') {
-                        gPresetManager.addPreset(nameBuf, gPresetManager.getSessionSteps());
-                        nameBuf[0] = '\0';
-                        ImGui::CloseCurrentPopup();
-                    }
+                    gPresetManager.addPreset(nameBuf, steps);
+                    nameBuf[0] = '\0';
+                    ImGui::CloseCurrentPopup();
                 }
+                if (!canSave) ImGui::EndDisabled();
                 ImGui::SameLine();
                 if (ImGui::Button("Cancel")) { ImGui::CloseCurrentPopup(); }
                 ImGui::EndPopup();
@@ -605,13 +611,10 @@ void renderGUI(ImageProcessor &processor) {
                 if (selectedIndex >= 0 && selectedIndex < (int)presets.size())
                     if (nameBuf2[0] == '\0') std::snprintf(nameBuf2, sizeof(nameBuf2), "%s", presets[selectedIndex].name.c_str());
                 ImGui::InputText("New Name", nameBuf2, IM_ARRAYSIZE(nameBuf2));
-                if (ImGui::Button("Rename")) {
-                    if (selectedIndex >= 0) {
-                        gPresetManager.renamePreset(selectedIndex, nameBuf2);
-                        nameBuf2[0] = '\0';
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
+                bool canRename = (selectedIndex >= 0) && (nameBuf2[0] != '\0');
+                if (!canRename) ImGui::BeginDisabled();
+                if (ImGui::Button("Rename")) { gPresetManager.renamePreset(selectedIndex, nameBuf2); nameBuf2[0] = '\0'; ImGui::CloseCurrentPopup(); }
+                if (!canRename) ImGui::EndDisabled();
                 ImGui::SameLine();
                 if (ImGui::Button("Cancel")) { nameBuf2[0] = '\0'; ImGui::CloseCurrentPopup(); }
                 ImGui::EndPopup();
@@ -637,7 +640,9 @@ void renderGUI(ImageProcessor &processor) {
         ImGui::End();
     }
     // Quick save current chain as preset popup
+    // Always keep the modal available when flag is set
     if (showSaveCurrentPresetPopup) {
+        ImGui::OpenPopup("SaveCurrentPreset");
         if (ImGui::BeginPopupModal("SaveCurrentPreset", &showSaveCurrentPresetPopup, ImGuiWindowFlags_AlwaysAutoResize)) {
             static char nameBuf3[128] = {0};
             const auto &steps = gPresetManager.getSessionSteps();
