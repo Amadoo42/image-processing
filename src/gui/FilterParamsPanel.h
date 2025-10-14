@@ -78,14 +78,13 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Merge: {
-            ImGui::TextUnformatted("Merge");
-            if (ImGui::Button("Choose Merge Image")) {
-                Image merge_image(openFileDialog_Linux());
-                MergeFilter filter(merge_image);
-                processor.applyFilter(filter);
-                textureNeedsUpdate = true;
-                gPreviewCacheNeedsUpdate = true;
+            static bool show = false; // open overlay on demand
+            ImGui::TextUnformatted("Merge (overlay)");
+            if (ImGui::Button("Open Merge Overlay")) {
+                show = true;
             }
+            params.applyMerge(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
 
