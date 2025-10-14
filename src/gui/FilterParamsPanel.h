@@ -2,6 +2,7 @@
 
 #include "FilterDefs.h"
 #include "FilterParameters.h"
+#include "PresetManager.h"
 
 // Global flag controlling when filter preview thumbnails should refresh.
 // Defined in main.cpp
@@ -18,12 +19,14 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
     static FilterParameters params(processor);
     ParamsInlineScope scope; // ensure inline rendering within this panel
 
-    auto applySimple = [&](auto makeFilter) {
+    auto applySimple = [&](FilterType type, auto makeFilter) {
         if (ImGui::Button("Apply")) {
             auto f = makeFilter();
             processor.applyFilter(f);
             textureNeedsUpdate = true;
             gPreviewCacheNeedsUpdate = true;
+            // record step for presets
+            gPresetManager.recordStep(FilterStep{type, {}, ""});
         }
     };
 
@@ -33,58 +36,66 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         case FilterType::Grayscale: {
             ImGui::TextUnformatted("Grayscale");
-            applySimple([&]{ return GrayscaleFilter(); });
+            applySimple(FilterType::Grayscale, [&]{ return GrayscaleFilter(); });
             break;
         }
         case FilterType::Invert: {
             ImGui::TextUnformatted("Invert");
-            applySimple([&]{ return InvertFilter(); });
+            applySimple(FilterType::Invert, [&]{ return InvertFilter(); });
             break;
         }
         case FilterType::BlackAndWhite: {
             ImGui::TextUnformatted("Black & White");
-            applySimple([&]{ return BlackAndWhiteFilter(); });
+            applySimple(FilterType::BlackAndWhite, [&]{ return BlackAndWhiteFilter(); });
             break;
         }
         case FilterType::HorizontalFlip: {
             ImGui::TextUnformatted("Horizontal Flip");
-            applySimple([&]{ return HorizontalFlipFilter(); });
+            applySimple(FilterType::HorizontalFlip, [&]{ return HorizontalFlipFilter(); });
             break;
         }
         case FilterType::VerticalFlip: {
             ImGui::TextUnformatted("Vertical Flip");
-            applySimple([&]{ return VerticalFlipFilter(); });
+            applySimple(FilterType::VerticalFlip, [&]{ return VerticalFlipFilter(); });
             break;
         }
         case FilterType::Retro: {
             ImGui::TextUnformatted("Retro");
-            applySimple([&]{ return RetroFilter(); });
+            applySimple(FilterType::Retro, [&]{ return RetroFilter(); });
             break;
         }
         case FilterType::Infrared: {
             ImGui::TextUnformatted("Infrared");
-            applySimple([&]{ return InfraredFilter(); });
+            applySimple(FilterType::Infrared, [&]{ return InfraredFilter(); });
             break;
         }
         case FilterType::Frame: {
             ImGui::TextUnformatted("Frame");
             if (ImGui::Button("Choose Frame Image")) {
-                Image frame_image(openFileDialog_Linux());
+                std::string path = openFileDialog_Linux();
+                if (!path.empty()) {
+                    Image frame_image(path);
                 FrameFilter filter(frame_image);
                 processor.applyFilter(filter);
                 textureNeedsUpdate = true;
                 gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::Frame, {}, path});
+                }
             }
             break;
         }
         case FilterType::Merge: {
             ImGui::TextUnformatted("Merge");
             if (ImGui::Button("Choose Merge Image")) {
-                Image merge_image(openFileDialog_Linux());
-                MergeFilter filter(merge_image);
-                processor.applyFilter(filter);
-                textureNeedsUpdate = true;
-                gPreviewCacheNeedsUpdate = true;
+                std::string path = openFileDialog_Linux();
+                if (!path.empty()) {
+                    Image merge_image(path);
+                    MergeFilter filter(merge_image);
+                    processor.applyFilter(filter);
+                    textureNeedsUpdate = true;
+                    gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::Merge, {}, path});
+                }
             }
             break;
         }
@@ -168,7 +179,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         }
         case FilterType::Outline: {
             ImGui::TextUnformatted("Outline");
-            applySimple([&]{ return OutlineFilter(); });
+            applySimple(FilterType::Outline, [&]{ return OutlineFilter(); });
             break;
         }
         case FilterType::Resize: {

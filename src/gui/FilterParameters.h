@@ -3,6 +3,7 @@
 #include "../core/ImageProcessor.h"
 #include "MemoryOperation.h"
 #include "LoadTexture.h"
+#include "PresetManager.h"
 #include "../filters/GrayscaleFilter.h"
 #include "../filters/InvertFilter.h"
 #include "../filters/BlurFilter.h"
@@ -112,6 +113,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Blur, { (double)values1[currentItem], values2[currentItem] }, ""});
             }
 
             ImGui::SameLine();
@@ -235,6 +237,7 @@ public:
             ImGui::CloseCurrentPopup();
             show = false;
             init = false;
+            gPresetManager.recordStep(FilterStep{FilterType::Crop, {(double)posX, (double)posY, (double)newWidth, (double)newHeight}, ""});
         }
         ImGui::SameLine();
         if (ImGui::Button("Cancel")) {
@@ -454,6 +457,7 @@ public:
             glDeleteTextures(1, &textureID);
             show = false;
             init = false;
+            gPresetManager.recordStep(FilterStep{FilterType::Resize, {(double)newWidth, (double)newHeight}, ""});
         }
         ImGui::SameLine();
         if (ImGui::Button("Cancel")) {
@@ -609,6 +613,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Brightness, {(double)factor}, ""});
             }
 
             ImGui::SameLine();
@@ -702,6 +707,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Rotate, {(double)values[currentItem]}, ""});
             }
 
             ImGui::SameLine();
@@ -765,6 +771,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Purple, {(double)factor}, ""});
             }
 
             ImGui::SameLine();
@@ -829,6 +836,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Wave, {(double)amplitude, (double)wavelength}, ""});
             }
 
             ImGui::SameLine();
@@ -880,6 +888,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::OilPainting, {5.0, (double)values[currentItem]}, ""});
             }
 
             ImGui::SameLine();
@@ -933,6 +942,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Contrast, {(double)factor}, ""});
             }
 
             ImGui::SameLine();
@@ -996,6 +1006,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Saturation, {(double)factor}, ""});
             }
 
             ImGui::SameLine();
@@ -1048,6 +1059,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Skew, {(double)Angle}, ""});
             }
 
             ImGui::SameLine();
@@ -1100,6 +1112,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Vignette, {(double)factor}, ""});
             }
 
             ImGui::SameLine();
@@ -1152,6 +1165,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
+                gPresetManager.recordStep(FilterStep{FilterType::Warmth, {(double)factor}, ""});
             }
 
             ImGui::SameLine();
