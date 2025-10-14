@@ -23,6 +23,7 @@
 #include "../filters/FrameFilter.h"
 #include "../filters/HorizontalFlipFilter.h"
 #include "../filters/InfraredFilter.h"
+#include "../filters/WaveFilter.h"
 #include "../filters/MergeFilter.h"
 #include "../filters/OilPaintingFilter.h"
 #include "../filters/OutlineFilter.h"
