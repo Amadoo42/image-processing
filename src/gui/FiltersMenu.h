@@ -30,7 +30,9 @@ void filtersMenu(ImageProcessor &processor, bool &textureNeedsUpdate, FilterType
                 FilterType::Contrast,
                 FilterType::Saturation
             };
-            renderFilterPreviewGrid(previewCache, processor, basics, selectedFilter, textureNeedsUpdate, "basic", 3, ImVec2(96, 72));
+            // Only invalidate cache when a new image is loaded/applied, not every frame.
+            bool invalidate = textureNeedsUpdate;
+            renderFilterPreviewGrid(previewCache, processor, basics, selectedFilter, invalidate, "basic", 3, ImVec2(96, 72));
             ImGui::Unindent(20.0f);
             ImGui::NewLine();
         }
@@ -63,7 +65,8 @@ void filtersMenu(ImageProcessor &processor, bool &textureNeedsUpdate, FilterType
                 FilterType::Vignette,
                 FilterType::Warmth
             };
-            renderFilterPreviewGrid(previewCache, processor, effects, selectedFilter, textureNeedsUpdate, "effects", 3, ImVec2(96, 72));
+            bool invalidate = textureNeedsUpdate;
+            renderFilterPreviewGrid(previewCache, processor, effects, selectedFilter, invalidate, "effects", 3, ImVec2(96, 72));
             // Non-previewable 'Frame' is kept as simple button
             addButton("Frame",           FilterType::Frame);
             ImGui::Unindent(20.0f);

@@ -58,15 +58,20 @@ public:
         if (src.width <= 0 || src.height <= 0) return;
 
         size_t sig = signature(src);
-        if (cacheValid && sig == lastSignature) return;
+        if (!cacheValid || sig != lastSignature) {
+            // Rebuild base thumbnail for new source image
+            releaseTextures();
+            previews.clear();
+            baseThumb = makeBaseThumb(src);
+            cacheValid = true;
+            lastSignature = sig;
+        }
 
-        // Rebuild base thumbnail
-        releaseTextures();
-        previews.clear();
-        baseThumb = makeBaseThumb(src);
-
+        // Ensure entries exist for requested filters
         for (FilterType t : filters) {
             if (!isPreviewable(t)) continue;
+            if (previews.find(t) != previews.end()) continue;
+
             PreviewEntry entry;
             entry.type = t;
             entry.name = filterTypeName(t);
@@ -79,9 +84,6 @@ public:
             entry.built = true;
             previews[t] = std::move(entry);
         }
-
-        cacheValid = true;
-        lastSignature = sig;
     }
 
     // Lazily upload GL texture for a filter preview when needed
@@ -205,20 +207,29 @@ inline bool renderFilterPreviewGrid(FilterPreviewCache &cache,
             ImGui::TableSetColumnIndex(c % columns);
             ImGui::BeginGroup();
 
+            ImGui::PushID(static_cast<int>(t));
             GLuint tex = cache.getTexture(t);
-            std::string imgId = std::string("##prev_") + std::to_string(static_cast<int>(t));
             if (tex != 0) {
-                if (ImGui::ImageButton(imgId.c_str(), (void*)(intptr_t)tex, thumbSize)) {
+                if (ImGui::ImageButton("##prev", (void*)(intptr_t)tex, thumbSize)) {
                     selectedFilter = t;
                     clicked = true;
                 }
             } else {
-                ImGui::Button("Generating...", thumbSize);
+                // Unique placeholder ID prevents conflicts when multiple are visible
+                ImGui::Button("##generating", thumbSize);
+                ImVec2 p = ImGui::GetItemRectMin();
+                ImVec2 q = ImGui::GetItemRectMax();
+                ImVec2 center = ImVec2((p.x+q.x)*0.5f, (p.y+q.y)*0.5f);
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                const char* txt = "Generating...";
+                ImVec2 sz = ImGui::CalcTextSize(txt);
+                dl->AddText(ImVec2(center.x - sz.x*0.5f, center.y - sz.y*0.5f), IM_COL32(255,255,255,200), txt);
             }
 
             ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + thumbSize.x);
             ImGui::TextUnformatted(filterTypeName(t));
             ImGui::PopTextWrapPos();
+            ImGui::PopID();
             ImGui::EndGroup();
 
             ++c;
