@@ -24,13 +24,11 @@ bool textureNeedsUpdate = false;
 static std::string statusBarMessage = "Welcome to Image Processor!";
 
 // New UI state for refactored layout
-enum class LeftTab { Enhancement = 0, Tools, Captions };
-static LeftTab gActiveLeftTab = LeftTab::Enhancement;
-static float gBlendSlider = 0.5f;                 // Original <-> Effect slider value
+// Left panel is now dedicated filter parameter panel
 static char gSearchBuffer[128] = {0};             // Top-right quick action search
 static ImVec2 gLastCanvasAvail = ImVec2(0, 0);    // For Fit-to-screen calculations
-static float kLeftPanelPct = 0.14f;               // ≈14% left
-static float kRightPanelPct = 0.26f;              // ≈26% right
+static float kLeftPanelPct = 0.24f;               // wider left: params panel
+static float kRightPanelPct = 0.20f;              // narrower right: effects list
 static std::string gCurrentImagePath;             // last opened/saved path for display
 
 inline void guiSetCurrentImagePath(const std::string &path) { gCurrentImagePath = path; }
@@ -147,22 +145,6 @@ static void drawTopNavBar(ImageProcessor &processor) {
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Tools")) {
-            if (ImGui::MenuItem("Reset Zoom & Pan")) { zoom_level = 1.0f; pan_offset = ImVec2(0, 0); }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Retouch")) {
-            ImGui::MenuItem("Blemish Remover", nullptr, false, false);
-            ImGui::MenuItem("Heal/Clone", nullptr, false, false);
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Effects")) {
-            // Quick access to some effects
-            if (ImGui::MenuItem("Retro", nullptr, gSelectedFilter == FilterType::Retro)) gSelectedFilter = FilterType::Retro;
-            if (ImGui::MenuItem("Oil Painting", nullptr, gSelectedFilter == FilterType::OilPainting)) gSelectedFilter = FilterType::OilPainting;
-            if (ImGui::MenuItem("Vignette", nullptr, gSelectedFilter == FilterType::Vignette)) gSelectedFilter = FilterType::Vignette;
-            ImGui::EndMenu();
-        }
         if (ImGui::BeginMenu("Edit")) {
             if (ImGui::MenuItem(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str(), "Ctrl+Z")) {
                 if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; }
@@ -227,26 +209,42 @@ static void drawTopNavBar(ImageProcessor &processor) {
             ImGui::EndMenu();
         }
 
-        // Right-aligned search field
+        // Right-aligned search field (functional)
         float rightSpace = ImGui::GetWindowWidth();
         ImGui::SameLine(rightSpace - 320.0f);
         ImGui::SetNextItemWidth(300.0f);
-        ImGui::InputTextWithHint("##top_search", "What do you want to do?", gSearchBuffer, IM_ARRAYSIZE(gSearchBuffer));
+        if (ImGui::InputTextWithHint("##top_search", "What do you want to do?", gSearchBuffer, IM_ARRAYSIZE(gSearchBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            std::string q = gSearchBuffer; for (auto &c : q) c = (char)tolower(c);
+            if (q.find("open") != std::string::npos || q == "load") {
+                std::string selected = openFileDialog_Linux();
+                if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; statusBarMessage = "Image loaded successfully!"; }
+            } else if (q.find("save") != std::string::npos) {
+                std::string selected = saveFileDialog_Linux();
+                if (!selected.empty()) { if (processor.saveImage(selected)) { guiSetCurrentImagePath(selected); statusBarMessage = "Image saved to " + selected; } }
+            } else if (q.find("undo") != std::string::npos) {
+                if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; } else { statusBarMessage = "Nothing to undo."; }
+            } else if (q.find("redo") != std::string::npos) {
+                if(processor.redo()) { textureNeedsUpdate = true; statusBarMessage = "Redo successful."; } else { statusBarMessage = "Nothing to redo."; }
+            } else if (q.find("reset") != std::string::npos || q.find("1:1") != std::string::npos) {
+                zoom_level = 1.0f; pan_offset = ImVec2(0,0);
+            } else if (q.find("fit") != std::string::npos) {
+                const Image& img = processor.getCurrentImage();
+                if (img.width > 0 && img.height > 0 && gLastCanvasAvail.x > 0.0f && gLastCanvasAvail.y > 0.0f) {
+                    float zx = gLastCanvasAvail.x / img.width; float zy = gLastCanvasAvail.y / img.height; zoom_level = std::max(0.1f, std::min(zx, zy));
+                }
+            }
+            gSearchBuffer[0] = '\0';
+        }
         ImGui::EndMainMenuBar();
     }
 }
 
-// --- Left Side Tabs --------------------------------------------------------
-static void drawLeftSideTabs(float width) {
-    ImGui::BeginChild("LeftSideTabs", ImVec2(width, 0), true);
-    ImGui::TextUnformatted(" "); // small top padding
-    const char* labels[] = {"Enhancement", "Tools", "Captions"};
-    for (int i = 0; i < 3; ++i) {
-        bool selected = static_cast<int>(gActiveLeftTab) == i;
-        if (ImGui::Selectable(labels[i], selected, 0, ImVec2(-1, 36))) {
-            gActiveLeftTab = static_cast<LeftTab>(i);
-        }
-    }
+// --- Left Parameters Panel --------------------------------------------------
+static void drawLeftParamsPanel(ImageProcessor &processor, float width) {
+    ImGui::BeginChild("LeftParamsPanel", ImVec2(width, 0), true);
+    ImGui::TextUnformatted("Filter Parameters");
+    ImGui::Separator();
+    renderFilterParamsPanel(processor, gSelectedFilter, textureNeedsUpdate);
     ImGui::EndChild();
 }
 
@@ -299,7 +297,7 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
 
     static FilterPreviewCache previewCache;
     bool invalidate = textureNeedsUpdate;
-    ImGui::BeginChild("FiltersContent", ImVec2(0, -220), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+    ImGui::BeginChild("FiltersContent", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
     if (categoryIndex == 0) {
         // Basic adjustments with previews
         std::vector<FilterType> basics = {
@@ -341,10 +339,6 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
     }
     ImGui::EndChild();
 
-    ImGui::Separator();
-    ImGui::TextUnformatted("Filter Parameters");
-    renderFilterParamsPanel(processor, gSelectedFilter, textureNeedsUpdate);
-
     ImGui::EndChild();
 }
 
@@ -380,22 +374,6 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
         } else {
             renderCompareView(processor, zoom_level, pan_offset);
         }
-
-        // Bottom overlay: Original <-> Effect slider
-        ImDrawList* dl = ImGui::GetWindowDrawList();
-        ImVec2 wpos = ImGui::GetWindowPos();
-        ImVec2 wsz  = ImGui::GetWindowSize();
-        ImVec2 overlayPos = ImVec2(wpos.x + 12.0f, wpos.y + wsz.y - 36.0f);
-        ImVec2 overlaySize = ImVec2(wsz.x - 24.0f, 24.0f);
-        dl->AddRectFilled(overlayPos, ImVec2(overlayPos.x + overlaySize.x, overlayPos.y + overlaySize.y), IM_COL32(20,20,20,160), 6.0f);
-        ImGui::SetCursorScreenPos(ImVec2(overlayPos.x + 8.0f, overlayPos.y + 4.0f));
-        ImGui::TextUnformatted("Original");
-        ImGui::SameLine();
-        float sliderW = overlaySize.x - 160.0f;
-        ImGui::SetNextItemWidth(sliderW);
-        ImGui::SliderFloat("##blend", &gBlendSlider, 0.0f, 1.0f, "", ImGuiSliderFlags_NoInput);
-        ImGui::SameLine();
-        ImGui::TextUnformatted("Effect");
     }
     ImGui::EndChild();
 }
@@ -518,12 +496,12 @@ void renderGUI(ImageProcessor &processor) {
     {
         // Layout widths (responsive)
         ImVec2 avail = ImGui::GetContentRegionAvail();
-        float leftW  = std::max(180.0f, avail.x * kLeftPanelPct);
-        float rightW = std::max(300.0f, avail.x * kRightPanelPct);
+        float leftW  = std::max(260.0f, avail.x * kLeftPanelPct);
+        float rightW = std::max(260.0f, avail.x * kRightPanelPct);
         float centerW = std::max(100.0f, avail.x - leftW - rightW);
 
-        // Left tabs
-        drawLeftSideTabs(leftW);
+        // Left parameters panel
+        drawLeftParamsPanel(processor, leftW);
         ImGui::SameLine();
 
         // Center canvas
