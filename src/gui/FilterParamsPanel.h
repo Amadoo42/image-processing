@@ -90,77 +90,77 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         }
 
         case FilterType::Blur: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Blur");
             params.applyBlur(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Brightness: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Brightness");
             params.applyBrightness(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Contrast: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Contrast");
             params.applyContrast(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Saturation: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Saturation");
             params.applySaturation(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::OilPainting: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Oil Painting");
             params.applyOilPainting(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Rotate: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Rotate");
             params.applyRotate(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Wave: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Wave");
             params.applyWave(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Purple: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Purple");
             params.applyPurple(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Skew: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Skew");
             params.applySkew(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Vignette: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Vignette");
             params.applyVignette(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Warmth: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Warmth");
             params.applyWarmth(show, textureNeedsUpdate);
             if (!show) { gPreviewCacheNeedsUpdate = true; }

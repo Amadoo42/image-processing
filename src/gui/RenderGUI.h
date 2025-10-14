@@ -495,10 +495,18 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
             }
             ImVec2 zoomed_size = ImVec2(currentImage.width * zoom_level, currentImage.height * zoom_level);
             ImVec2 window_size = ImGui::GetContentRegionAvail();
-            ImVec2 image_pos = ImVec2(
-                (window_size.x - zoomed_size.x) * 0.5f + pan_offset.x,
-                (window_size.y - zoomed_size.y) * 0.5f + pan_offset.y
+            // Clamp pan so the image never leaves the canvas completely
+            ImVec2 base_pos = ImVec2(
+                (window_size.x - zoomed_size.x) * 0.5f,
+                (window_size.y - zoomed_size.y) * 0.5f
             );
+            float minX = -zoomed_size.x * 0.5f;
+            float maxX = window_size.x - zoomed_size.x * 0.5f;
+            float minY = -zoomed_size.y * 0.5f;
+            float maxY = window_size.y - zoomed_size.y * 0.5f;
+            pan_offset.x = std::clamp(pan_offset.x, minX - base_pos.x, maxX - base_pos.x);
+            pan_offset.y = std::clamp(pan_offset.y, minY - base_pos.y, maxY - base_pos.y);
+            ImVec2 image_pos = ImVec2(base_pos.x + pan_offset.x, base_pos.y + pan_offset.y);
             ImGui::SetCursorPos(image_pos);
             ImGui::Image((void*)(intptr_t)currentTextureID, zoomed_size);
         } else {
