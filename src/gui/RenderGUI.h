@@ -717,8 +717,8 @@ void renderGUI(ImageProcessor &processor) {
             }
 
             ImGui::Separator();
-            if (selectedFiles.empty()) ImGui::BeginDisabled();
-            if (mode == 0 && presetIdx < 0) ImGui::BeginDisabled();
+            bool disableBatch = selectedFiles.empty() || (mode == 0 && presetIdx < 0);
+            if (disableBatch) ImGui::BeginDisabled();
             if (ImGui::Button("Start Batch")) {
                 PresetManager::ensureOutputFolder("output");
                 size_t total = selectedFiles.size();
@@ -754,7 +754,7 @@ void renderGUI(ImageProcessor &processor) {
                 std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped.", selectedFiles.size(), skipped);
                 progress = 1.0f;
             }
-            if (selectedFiles.empty() || (mode == 0 && presetIdx < 0)) ImGui::EndDisabled();
+            if (disableBatch) ImGui::EndDisabled();
 
             ImGui::ProgressBar(progress, ImVec2(320, 0));
             ImGui::TextUnformatted(statusBuf);
