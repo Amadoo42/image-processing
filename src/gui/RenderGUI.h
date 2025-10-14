@@ -210,12 +210,9 @@ static void drawTopNavBar(ImageProcessor &processor) {
             ImGui::EndMenu();
         }
 
-        // Right-aligned search field (functional)
-        float rightSpace = ImGui::GetWindowWidth();
-        ImGui::SameLine(rightSpace - 320.0f);
-        ImGui::SetNextItemWidth(300.0f);
-        if (ImGui::InputTextWithHint("##top_search", "What do you want to do?", gSearchBuffer, IM_ARRAYSIZE(gSearchBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
-            std::string q = gSearchBuffer; for (auto &c : q) c = (char)tolower(c);
+        // Right-aligned search field (functional + sticky suggestions)
+        auto executeQuickCommand = [&](const std::string &qraw){
+            std::string q = qraw; for (auto &c : q) c = (char)tolower(c);
             if (q.find("open") != std::string::npos || q == "load") {
                 std::string selected = openFileDialog_Linux();
                 if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; statusBarMessage = "Image loaded successfully!"; }
@@ -236,9 +233,20 @@ static void drawTopNavBar(ImageProcessor &processor) {
             } else if (q.find("compare") != std::string::npos) {
                 compareMode = !compareMode;
             }
+        };
+
+        float rightSpace = ImGui::GetWindowWidth();
+        ImGui::SameLine(rightSpace - 320.0f);
+        ImGui::SetNextItemWidth(300.0f);
+        static bool searchPopupOpen = false;
+        if (ImGui::InputTextWithHint("##top_search", "What do you want to do?", gSearchBuffer, IM_ARRAYSIZE(gSearchBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            executeQuickCommand(gSearchBuffer);
             gSearchBuffer[0] = '\0';
+            searchPopupOpen = false; // close only on Enter
         }
-        // Autocomplete popup
+        if (ImGui::IsItemActivated()) searchPopupOpen = true; // open when focus enters
+
+        // Autocomplete popup window stays while user interacts with it
         static const struct { const char* cmd; const char* hint; const char* shortcut; } kCmds[] = {
             {"open",   "Open image",           "Ctrl+O"},
             {"save",   "Save image",           "Ctrl+S"},
@@ -248,22 +256,23 @@ static void drawTopNavBar(ImageProcessor &processor) {
             {"fit",    "Fit image to view",    ""},
             {"compare","Toggle compare view",   ""},
         };
-        if (ImGui::IsItemActive()) {
-            ImGui::SetNextWindowPos(ImGui::GetItemRectMin());
+        ImVec2 inputMin = ImGui::GetItemRectMin();
+        ImVec2 inputMax = ImGui::GetItemRectMax();
+        if (searchPopupOpen) {
+            ImGui::SetNextWindowPos(ImVec2(inputMin.x, inputMax.y));
             ImGui::SetNextWindowSize(ImVec2(300, 0));
-            ImGui::Begin("##autocomplete", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+            ImGui::Begin("##autocomplete", &searchPopupOpen, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
             std::string q = gSearchBuffer; for (auto &c : q) c = (char)tolower(c);
             int shown = 0;
             for (auto &cdef : kCmds) {
                 std::string name = cdef.cmd; std::string hint = cdef.hint;
                 std::string combined = name + " " + hint;
                 if (q.empty() || combined.find(q) != std::string::npos) {
-                    ImGui::BeginGroup();
-                    if (ImGui::Selectable((name + " — " + hint).c_str())) {
-                        std::snprintf(gSearchBuffer, sizeof(gSearchBuffer), "%s", name.c_str());
+                    if (ImGui::Selectable((name + " — " + hint + (cdef.shortcut && *cdef.shortcut ? std::string("  ") + cdef.shortcut : "")).c_str())) {
+                        executeQuickCommand(name);
+                        gSearchBuffer[0] = '\0';
+                        searchPopupOpen = false; // close when a function is clicked
                     }
-                    if (cdef.shortcut && *cdef.shortcut) { ImGui::SameLine(); ImGui::TextDisabled("%s", cdef.shortcut); }
-                    ImGui::EndGroup();
                     if (++shown >= 6) break;
                 }
             }
