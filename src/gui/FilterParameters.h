@@ -426,7 +426,7 @@ public:
         );
 
         ImVec2 imageMax(imagePos.x + displayedWidth, imagePos.y + displayedHeight);
-        draw->AddImage((void *)(intptr_t)textureID, imagePos, imageMax);
+        // Don't draw full-size image; we'll draw the scaled preview version below
 
         // === Controls: movable/resizable top-left panel ===
         static bool keepAspect = true;
@@ -518,7 +518,9 @@ public:
 
         ImVec2 previewPos((io.DisplaySize.x - previewW) * 0.5f, (io.DisplaySize.y - previewH) * 0.5f);
         ImVec2 previewMax(previewPos.x + previewW, previewPos.y + previewH);
-        draw->AddRect(previewPos, previewMax, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
+        // Real-time preview: draw the image scaled to the preview rectangle
+        draw->AddImage((void *)(intptr_t)textureID, previewPos, previewMax);
+        draw->AddRect(previewPos, previewMax, IM_COL32(255, 255, 255, 200), 0, 0, 2.0f);
 
         // === Handles: corners and edges ===
         ImVec2 corners[4] = {
@@ -793,7 +795,7 @@ public:
 
         if (!overlayLoaded) {
             // Movable/resizable control panel (top-left by default)
-            static ImVec2 panelPos = ImVec2(20, 20);
+            static ImVec2 panelPos = ImVec2(0, 0);
             static ImVec2 panelSize = ImVec2(340, 150);
 
             ImVec2 winPos = ImGui::GetWindowPos();
@@ -873,7 +875,7 @@ public:
         }
 
         // Movable/resizable control panel (top-left by default)
-        static ImVec2 panelPos = ImVec2(20, 20);
+        static ImVec2 panelPos = ImVec2(0, 0);
         static ImVec2 panelSize = ImVec2(340, 240);
 
         ImVec2 winPos = ImGui::GetWindowPos();
