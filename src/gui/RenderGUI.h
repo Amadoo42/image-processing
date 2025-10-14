@@ -640,15 +640,22 @@ void renderGUI(ImageProcessor &processor) {
     if (showSaveCurrentPresetPopup) {
         if (ImGui::BeginPopupModal("SaveCurrentPreset", &showSaveCurrentPresetPopup, ImGuiWindowFlags_AlwaysAutoResize)) {
             static char nameBuf3[128] = {0};
-            ImGui::InputText("Preset Name", nameBuf3, IM_ARRAYSIZE(nameBuf3));
-            if (ImGui::Button("Save")) {
-                if (nameBuf3[0] != '\0') {
-                    gPresetManager.addPreset(nameBuf3, gPresetManager.getSessionSteps());
-                    nameBuf3[0] = '\0';
-                    ImGui::CloseCurrentPopup();
-                    showSaveCurrentPresetPopup = false;
-                }
+            const auto &steps = gPresetManager.getSessionSteps();
+            ImGui::Text("Filters recorded: %zu", steps.size());
+            if (steps.empty()) {
+                ImGui::TextDisabled("No filters have been applied yet.");
             }
+            ImGui::InputText("Preset Name", nameBuf3, IM_ARRAYSIZE(nameBuf3));
+            bool canSave = nameBuf3[0] != '\0' && !steps.empty();
+            if (!canSave) ImGui::BeginDisabled();
+            if (ImGui::Button("Save")) {
+                gPresetManager.addPreset(nameBuf3, steps);
+                statusBarMessage = std::string("Preset saved: ") + nameBuf3;
+                nameBuf3[0] = '\0';
+                ImGui::CloseCurrentPopup();
+                showSaveCurrentPresetPopup = false;
+            }
+            if (!canSave) ImGui::EndDisabled();
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) { ImGui::CloseCurrentPopup(); showSaveCurrentPresetPopup = false; }
             ImGui::EndPopup();
