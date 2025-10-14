@@ -95,6 +95,7 @@ int main(int argc, char* argv[]) {
                             statusBarMessage = "Image loaded successfully!";
                             guiSetCurrentImagePath(selected);
                             gPreviewCacheNeedsUpdate = true;
+                            extern int gImageSessionId; gImageSessionId++;
                         } else {
                             statusBarMessage = "Failed to load image.";
                         }

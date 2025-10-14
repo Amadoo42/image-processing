@@ -32,6 +32,8 @@ static float kLeftPanelPct = 0.26f;               // wider left: params panel
 static float kRightPanelPct = 0.26f;              // right as wide as left
 bool  gPreviewCacheNeedsUpdate = true;            // controls when thumbnails rebuild (exported)
 static std::string gCurrentImagePath;             // last opened/saved path for display
+// Incremented whenever a new image is loaded to reset in-progress UIs
+int gImageSessionId = 0;
 
 inline void guiSetCurrentImagePath(const std::string &path) { gCurrentImagePath = path; }
 
@@ -108,6 +110,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
                     guiSetCurrentImagePath(selected);
                     textureNeedsUpdate = true;
                     gPreviewCacheNeedsUpdate = true;
+                    gImageSessionId++; // reset parameter sessions
                     statusBarMessage = "Image loaded successfully!";
                 }
                 else {
@@ -217,7 +220,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
             std::string q = qraw; for (auto &c : q) c = (char)tolower(c);
             if (q.find("open") != std::string::npos || q == "load") {
                 std::string selected = openFileDialog_Linux();
-                if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Image loaded successfully!"; }
+                if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; gImageSessionId++; statusBarMessage = "Image loaded successfully!"; }
             } else if (q.find("save") != std::string::npos) {
                 std::string selected = saveFileDialog_Linux();
                 if (!selected.empty()) { if (processor.saveImage(selected)) { guiSetCurrentImagePath(selected); statusBarMessage = "Image saved to " + selected; } }

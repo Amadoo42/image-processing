@@ -84,7 +84,10 @@ public:
 
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if(show){
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Blur Parameters", &show)) return;
 
             if(!init){
@@ -574,7 +577,10 @@ public:
         static float factor = 1.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Brightness Parameters", &show)) return;
 
             if(!init){
@@ -673,7 +679,10 @@ public:
 
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if(show){
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Rotate Parameters", &show)) return;
 
             if(!init){
@@ -730,7 +739,10 @@ public:
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Purple Parameters", &show)) return;
 
             if(!init){
@@ -794,7 +806,10 @@ public:
         static float amplitude, wavelength;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if(show){
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Wave Parameters", &show)) return;
 
             if(!init){
@@ -852,7 +867,10 @@ public:
 
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if(show){
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Oil Painting Parameters", &show)) return;
 
             if(!init){
@@ -898,7 +916,10 @@ public:
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Contrast Parameters", &show)) return;
 
             if(!init){
@@ -961,7 +982,10 @@ public:
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Saturation Parameters", &show)) return;
 
             if(!init){
@@ -1013,7 +1037,10 @@ public:
         static float Angle = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Skew Parameters", &show)) return;
 
             if(!init){
@@ -1065,7 +1092,10 @@ public:
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Vignette Parameters", &show)) return;
 
             if(!init){
@@ -1117,7 +1147,10 @@ public:
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Warmth Parameters", &show)) return;
 
             if(!init){
