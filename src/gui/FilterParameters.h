@@ -809,7 +809,11 @@ public:
 
             // Contents area below header
             ImGui::SetCursorPos(panelPos + ImVec2(0, headerH));
-            ImGui::BeginChild("Merge Controls (loader)", panelSize - ImVec2(0, headerH), false);
+            ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 16.0f);
+            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab,        IM_COL32(180,180,180,255));
+            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(210,210,210,255));
+            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive,  IM_COL32(240,240,240,255));
+            ImGui::BeginChild("Merge Controls (loader)", panelSize - ImVec2(0, headerH), false, 0);
             ImGui::Dummy(ImVec2(0, 2));
             ImGui::TextDisabled("Choose image to merge");
             if (ImGui::Button("Choose Merge Image")) {
@@ -836,6 +840,8 @@ public:
                 show = false; init = false;
             }
             ImGui::EndChild();
+            ImGui::PopStyleColor(3);
+            ImGui::PopStyleVar();
 
             // Header for moving (placed after child to capture input)
             ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
@@ -888,7 +894,11 @@ public:
 
         // Contents area below header
         ImGui::SetCursorPos(panelPos + ImVec2(0, headerH));
-        ImGui::BeginChild("Merge Controls", panelSize - ImVec2(0, headerH), false);
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 16.0f);
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab,        IM_COL32(180,180,180,255));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(210,210,210,255));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive,  IM_COL32(240,240,240,255));
+        ImGui::BeginChild("Merge Controls", panelSize - ImVec2(0, headerH), false, 0);
         ImGui::Dummy(ImVec2(0, 2));
         if (ImGui::Button("Change Merge Image")) {
             std::string path = openFileDialog_Linux();
@@ -926,6 +936,8 @@ public:
             show = false; init = false; overlayLoaded = false;
         }
         ImGui::EndChild();
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar();
 
         // Header for moving
         ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
