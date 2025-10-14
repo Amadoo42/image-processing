@@ -7,6 +7,7 @@
 #include "CompareView.h"
 #include "FilterPreview.h"
 #include "FilterParamsPanel.h"
+#include "../filters/ResizeFilter.h"
 #include <string>
 #include <algorithm>
 #include <cmath>
@@ -239,6 +240,14 @@ static void drawTopNavBar(ImageProcessor &processor) {
         ImGui::SameLine(rightSpace - 320.0f);
         ImGui::SetNextItemWidth(300.0f);
         static bool searchPopupOpen = false;
+        // Ensure first click both opens suggestions and focuses the input
+        ImVec2 inputPos = ImGui::GetCursorScreenPos();
+        ImVec2 inputMinRect = inputPos;
+        ImVec2 inputMaxRect = ImVec2(inputPos.x + 300.0f, inputPos.y + ImGui::GetFrameHeight());
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsMouseHoveringRect(inputMinRect, inputMaxRect)) {
+            ImGui::SetKeyboardFocusHere();
+            searchPopupOpen = true;
+        }
         if (ImGui::InputTextWithHint("##top_search", "What do you want to do?", gSearchBuffer, IM_ARRAYSIZE(gSearchBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
             executeQuickCommand(gSearchBuffer);
             gSearchBuffer[0] = '\0';
@@ -264,7 +273,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
         if (searchPopupOpen) {
             ImGui::SetNextWindowPos(ImVec2(inputMin.x, inputMax.y));
             ImGui::SetNextWindowSize(ImVec2(300, 0));
-            ImGui::Begin("##autocomplete", &searchPopupOpen, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+            ImGui::Begin("##autocomplete", &searchPopupOpen, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing);
             std::string q = gSearchBuffer; for (auto &c : q) c = (char)tolower(c);
             int shown = 0;
             for (auto &cdef : kCmds) {
@@ -288,6 +297,66 @@ static void drawTopNavBar(ImageProcessor &processor) {
 // --- Left Parameters Panel --------------------------------------------------
 static void drawLeftParamsPanel(ImageProcessor &processor, float width) {
     ImGui::BeginChild("LeftParamsPanel", ImVec2(width, 0), true);
+    ImGui::TextUnformatted("History");
+    ImGui::Separator();
+    {
+        static std::vector<GLuint> historyTextures;
+        static bool historyValid = false;
+
+        auto releaseHistoryTextures = [&]() {
+            for (GLuint t : historyTextures) {
+                if (t != 0) glDeleteTextures(1, &t);
+            }
+            historyTextures.clear();
+        };
+
+        if (textureNeedsUpdate || !historyValid) {
+            releaseHistoryTextures();
+
+            std::vector<const Image*> states;
+            const auto &undoH = processor.getUndoHistory();
+            for (const Image &img : undoH) states.push_back(&img);
+            states.push_back(&processor.getCurrentImage());
+
+            historyTextures.reserve(states.size());
+
+            const int thumbLongEdge = 140;
+            for (const Image* src : states) {
+                if (!src || src->width <= 0 || src->height <= 0) { historyTextures.push_back(0); continue; }
+                int newW = src->width, newH = src->height;
+                if (src->width >= src->height) {
+                    if (src->width > thumbLongEdge) { newW = thumbLongEdge; newH = std::max(1, src->height * thumbLongEdge / src->width); }
+                } else {
+                    if (src->height > thumbLongEdge) { newH = thumbLongEdge; newW = std::max(1, src->width * thumbLongEdge / src->height); }
+                }
+                Image thumb = *src;
+                if (newW != src->width || newH != src->height) { ResizeFilter rf(newW, newH); rf.apply(thumb); }
+                GLuint tex = loadTexture(thumb);
+                historyTextures.push_back(tex);
+            }
+            historyValid = true;
+        }
+
+        ImGui::BeginChild("HistoryList", ImVec2(0, 220), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+        for (size_t i = 0; i < historyTextures.size(); ++i) {
+            GLuint tex = historyTextures[i];
+            float maxW = std::max(80.0f, ImGui::GetContentRegionAvail().x - 8.0f);
+            float w = maxW;
+            float h = maxW * 0.66f;
+            if (tex != 0) {
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.0f);
+                ImGui::Image((void*)(intptr_t)tex, ImVec2(w, h));
+            } else {
+                ImGui::Dummy(ImVec2(w, h));
+            }
+            if (i + 1 < historyTextures.size()) ImGui::Separator();
+        }
+        ImGui::EndChild();
+
+        if (textureNeedsUpdate) historyValid = false;
+    }
+
+    ImGui::NewLine();
     ImGui::TextUnformatted("Filter Parameters");
     ImGui::Separator();
     renderFilterParamsPanel(processor, gSelectedFilter, textureNeedsUpdate);
@@ -568,113 +637,4 @@ void renderGUI(ImageProcessor &processor) {
     // Bottom toolbar across main window width
     drawBottomToolbar(processor, ImGui::GetWindowWidth());
     ImGui::End();
-
-    
-    // Below was an experimental history overlay left as a reference; disabled for now.
-    // {
-    //     const int maxThumbs = 6;
-    //     const ImVec2 thumbSize = ImVec2(120, 72);
-    //     static std::vector<GLuint> historyTexCache;
-    //     static std::vector<Image> historyImageCache;
-    //     static bool cacheValid = false;
-
-    //     static bool showVersionPreview = false;
-    //     static GLuint previewTex = 0;
-    //     static Image previewImage;
-
-    //     if (textureNeedsUpdate || !cacheValid) {
-    //         if (!historyTexCache.empty()) {
-    //             for (GLuint t : historyTexCache) {
-    //                 if (t != 0) glDeleteTextures(1, &t);
-    //             }
-    //             historyTexCache.clear();
-    //         }
-    //         historyImageCache.clear();
-
-    //         for (int i = 1; i <= maxThumbs; ++i) {
-               
-    //             bool ok = true;
-    //             ImageProcessor copyProc;
-    //             try {
-    //                 copyProc = processor; 
-    //             } catch (...) {
-    //                 ok = false;
-    //             }
-    //             if (!ok) break;
-
-    //             for (int s = 0; s < i; ++s) {
-    //                 if (!copyProc.undo()) { ok = false; break; }
-    //             }
-    //             if (!ok) break;
-
-    //             const Image &histImg = copyProc.getCurrentImage();
-    //             if (histImg.width > 0 && histImg.height > 0) {
-    //                 historyImageCache.push_back(histImg);
-    //                 GLuint tex = loadTexture(histImg); 
-    //                 historyTexCache.push_back(tex);
-    //             } else {
-    //                 break;
-    //             }
-    //         }
-
-    //         cacheValid = true;
-    //         textureNeedsUpdate = true;
-    //     }
-
-    //     ImVec2 overlayPos = ImVec2(main_viewport->WorkPos.x + 10.0f,
-    //                                main_viewport->WorkPos.y + main_viewport->WorkSize.y - (thumbSize.y + 20.0f));
-    //     ImGui::SetNextWindowPos(overlayPos, ImGuiCond_Always);
-    //     ImGui::SetNextWindowBgAlpha(0.0f);
-    //     if (ImGui::Begin("History Thumbs Overlay", nullptr,
-    //                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
-    //                      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing)) {
-
-    //         ImGui::BeginGroup();
-    //         ImGui::Text("History:");
-    //         ImGui::SameLine();
-
-    //         for (size_t i = 0; i < historyTexCache.size(); ++i) {
-    //             GLuint tex = historyTexCache[i];
-    //             char idbuf[32];
-    //             std::snprintf(idbuf, sizeof(idbuf), "hist_thumb_%zu", i);
-
-    //             if (ImGui::ImageButton(idbuf, (void*)(intptr_t)tex, thumbSize)) {
-    //                 previewImage = historyImageCache[i];
-    //                 previewTex = tex;
-    //                 showVersionPreview = true;
-    //                 ImGui::OpenPopup("Version Preview");
-    //             }
-    //             ImGui::SameLine();
-    //         }
-    //         ImGui::EndGroup();
-
-    //         ImGui::End();
-    //     }
-
-    //     if (showVersionPreview) {
-    //         if (ImGui::BeginPopupModal("Version Preview", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-    //             ImVec2 avail = ImGui::GetContentRegionAvail();
-    //             float maxW = std::min(avail.x, 800.0f);
-    //             float maxH = 600.0f;
-    //             float iw = (float)previewImage.width;
-    //             float ih = (float)previewImage.height;
-    //             float scale = 1.0f;
-    //             if (iw > 0 && ih > 0) scale = std::min(maxW / iw, maxH / ih);
-    //             if (scale <= 0.0f) scale = 1.0f;
-    //             ImVec2 previewSize = ImVec2(iw * scale, ih * scale);
-
-    //             if (previewTex != 0 && previewImage.width > 0 && previewImage.height > 0) {
-    //                 ImGui::Image((void*)(intptr_t)previewTex, previewSize);
-    //             } else {
-    //                 ImGui::Text("Unable to display preview.");
-    //             }
-
-    //             if (ImGui::Button("Close")) {
-    //                 ImGui::CloseCurrentPopup();
-    //                 showVersionPreview = false;
-    //             }
-    //             ImGui::EndPopup();
-    //         }
-    //     }
-    // }
 }

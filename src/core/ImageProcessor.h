@@ -66,4 +66,8 @@ public:
     void setImage(Image &newImage) { currentImage = newImage; }
 
     const GLuint& getTextureID() const { return currentTextureID; }
+
+    // Expose read-only accessors for GUI visual history rendering
+    const std::vector<Image>& getUndoHistory() const { return undoHistory; }
+    const std::vector<Image>& getRedoHistory() const { return redoHistory; }
 };
