@@ -472,7 +472,7 @@ public:
             ResizeFilter f(newWidth, newHeight);
             processor.applyFilter(f);
             textureNeedsUpdate = true;
-            glDeleteTextures(1, &textureID);
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             show = false;
             init = false;
         }
@@ -480,7 +480,7 @@ public:
         if (ImGui::Button("Cancel")) {
             processor.setImage(originalImage);
             textureNeedsUpdate = true;
-            glDeleteTextures(1, &textureID);
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             show = false;
             init = false;
         }
@@ -551,9 +551,10 @@ public:
         // Dragging corner
         if (resizingCorner && ImGui::IsMouseDown(0)) {
             ImVec2 delta(mouse.x - dragStart.x, mouse.y - dragStart.y);
-            float previewScale = displayedWidth / (float)originalImage.width;
-            int dx = (int)(delta.x / previewScale);
-            int dy = (int)(delta.y / previewScale);
+            const float previewScaleX = displayedWidth / (float)originalImage.width;
+            const float previewScaleY = displayedHeight / (float)originalImage.height;
+            int dx = (int)(delta.x / previewScaleX);
+            int dy = (int)(delta.y / previewScaleY);
             int tmpW = startW, tmpH = startH;
             switch (activeCorner) {
                 case 0: tmpW = startW - dx; tmpH = startH - dy; break;
@@ -573,9 +574,10 @@ public:
         // Dragging edge
         if (resizingEdge && ImGui::IsMouseDown(0)) {
             ImVec2 delta(mouse.x - dragStart.x, mouse.y - dragStart.y);
-            float previewScale = displayedWidth / (float)originalImage.width;
-            int dx = (int)(delta.x / previewScale);
-            int dy = (int)(delta.y / previewScale);
+            const float previewScaleX = displayedWidth / (float)originalImage.width;
+            const float previewScaleY = displayedHeight / (float)originalImage.height;
+            int dx = (int)(delta.x / previewScaleX);
+            int dy = (int)(delta.y / previewScaleY);
             int tmpW = startW, tmpH = startH;
             switch (activeEdge) {
                 case 0: tmpW = startW - dx; break; // left
