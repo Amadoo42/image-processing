@@ -136,7 +136,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Rotate: {
-            static bool show = true;
+            bool show = true; // always show when selected
             ImGui::TextUnformatted("Rotate");
             params.applyRotate(show, textureNeedsUpdate);
             if (!show) gPreviewCacheNeedsUpdate = true;
@@ -157,7 +157,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Skew: {
-            static bool show = true;
+            bool show = true; // always show when selected
             ImGui::TextUnformatted("Skew");
             params.applySkew(show, textureNeedsUpdate);
             if (!show) gPreviewCacheNeedsUpdate = true;
