@@ -585,7 +585,12 @@ void renderGUI(ImageProcessor &processor) {
             if (disableActions) ImGui::BeginDisabled();
             if (ImGui::Button("Rename")) ImGui::OpenPopup("RenamePresetPopup");
             ImGui::SameLine();
-            if (ImGui::Button("Delete")) { gPresetManager.deletePreset(selectedIndex); selectedIndex = -1; }
+            if (ImGui::Button("Delete")) {
+                if (selectedIndex >= 0 && selectedIndex < (int)presets.size()) {
+                    gPresetManager.deletePreset(selectedIndex);
+                    selectedIndex = -1;
+                }
+            }
             if (disableActions) ImGui::EndDisabled();
 
             if (ImGui::BeginPopupModal("CreatePresetPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -677,17 +682,15 @@ void renderGUI(ImageProcessor &processor) {
             static char statusBuf[256] = {0};
             const char* modeLabels[] = {"Apply Preset", "Apply Single Filter"};
 
-            // Build filter list once (exclude filters needing extra inputs)
-            static std::vector<FilterType> batchFilterTypes;
-            static std::vector<std::string> batchFilterNames;
-            if (batchFilterTypes.empty()) {
-                for (int t = (int)FilterType::Grayscale; t <= (int)FilterType::Warmth; ++t) {
-                    FilterType ft = (FilterType)t;
-                    if (ft == FilterType::None || ft == FilterType::Frame || ft == FilterType::Merge || ft == FilterType::Resize || ft == FilterType::Crop)
-                        continue;
-                    batchFilterTypes.push_back(ft);
-                    batchFilterNames.push_back(filterTypeName(ft));
-                }
+            // Build filter list (exclude filters needing extra inputs)
+            std::vector<FilterType> batchFilterTypes;
+            std::vector<std::string> batchFilterNames;
+            for (int t = (int)FilterType::Grayscale; t <= (int)FilterType::Warmth; ++t) {
+                FilterType ft = (FilterType)t;
+                if (ft == FilterType::None || ft == FilterType::Frame || ft == FilterType::Merge || ft == FilterType::Resize || ft == FilterType::Crop)
+                    continue;
+                batchFilterTypes.push_back(ft);
+                batchFilterNames.push_back(filterTypeName(ft));
             }
 
             if (ImGui::Button("Select Images")) {
@@ -719,7 +722,7 @@ void renderGUI(ImageProcessor &processor) {
                     ImGui::EndCombo();
                 }
             } else {
-                if (ImGui::BeginCombo("Filter", batchFilterNames.empty() ? "" : batchFilterNames[filterIdx].c_str())) {
+                if (ImGui::BeginCombo("Filter", (!batchFilterNames.empty() && filterIdx < (int)batchFilterNames.size()) ? batchFilterNames[filterIdx].c_str() : "Select...")) {
                     for (int i = 0; i < (int)batchFilterNames.size(); ++i) {
                         bool sel = filterIdx == i;
                         if (ImGui::Selectable(batchFilterNames[i].c_str(), sel)) filterIdx = i;
@@ -736,18 +739,19 @@ void renderGUI(ImageProcessor &processor) {
                 size_t total = selectedFiles.size();
                 size_t processed = 0;
                 int skipped = 0;
+                statusBarMessage = "Batch started";
                 for (size_t i = 0; i < total; ++i) {
                     const std::string &path = selectedFiles[i];
                     bool ok = true;
                     Image img;
-                    try { img = Image(path); } catch (...) { ok = false; skipped++; }
+                    try { img = Image(path); } catch (...) { ok = false; }
                     if (!ok || img.width <= 0 || img.height <= 0) { skipped++; continue; }
                     ImageProcessor localProc;
                     localProc.setImage(img);
                     if (mode == 0) {
                         if (presetIdx >= 0) gPresetManager.applyPreset(localProc, presets[presetIdx]);
                     } else {
-                        if (filterIdx >= 0 && filterIdx < (int)batchFilterTypes.size()) {
+                        if (!batchFilterTypes.empty() && filterIdx >= 0 && filterIdx < (int)batchFilterTypes.size()) {
                             FilterStep step{ batchFilterTypes[filterIdx], {}, "" };
                             PresetDefinition single{ "__single__", { step } };
                             gPresetManager.applyPreset(localProc, single);
@@ -758,13 +762,14 @@ void renderGUI(ImageProcessor &processor) {
                     size_t pos = filename.find_last_of("/\\");
                     if (pos != std::string::npos) filename = filename.substr(pos + 1);
                     std::string outPath = std::string("output/") + filename;
-                    try { localProc.saveImage(outPath); } catch (...) { /* ignore */ }
+                    try { localProc.saveImage(outPath); } catch (...) { skipped++; continue; }
                     processed++;
                     progress = (float)processed / (float)total;
                     std::snprintf(statusBuf, sizeof(statusBuf), "Processing image %zu of %zu...", processed, total);
                 }
                 std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped.", selectedFiles.size(), skipped);
                 progress = 1.0f;
+                statusBarMessage = "Batch completed";
             }
             if (disableBatch) ImGui::EndDisabled();
 
