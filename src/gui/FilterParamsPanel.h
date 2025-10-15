@@ -96,12 +96,30 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         }
         case FilterType::Retro: {
             ImGui::TextUnformatted("Retro");
-            applySimple(FilterType::Retro, [&]{ return RetroFilter(); });
+            if (!s_retroOpen) {
+                if (ImGui::Button("Open Retro")) s_retroOpen = true;
+            } else {
+                if (ImGui::Button("Apply")) {
+                    RetroFilter f; processor.applyFilter(f);
+                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::Retro, {}, ""});
+                    s_retroOpen = false;
+                }
+            }
             break;
         }
         case FilterType::Infrared: {
             ImGui::TextUnformatted("Infrared");
-            applySimple(FilterType::Infrared, [&]{ return InfraredFilter(); });
+            if (!s_infraredOpen) {
+                if (ImGui::Button("Open Infrared")) s_infraredOpen = true;
+            } else {
+                if (ImGui::Button("Apply")) {
+                    InfraredFilter f; processor.applyFilter(f);
+                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::Infrared, {}, ""});
+                    s_infraredOpen = false;
+                }
+            }
             break;
         }
         case FilterType::Frame: {
@@ -136,10 +154,14 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         }
 
         case FilterType::Blur: {
-            static bool show = true;
             ImGui::TextUnformatted("Blur");
-            params.applyBlur(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!s_blurOpen) {
+                if (ImGui::Button("Open Blur")) s_blurOpen = true;
+            } else {
+                bool show = s_blurOpen;
+                params.applyBlur(show, textureNeedsUpdate);
+                if (!show) { s_blurOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Brightness: {
@@ -164,10 +186,12 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::OilPainting: {
-            static bool show = true;
             ImGui::TextUnformatted("Oil Painting");
-            params.applyOilPainting(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!s_oilOpen) { if (ImGui::Button("Open Oil Painting")) s_oilOpen = true; }
+            else {
+                bool show = s_oilOpen; params.applyOilPainting(show, textureNeedsUpdate);
+                if (!show) { s_oilOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Rotate: {
@@ -182,17 +206,21 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Wave: {
-            static bool show = true;
             ImGui::TextUnformatted("Wave");
-            params.applyWave(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!s_waveOpen) { if (ImGui::Button("Open Wave")) s_waveOpen = true; }
+            else {
+                bool show = s_waveOpen; params.applyWave(show, textureNeedsUpdate);
+                if (!show) { s_waveOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Purple: {
-            static bool show = true;
             ImGui::TextUnformatted("Purple");
-            params.applyPurple(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!s_purpleOpen) { if (ImGui::Button("Open Purple")) s_purpleOpen = true; }
+            else {
+                bool show = s_purpleOpen; params.applyPurple(show, textureNeedsUpdate);
+                if (!show) { s_purpleOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Skew: {
@@ -207,22 +235,35 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Vignette: {
-            static bool show = true;
             ImGui::TextUnformatted("Vignette");
-            params.applyVignette(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!s_vignetteOpen) { if (ImGui::Button("Open Vignette")) s_vignetteOpen = true; }
+            else {
+                bool show = s_vignetteOpen; params.applyVignette(show, textureNeedsUpdate);
+                if (!show) { s_vignetteOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Warmth: {
-            static bool show = true;
             ImGui::TextUnformatted("Warmth");
-            params.applyWarmth(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!s_warmthOpen) { if (ImGui::Button("Open Warmth")) s_warmthOpen = true; }
+            else {
+                bool show = s_warmthOpen; params.applyWarmth(show, textureNeedsUpdate);
+                if (!show) { s_warmthOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Outline: {
             ImGui::TextUnformatted("Outline");
-            applySimple(FilterType::Outline, [&]{ return OutlineFilter(); });
+            if (!s_outlineOpen) {
+                if (ImGui::Button("Open Outline")) s_outlineOpen = true;
+            } else {
+                if (ImGui::Button("Apply")) {
+                    OutlineFilter f; processor.applyFilter(f);
+                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::Outline, {}, ""});
+                    s_outlineOpen = false;
+                }
+            }
             break;
         }
         case FilterType::Resize: {
