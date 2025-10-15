@@ -150,6 +150,8 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     gPresetManager.recordStep(FilterStep{FilterType::Merge, {}, path});
                 }
             }
+            params.applyMerge(show, textureNeedsUpdate);
+            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
 
@@ -267,7 +269,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Resize: {
-            static bool show = false; // open overlay on demand
+            static bool show = false;
             ImGui::TextUnformatted("Resize (overlay)");
             if (ImGui::Button("Open Resize Overlay")) {
                 show = true;
@@ -277,7 +279,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Crop: {
-            static bool show = false; // open overlay on demand
+            static bool show = false;
             ImGui::TextUnformatted("Crop (overlay)");
             if (ImGui::Button("Open Crop Overlay")) {
                 show = true;
