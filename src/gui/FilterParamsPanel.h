@@ -3,9 +3,8 @@
 #include "FilterDefs.h"
 #include "FilterParameters.h"
 #include "PresetManager.h"
-
-// Global flag controlling when filter preview thumbnails should refresh.
-// Defined in main.cpp
+// This header is included by multiple translation units. Keep definitions here either static or inline.
+// The global is actually defined in RenderGUI.h, so we only declare it here.
 extern bool gPreviewCacheNeedsUpdate;
 
 // Render inline parameter panels by forcing inline mode for parameter windows.
@@ -150,8 +149,11 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     gPresetManager.recordStep(FilterStep{FilterType::Merge, {}, path});
                 }
             }
-            params.applyMerge(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            {
+                bool show = true;
+                params.applyMerge(show, textureNeedsUpdate);
+                if (!show) gPreviewCacheNeedsUpdate = true;
+            }
             break;
         }
 

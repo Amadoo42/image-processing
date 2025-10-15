@@ -1,5 +1,7 @@
 #pragma once
 #include "Filter.h"
+#include <vector>
+#include <algorithm>
 
 class OilPaintingFilter : public Filter {
 private:
@@ -13,10 +15,10 @@ public:
                 int i0, i1, j0, j1;
                 i0 = std::max(0, i - radius), i1 = std::min(image.width - 1, i + radius);
                 j0 = std::max(0, j - radius), j1 = std::min(image.height - 1, j + radius);
-                int freq[intensity + 1] = {};
-                int avgR[intensity + 1] = {};
-                int avgG[intensity + 1] = {};
-                int avgB[intensity + 1] = {};
+                std::vector<int> freq(static_cast<size_t>(intensity) + 1, 0);
+                std::vector<int> avgR(static_cast<size_t>(intensity) + 1, 0);
+                std::vector<int> avgG(static_cast<size_t>(intensity) + 1, 0);
+                std::vector<int> avgB(static_cast<size_t>(intensity) + 1, 0);
                 int mx = 0, idx = 0;
                 for(int x = i0; x <= i1; x++) {
                     for(int y = j0; y <= j1; y++) {
