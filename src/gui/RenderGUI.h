@@ -7,9 +7,12 @@
 #include "CompareView.h"
 #include "FilterPreview.h"
 #include "FilterParamsPanel.h"
+#include "PresetManager.h"
 #include <string>
 #include <algorithm>
 #include <cmath>
+#include <vector>
+#include <sstream>
 
 static bool is_dark_theme = true;
 static int preferences_theme = 1; // 0 Light, 1 Dark, 2 Classic
@@ -31,6 +34,10 @@ static float kLeftPanelPct = 0.26f;               // wider left: params panel
 static float kRightPanelPct = 0.1f;              // right as wide as left
 bool  gPreviewCacheNeedsUpdate = true;            // controls when thumbnails rebuild (exported)
 static std::string gCurrentImagePath;             // last opened/saved path for display
+static bool showPresetsWindow = false;
+static bool showBatchWindow = false;
+static bool showSaveCurrentPresetPopup = false;
+static bool showPresetBuilderWindow = false;
 
 inline void guiSetCurrentImagePath(const std::string &path) { gCurrentImagePath = path; }
 
@@ -107,6 +114,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
                     guiSetCurrentImagePath(selected);
                     textureNeedsUpdate = true;
                     statusBarMessage = "Image loaded successfully!";
+                    gPresetManager.clearSession();
                 }
                 else {
                     std::cerr << "Failed to load image." << std::endl;
@@ -140,6 +148,9 @@ static void drawTopNavBar(ImageProcessor &processor) {
                         statusBarMessage = "Failed to save image.";
                     }
                 }
+            }
+            if (ImGui::MenuItem("Batch Process Images")) {
+                showBatchWindow = true;
             }
             if (ImGui::MenuItem(iconLabel(ICON_FA_RIGHT_FROM_BRACKET, "Exit").c_str())) {
                 statusBarMessage = "Use window close button to exit.";
@@ -324,6 +335,15 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
         }
     }
 
+    ImGui::Separator();
+    // Presets management header and controls
+    ImGui::TextUnformatted("Presets");
+    if (ImGui::Button("Manage Presets")) { showPresetsWindow = true; }
+    ImGui::SameLine();
+    bool hasSession = !gPresetManager.isSessionEmpty();
+    if (!hasSession) ImGui::BeginDisabled();
+    if (ImGui::Button("Save Current as Preset")) { showSaveCurrentPresetPopup = true; ImGui::OpenPopup("SaveCurrentPreset"); }
+    if (!hasSession) ImGui::EndDisabled();
     ImGui::Separator();
     ImGui::TextUnformatted("Filters");
 
@@ -539,6 +559,370 @@ void renderGUI(ImageProcessor &processor) {
         if (ImGui::Begin("About", &showAboutWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::Text("Image Processing GUI");
             ImGui::Text("Using Dear ImGui");
+        }
+        ImGui::End();
+    }
+
+    // Presets management window
+    if (showPresetsWindow) {
+        ImGui::SetNextWindowSize(ImVec2(420, 360), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("Preset Manager", &showPresetsWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
+            static int selectedIndex = -1;
+            const auto &presets = gPresetManager.getPresets();
+            ImGui::Text("Saved Presets");
+            ImGui::Separator();
+            if (ImGui::BeginListBox("##presetList", ImVec2(280, 160))) {
+                for (int i = 0; i < (int)presets.size(); ++i) {
+                    bool sel = selectedIndex == i;
+                    if (ImGui::Selectable(presets[i].name.c_str(), sel)) selectedIndex = i;
+                }
+                ImGui::EndListBox();
+            }
+            ImGui::Separator();
+            if (ImGui::Button("Create New")) { showPresetBuilderWindow = true; }
+            ImGui::SameLine();
+            bool disableActions = (selectedIndex < 0);
+            if (disableActions) ImGui::BeginDisabled();
+            if (ImGui::Button("Rename")) ImGui::OpenPopup("RenamePresetPopup");
+            ImGui::SameLine();
+            if (ImGui::Button("Delete")) {
+                if (selectedIndex >= 0 && selectedIndex < (int)presets.size()) {
+                    gPresetManager.deletePreset(selectedIndex);
+                    selectedIndex = -1;
+                }
+            }
+            if (disableActions) ImGui::EndDisabled();
+
+            if (ImGui::BeginPopupModal("CreatePresetPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                static char nameBuf[128] = {0};
+                const auto &steps = gPresetManager.getSessionSteps();
+                ImGui::Text("Filters recorded: %zu", steps.size());
+                if (steps.empty()) ImGui::TextDisabled("No filters recorded yet.");
+                ImGui::InputText("Preset Name", nameBuf, IM_ARRAYSIZE(nameBuf));
+                bool canSave = nameBuf[0] != '\0' && !steps.empty();
+                if (!canSave) ImGui::BeginDisabled();
+                if (ImGui::Button("Save")) {
+                    gPresetManager.addPreset(nameBuf, steps);
+                    nameBuf[0] = '\0';
+                    ImGui::CloseCurrentPopup();
+                }
+                if (!canSave) ImGui::EndDisabled();
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel")) { ImGui::CloseCurrentPopup(); }
+                ImGui::EndPopup();
+            }
+            if (ImGui::BeginPopupModal("RenamePresetPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                static char nameBuf2[128] = {0};
+                if (selectedIndex >= 0 && selectedIndex < (int)presets.size())
+                    if (nameBuf2[0] == '\0') std::snprintf(nameBuf2, sizeof(nameBuf2), "%s", presets[selectedIndex].name.c_str());
+                ImGui::InputText("New Name", nameBuf2, IM_ARRAYSIZE(nameBuf2));
+                bool canRename = (selectedIndex >= 0) && (nameBuf2[0] != '\0');
+                if (!canRename) ImGui::BeginDisabled();
+                if (ImGui::Button("Rename")) { gPresetManager.renamePreset(selectedIndex, nameBuf2); nameBuf2[0] = '\0'; ImGui::CloseCurrentPopup(); }
+                if (!canRename) ImGui::EndDisabled();
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel")) { nameBuf2[0] = '\0'; ImGui::CloseCurrentPopup(); }
+                ImGui::EndPopup();
+            }
+
+            // Quick apply preset to current image
+            ImGui::Separator();
+            ImGui::Text("Apply preset to current image");
+            static int applyIdx = -1;
+            if (ImGui::BeginCombo("Preset", (applyIdx >=0 && applyIdx < (int)presets.size()) ? presets[applyIdx].name.c_str() : "Select...")) {
+                for (int i = 0; i < (int)presets.size(); ++i) {
+                    bool sel = applyIdx == i;
+                    if (ImGui::Selectable(presets[i].name.c_str(), sel)) applyIdx = i;
+                }
+                ImGui::EndCombo();
+            }
+            if (applyIdx < 0) ImGui::BeginDisabled();
+            if (ImGui::Button("Apply Now")) {
+                if (applyIdx >= 0) { gPresetManager.applyPreset(processor, presets[applyIdx]); textureNeedsUpdate = true; }
+            }
+            if (applyIdx < 0) ImGui::EndDisabled();
+        }
+        ImGui::End();
+    }
+    // Quick save current chain as preset popup
+    // Always keep the modal available when flag is set
+    if (showSaveCurrentPresetPopup) {
+        ImGui::OpenPopup("SaveCurrentPreset");
+        if (ImGui::BeginPopupModal("SaveCurrentPreset", &showSaveCurrentPresetPopup, ImGuiWindowFlags_AlwaysAutoResize)) {
+            static char nameBuf3[128] = {0};
+            const auto &steps = gPresetManager.getSessionSteps();
+            ImGui::Text("Filters recorded: %zu", steps.size());
+            if (steps.empty()) {
+                ImGui::TextDisabled("No filters have been applied yet.");
+            }
+            ImGui::InputText("Preset Name", nameBuf3, IM_ARRAYSIZE(nameBuf3));
+            bool canSave = nameBuf3[0] != '\0' && !steps.empty();
+            if (!canSave) ImGui::BeginDisabled();
+            if (ImGui::Button("Save")) {
+                gPresetManager.addPreset(nameBuf3, steps);
+                statusBarMessage = std::string("Preset saved: ") + nameBuf3;
+                nameBuf3[0] = '\0';
+                ImGui::CloseCurrentPopup();
+                showSaveCurrentPresetPopup = false;
+            }
+            if (!canSave) ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel")) { ImGui::CloseCurrentPopup(); showSaveCurrentPresetPopup = false; }
+            ImGui::EndPopup();
+        }
+    }
+    // Batch processing window
+    if (showBatchWindow) {
+        if (ImGui::Begin("Batch Process Images", &showBatchWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
+            static std::vector<std::string> selectedFiles;
+            static int mode = 0; // 0 = preset, 1 = single filter
+            static int presetIdx = -1;
+            static int filterIdx = 0;
+            static float progress = 0.0f;
+            static char statusBuf[256] = {0};
+            const char* modeLabels[] = {"Apply Preset", "Apply Single Filter"};
+
+            // Build filter list (exclude filters needing extra inputs)
+            std::vector<FilterType> batchFilterTypes;
+            std::vector<std::string> batchFilterNames;
+            for (int t = (int)FilterType::Grayscale; t <= (int)FilterType::Warmth; ++t) {
+                FilterType ft = (FilterType)t;
+                if (ft == FilterType::None || ft == FilterType::Frame || ft == FilterType::Merge || ft == FilterType::Resize || ft == FilterType::Crop)
+                    continue;
+                batchFilterTypes.push_back(ft);
+                batchFilterNames.push_back(filterTypeName(ft));
+            }
+
+            if (ImGui::Button("Select Images")) {
+                selectedFiles.clear();
+                std::string joined = openMultipleFilesDialog_Linux();
+                if (!joined.empty()) {
+                    std::stringstream ss(joined);
+                    std::string line;
+                    while (std::getline(ss, line)) {
+                        if (!line.empty()) selectedFiles.push_back(line);
+                    }
+                }
+            }
+            ImGui::SameLine();
+            ImGui::Text("%zu selected", selectedFiles.size());
+
+            ImGui::Separator();
+            ImGui::Text("Mode");
+            ImGui::RadioButton(modeLabels[0], &mode, 0); ImGui::SameLine();
+            ImGui::RadioButton(modeLabels[1], &mode, 1);
+
+            const auto &presets = gPresetManager.getPresets();
+            if (mode == 0) {
+                if (ImGui::BeginCombo("Preset", (presetIdx >=0 && presetIdx < (int)presets.size()) ? presets[presetIdx].name.c_str() : "Select...")) {
+                    for (int i = 0; i < (int)presets.size(); ++i) {
+                        bool sel = presetIdx == i;
+                        if (ImGui::Selectable(presets[i].name.c_str(), sel)) presetIdx = i;
+                    }
+                    ImGui::EndCombo();
+                }
+            } else {
+                if (ImGui::BeginCombo("Filter", (!batchFilterNames.empty() && filterIdx < (int)batchFilterNames.size()) ? batchFilterNames[filterIdx].c_str() : "Select...")) {
+                    for (int i = 0; i < (int)batchFilterNames.size(); ++i) {
+                        bool sel = filterIdx == i;
+                        if (ImGui::Selectable(batchFilterNames[i].c_str(), sel)) filterIdx = i;
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+
+            ImGui::Separator();
+            bool disableBatch = selectedFiles.empty() || (mode == 0 && presetIdx < 0);
+            if (disableBatch) ImGui::BeginDisabled();
+            if (ImGui::Button("Start Batch")) {
+                PresetManager::ensureOutputFolder("output");
+                size_t total = selectedFiles.size();
+                size_t processed = 0;
+                int skipped = 0;
+                statusBarMessage = "Batch started";
+                for (size_t i = 0; i < total; ++i) {
+                    const std::string &path = selectedFiles[i];
+                    bool ok = true;
+                    Image img;
+                    try { img = Image(path); } catch (...) { ok = false; }
+                    if (!ok || img.width <= 0 || img.height <= 0) { skipped++; continue; }
+                    ImageProcessor localProc;
+                    localProc.setImage(img);
+                    if (mode == 0) {
+                        if (presetIdx >= 0) gPresetManager.applyPreset(localProc, presets[presetIdx]);
+                    } else {
+                        if (!batchFilterTypes.empty() && filterIdx >= 0 && filterIdx < (int)batchFilterTypes.size()) {
+                            FilterStep step{ batchFilterTypes[filterIdx], {}, "" };
+                            PresetDefinition single{ "__single__", { step } };
+                            gPresetManager.applyPreset(localProc, single);
+                        }
+                    }
+                    // Save output
+                    std::string filename = path;
+                    size_t pos = filename.find_last_of("/\\");
+                    if (pos != std::string::npos) filename = filename.substr(pos + 1);
+                    std::string outPath = std::string("output/") + filename;
+                    try { localProc.saveImage(outPath); } catch (...) { skipped++; continue; }
+                    processed++;
+                    progress = (float)processed / (float)total;
+                    std::snprintf(statusBuf, sizeof(statusBuf), "Processing image %zu of %zu...", processed, total);
+                }
+                std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped.", selectedFiles.size(), skipped);
+                progress = 1.0f;
+                statusBarMessage = "Batch completed";
+            }
+            if (disableBatch) ImGui::EndDisabled();
+
+            ImGui::ProgressBar(progress, ImVec2(320, 0));
+            ImGui::TextUnformatted(statusBuf);
+        }
+        ImGui::End();
+    }
+
+    // Preset Builder window
+    if (showPresetBuilderWindow) {
+        if (ImGui::Begin("Preset Builder", &showPresetBuilderWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
+            static std::vector<FilterStep> draftSteps;
+            static int addTypeIdx = 0;
+            static char presetNameBuf[128] = {0};
+            // Parameter widgets state
+            static int blurKernel = 13; static float blurSigma = 2.0f;
+            static float brightness = 1.0f;
+            static float contrast = 1.0f;
+            static float saturation = 1.0f;
+            static int rotateDeg = 90;
+            static float skewDeg = 0.0f;
+            static float waveAmp = 0.0f, waveLen = 10.0f;
+            static int oilRadius = 5, oilIntensity = 20;
+            static int resizeW = 0, resizeH = 0;
+            static int cropX = 0, cropY = 0, cropW = 0, cropH = 0;
+            static float vignette = 1.0f;
+            static float warmth = 1.0f;
+            static std::string filePath;
+
+            // Build available filter list for builder (allow all)
+            static std::vector<FilterType> builderTypes;
+            static std::vector<std::string> builderNames;
+            if (builderTypes.empty()) {
+                for (int t = (int)FilterType::Grayscale; t <= (int)FilterType::Warmth; ++t) {
+                    FilterType ft = (FilterType)t;
+                    if (ft == FilterType::None) continue;
+                    builderTypes.push_back(ft);
+                    builderNames.push_back(filterTypeName(ft));
+                }
+            }
+
+            ImGui::Text("Add Step");
+            if (ImGui::BeginCombo("Filter", builderNames[addTypeIdx].c_str())) {
+                for (int i = 0; i < (int)builderNames.size(); ++i) {
+                    bool sel = addTypeIdx == i;
+                    if (ImGui::Selectable(builderNames[i].c_str(), sel)) addTypeIdx = i;
+                }
+                ImGui::EndCombo();
+            }
+
+            FilterType chosen = builderTypes[addTypeIdx];
+            // Show parameter controls per filter
+            switch (chosen) {
+                case FilterType::Blur:
+                    ImGui::InputInt("Kernel (odd)", &blurKernel); if (blurKernel <= 1) blurKernel = 3; if (blurKernel % 2 == 0) blurKernel += 1;
+                    ImGui::InputFloat("Sigma", &blurSigma);
+                    break;
+                case FilterType::Brightness:
+                    ImGui::SliderFloat("Factor", &brightness, 0.0f, 3.0f, "%.2f");
+                    break;
+                case FilterType::Contrast:
+                    ImGui::SliderFloat("Factor", &contrast, -3.0f, 3.0f, "%.2f");
+                    break;
+                case FilterType::Saturation:
+                    ImGui::SliderFloat("Factor", &saturation, -3.0f, 3.0f, "%.2f");
+                    break;
+                case FilterType::Rotate: {
+                    const char* items[] = {"90","180","270"};
+                    int idx = (rotateDeg==180?1:(rotateDeg==270?2:0));
+                    if (ImGui::Combo("Degrees", &idx, items, 3)) rotateDeg = idx==0?90:idx==1?180:270;
+                    break; }
+                case FilterType::Skew:
+                    ImGui::SliderFloat("Angle", &skewDeg, -90.0f, 90.0f, "%.1f");
+                    break;
+                case FilterType::Wave:
+                    ImGui::InputFloat("Amplitude", &waveAmp);
+                    ImGui::InputFloat("Wavelength", &waveLen);
+                    break;
+                case FilterType::OilPainting: {
+                    const char* items[] = {"Low","Medium","High"};
+                    int idx = (oilIntensity<=10?0:(oilIntensity<=20?1:2));
+                    if (ImGui::Combo("Intensity", &idx, items, 3)) oilIntensity = idx==0?10:idx==1?20:40;
+                    ImGui::InputInt("Radius", &oilRadius);
+                    break; }
+                case FilterType::Resize:
+                    ImGui::InputInt("Width", &resizeW);
+                    ImGui::InputInt("Height", &resizeH);
+                    break;
+                case FilterType::Crop:
+                    ImGui::InputInt("X", &cropX); ImGui::InputInt("Y", &cropY);
+                    ImGui::InputInt("W", &cropW); ImGui::InputInt("H", &cropH);
+                    break;
+                case FilterType::Vignette:
+                    ImGui::SliderFloat("Factor", &vignette, -3.0f, 3.0f, "%.2f");
+                    break;
+                case FilterType::Warmth:
+                    ImGui::SliderFloat("Factor", &warmth, -3.0f, 3.0f, "%.2f");
+                    break;
+                case FilterType::Frame:
+                case FilterType::Merge: {
+                    ImGui::Text("Path: %s", filePath.empty() ? "<none>" : filePath.c_str());
+                    if (ImGui::Button("Choose File")) { std::string p = openFileDialog_Linux(); if (!p.empty()) filePath = p; }
+                    break; }
+                default: break;
+            }
+
+            if (ImGui::Button("Add Step")) {
+                FilterStep s{chosen, {}, ""};
+                switch (chosen) {
+                    case FilterType::Blur: s.params = { (double)blurKernel, (double)blurSigma }; break;
+                    case FilterType::Brightness: s.params = { (double)brightness }; break;
+                    case FilterType::Contrast: s.params = { (double)contrast }; break;
+                    case FilterType::Saturation: s.params = { (double)saturation }; break;
+                    case FilterType::Rotate: s.params = { (double)rotateDeg }; break;
+                    case FilterType::Skew: s.params = { (double)skewDeg }; break;
+                    case FilterType::Wave: s.params = { (double)waveAmp, (double)waveLen }; break;
+                    case FilterType::OilPainting: s.params = { (double)oilRadius, (double)oilIntensity }; break;
+                    case FilterType::Resize: s.params = { (double)resizeW, (double)resizeH }; break;
+                    case FilterType::Crop: s.params = { (double)cropX, (double)cropY, (double)cropW, (double)cropH }; break;
+                    case FilterType::Vignette: s.params = { (double)vignette }; break;
+                    case FilterType::Warmth: s.params = { (double)warmth }; break;
+                    case FilterType::Frame: s.path = filePath; break;
+                    case FilterType::Merge: s.path = filePath; break;
+                    default: break;
+                }
+                draftSteps.push_back(s);
+            }
+
+            ImGui::Separator();
+            ImGui::Text("Steps (%zu)", draftSteps.size());
+            for (size_t i = 0; i < draftSteps.size(); ++i) {
+                ImGui::PushID((int)i);
+                ImGui::Text("%zu. %s", i + 1, filterTypeName(draftSteps[i].type));
+                ImGui::SameLine(); if (ImGui::Button("Up") && i > 0) std::swap(draftSteps[i-1], draftSteps[i]);
+                ImGui::SameLine(); if (ImGui::Button("Down") && i + 1 < draftSteps.size()) std::swap(draftSteps[i+1], draftSteps[i]);
+                ImGui::SameLine(); if (ImGui::Button("Remove")) { draftSteps.erase(draftSteps.begin() + i); ImGui::PopID(); break; }
+                ImGui::PopID();
+            }
+
+            ImGui::Separator();
+            ImGui::InputText("Preset Name", presetNameBuf, IM_ARRAYSIZE(presetNameBuf));
+            if (draftSteps.empty()) ImGui::BeginDisabled();
+            if (ImGui::Button("Save Preset")) {
+                if (presetNameBuf[0] != '\0') {
+                    gPresetManager.addPreset(presetNameBuf, draftSteps);
+                    draftSteps.clear();
+                    presetNameBuf[0] = '\0';
+                    showPresetBuilderWindow = false;
+                }
+            }
+            if (draftSteps.empty()) ImGui::EndDisabled();
+            ImGui::SameLine(); if (ImGui::Button("Cancel")) { draftSteps.clear(); presetNameBuf[0] = '\0'; showPresetBuilderWindow = false; }
         }
         ImGui::End();
     }
