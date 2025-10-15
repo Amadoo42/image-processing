@@ -173,7 +173,9 @@ public:
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoCollapse;
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse;
 
         if (!ImGui::BeginPopupModal("Crop Overlay", &show, flags)) {
             return;
@@ -403,7 +405,9 @@ public:
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoCollapse;
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse;
 
         if (!ImGui::BeginPopupModal("Resize Overlay", &show, flags))
             return;
@@ -505,6 +509,8 @@ public:
 
         const float handleR = 8.0f;
         for (auto &c : corners) {
+            bool cInPanel = (c.x >= panelTL.x && c.x <= panelBR.x && c.y >= panelTL.y && c.y <= panelBR.y);
+            if (cInPanel) continue;
             draw->AddCircleFilled(c, handleR, IM_COL32(255, 255, 255, 255));
             draw->AddCircle(c, handleR, IM_COL32(0, 0, 0, 255), 0, 2.0f);
         }
@@ -520,26 +526,33 @@ public:
         for (int e = 0; e < 4; ++e) {
             ImVec2 tl(edgeCenters[e].x - edgeSize.x * 0.5f, edgeCenters[e].y - edgeSize.y * 0.5f);
             ImVec2 br(edgeCenters[e].x + edgeSize.x * 0.5f, edgeCenters[e].y + edgeSize.y * 0.5f);
-            draw->AddRectFilled(tl, br, IM_COL32(255, 255, 255, 220), 3.0f);
-            draw->AddRect(tl, br, IM_COL32(0, 0, 0, 255), 3.0f, 0, 2.0f);
-            ImGui::SetCursorScreenPos(tl);
-            ImGui::InvisibleButton((std::string("##resize_edge_") + char('0' + e)).c_str(), ImVec2(edgeSize.x, edgeSize.y));
-            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
-                resizingEdge = true; activeEdge = e; dragStart = io.MousePos; startW = newWidth; startH = newHeight;
+            bool intersectsPanel = !(br.x <= panelTL.x || tl.x >= panelBR.x || br.y <= panelTL.y || tl.y >= panelBR.y);
+            if (!intersectsPanel) {
+                draw->AddRectFilled(tl, br, IM_COL32(255, 255, 255, 220), 3.0f);
+                draw->AddRect(tl, br, IM_COL32(0, 0, 0, 255), 3.0f, 0, 2.0f);
+            }
+            if (!intersectsPanel) {
+                ImGui::SetCursorScreenPos(tl);
+                ImGui::InvisibleButton((std::string("##resize_edge_") + char('0' + e)).c_str(), ImVec2(edgeSize.x, edgeSize.y));
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
+                    resizingEdge = true; activeEdge = e; dragStart = io.MousePos; startW = newWidth; startH = newHeight;
+                }
             }
         }
 
         // Corner hover/click
         ImVec2 mouse = io.MousePos;
         int hoveredCorner = -1;
+        bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
         if (!resizingEdge && !resizingCorner) {
             for (int i = 0; i < 4; ++i) {
                 float dx = mouse.x - corners[i].x;
                 float dy = mouse.y - corners[i].y;
-                if (dx * dx + dy * dy <= handleR * handleR * 2.0f) { hoveredCorner = i; break; }
+                bool cornerInPanel = (corners[i].x >= panelTL.x && corners[i].x <= panelBR.x && corners[i].y >= panelTL.y && corners[i].y <= panelBR.y);
+                if (!cornerInPanel && dx * dx + dy * dy <= handleR * handleR * 2.0f) { hoveredCorner = i; break; }
             }
         }
-        if (hoveredCorner != -1 && ImGui::IsMouseClicked(0)) {
+        if (hoveredCorner != -1 && !overPanelArea && ImGui::IsMouseClicked(0)) {
             resizingCorner = true; activeCorner = hoveredCorner; dragStart = mouse; startW = newWidth; startH = newHeight;
         }
 
@@ -1017,22 +1030,22 @@ public:
         // Hover corner detection if not resizing edge
         ImVec2 mouse = io.MousePos;
         int hoveredCorner = -1;
-        if (!dragging && !resizingCorner && !resizingEdge) {
+        bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
+        if (!dragging && !resizingCorner && !resizingEdge && !overPanelArea) {
             for (int i = 0; i < 4; ++i) {
                 float dx = mouse.x - corners[i].x;
                 float dy = mouse.y - corners[i].y;
                 if (dx * dx + dy * dy <= handleR * handleR * 2.0f) { hoveredCorner = i; break; }
             }
         }
-
-        if (hoveredCorner != -1 && ImGui::IsMouseClicked(0)) {
+        
+        if (hoveredCorner != -1 && !overPanelArea && ImGui::IsMouseClicked(0)) {
             resizingCorner = true; activeCorner = hoveredCorner; dragStart = mouse;
             startX = posX; startY = posY; startW = overW; startH = overH;
         }
 
         // Drag inside overlay to move (but not when interacting with handles or control panel)
         bool insideOverlay = mouse.x >= overMin.x && mouse.x <= overMax.x && mouse.y >= overMin.y && mouse.y <= overMax.y;
-        bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
         if (insideOverlay && !resizingCorner && !resizingEdge && !edgeHoveredAny && hoveredCorner == -1 && !overPanelArea) {
             if (ImGui::IsMouseClicked(0)) { dragging = true; dragStart = mouse; startX = posX; startY = posY; }
         }
