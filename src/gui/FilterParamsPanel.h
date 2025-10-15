@@ -27,6 +27,23 @@ static bool s_oilOpen = false;
 static bool s_retroOpen = false;
 static bool s_vignetteOpen = false;
 static bool s_warmthOpen = false;
+// Simple filter panels open-state
+static bool s_grayscaleOpen = false;
+static bool s_invertOpen = false;
+static bool s_blackAndWhiteOpen = false;
+static bool s_horizontalFlipOpen = false;
+static bool s_verticalFlipOpen = false;
+// Parameter-based filter panels open-state
+static bool s_brightnessOpen = false;
+static bool s_contrastOpen = false;
+static bool s_saturationOpen = false;
+static bool s_oilPaintingOpen = false;
+// File dialog filter panels open-state
+static bool s_frameOpen = false;
+static bool s_mergeOpen = false;
+// Overlay filter panels open-state
+static bool s_resizeOpen = false;
+static bool s_cropOpen = false;
 
 inline void onFilterClicked(FilterType ft) {
     if (ft == FilterType::Rotate) s_rotateOpen = true;
@@ -51,6 +68,22 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         if (selected == FilterType::Retro) s_retroOpen = true;
         if (selected == FilterType::Vignette) s_vignetteOpen = true;
         if (selected == FilterType::Warmth) s_warmthOpen = true;
+        // Simple filters
+        if (selected == FilterType::Grayscale) s_grayscaleOpen = true;
+        if (selected == FilterType::Invert) s_invertOpen = true;
+        if (selected == FilterType::BlackAndWhite) s_blackAndWhiteOpen = true;
+        if (selected == FilterType::HorizontalFlip) s_horizontalFlipOpen = true;
+        if (selected == FilterType::VerticalFlip) s_verticalFlipOpen = true;
+        // Parameter-based filters
+        if (selected == FilterType::Brightness) s_brightnessOpen = true;
+        if (selected == FilterType::Contrast) s_contrastOpen = true;
+        if (selected == FilterType::Saturation) s_saturationOpen = true;
+        // File dialog filters
+        if (selected == FilterType::Frame) s_frameOpen = true;
+        if (selected == FilterType::Merge) s_mergeOpen = true;
+        // Overlay filters
+        if (selected == FilterType::Resize) s_resizeOpen = true;
+        if (selected == FilterType::Crop) s_cropOpen = true;
     }
 
     auto applySimple = [&](FilterType type, auto makeFilter) {
@@ -70,27 +103,72 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         case FilterType::Grayscale: {
             ImGui::TextUnformatted("Grayscale");
-            applySimple(FilterType::Grayscale, [&]{ return GrayscaleFilter(); });
+            if (!s_grayscaleOpen) {
+                if (ImGui::Button("Open Grayscale")) s_grayscaleOpen = true;
+            } else {
+                if (ImGui::Button("Apply")) {
+                    GrayscaleFilter f; processor.applyFilter(f);
+                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::Grayscale, {}, ""});
+                    s_grayscaleOpen = false;
+                }
+            }
             break;
         }
         case FilterType::Invert: {
             ImGui::TextUnformatted("Invert");
-            applySimple(FilterType::Invert, [&]{ return InvertFilter(); });
+            if (!s_invertOpen) {
+                if (ImGui::Button("Open Invert")) s_invertOpen = true;
+            } else {
+                if (ImGui::Button("Apply")) {
+                    InvertFilter f; processor.applyFilter(f);
+                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::Invert, {}, ""});
+                    s_invertOpen = false;
+                }
+            }
             break;
         }
         case FilterType::BlackAndWhite: {
             ImGui::TextUnformatted("Black & White");
-            applySimple(FilterType::BlackAndWhite, [&]{ return BlackAndWhiteFilter(); });
+            if (!s_blackAndWhiteOpen) {
+                if (ImGui::Button("Open Black & White")) s_blackAndWhiteOpen = true;
+            } else {
+                if (ImGui::Button("Apply")) {
+                    BlackAndWhiteFilter f; processor.applyFilter(f);
+                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::BlackAndWhite, {}, ""});
+                    s_blackAndWhiteOpen = false;
+                }
+            }
             break;
         }
         case FilterType::HorizontalFlip: {
             ImGui::TextUnformatted("Horizontal Flip");
-            applySimple(FilterType::HorizontalFlip, [&]{ return HorizontalFlipFilter(); });
+            if (!s_horizontalFlipOpen) {
+                if (ImGui::Button("Open Horizontal Flip")) s_horizontalFlipOpen = true;
+            } else {
+                if (ImGui::Button("Apply")) {
+                    HorizontalFlipFilter f; processor.applyFilter(f);
+                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::HorizontalFlip, {}, ""});
+                    s_horizontalFlipOpen = false;
+                }
+            }
             break;
         }
         case FilterType::VerticalFlip: {
             ImGui::TextUnformatted("Vertical Flip");
-            applySimple(FilterType::VerticalFlip, [&]{ return VerticalFlipFilter(); });
+            if (!s_verticalFlipOpen) {
+                if (ImGui::Button("Open Vertical Flip")) s_verticalFlipOpen = true;
+            } else {
+                if (ImGui::Button("Apply")) {
+                    VerticalFlipFilter f; processor.applyFilter(f);
+                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::VerticalFlip, {}, ""});
+                    s_verticalFlipOpen = false;
+                }
+            }
             break;
         }
         case FilterType::Retro: {
@@ -123,45 +201,51 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         }
         case FilterType::Frame: {
             ImGui::TextUnformatted("Frame");
-            if (ImGui::Button("Choose Frame Image")) {
-                std::string path = openFileDialog_Linux();
-                if (!path.empty()) {
-                    Image frame_image(path);
-                FrameFilter filter(frame_image);
-                processor.applyFilter(filter);
-                textureNeedsUpdate = true;
-                gPreviewCacheNeedsUpdate = true;
-                    gPresetManager.recordStep(FilterStep{FilterType::Frame, {}, path});
+            if (!s_frameOpen) {
+                if (ImGui::Button("Open Frame")) s_frameOpen = true;
+            } else {
+                if (ImGui::Button("Choose Frame Image")) {
+                    std::string path = openFileDialog_Linux();
+                    if (!path.empty()) {
+                        Image frame_image(path);
+                        FrameFilter filter(frame_image);
+                        processor.applyFilter(filter);
+                        textureNeedsUpdate = true;
+                        gPreviewCacheNeedsUpdate = true;
+                        gPresetManager.recordStep(FilterStep{FilterType::Frame, {}, path});
+                        s_frameOpen = false;
+                    }
                 }
             }
             break;
         }
         case FilterType::Merge: {
             ImGui::TextUnformatted("Merge");
-            if (ImGui::Button("Choose Merge Image")) {
-                std::string path = openFileDialog_Linux();
-                if (!path.empty()) {
-                    Image merge_image(path);
-                    MergeFilter filter(merge_image);
-                    processor.applyFilter(filter);
-                    textureNeedsUpdate = true;
-                    gPreviewCacheNeedsUpdate = true;
-                    gPresetManager.recordStep(FilterStep{FilterType::Merge, {}, path});
+            if (!s_mergeOpen) {
+                if (ImGui::Button("Open Merge")) s_mergeOpen = true;
+            } else {
+                if (ImGui::Button("Choose Merge Image")) {
+                    std::string path = openFileDialog_Linux();
+                    if (!path.empty()) {
+                        Image merge_image(path);
+                        MergeFilter filter(merge_image);
+                        processor.applyFilter(filter);
+                        textureNeedsUpdate = true;
+                        gPreviewCacheNeedsUpdate = true;
+                        gPresetManager.recordStep(FilterStep{FilterType::Merge, {}, path});
+                        s_mergeOpen = false;
+                    }
                 }
-            }
-            {
-                bool show = true;
-                params.applyMerge(show, textureNeedsUpdate);
-                if (!show) gPreviewCacheNeedsUpdate = true;
+                {
+                    bool show = s_mergeOpen;
+                    params.applyMerge(show, textureNeedsUpdate);
+                    if (!show) { s_mergeOpen = false; gPreviewCacheNeedsUpdate = true; }
+                }
             }
             break;
         }
 
         case FilterType::Blur: {
-            bool show = true;
-            ImGui::TextUnformatted("Blur");
-            params.applyBlur(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
             ImGui::TextUnformatted("Blur");
             if (!s_blurOpen) {
                 if (ImGui::Button("Open Blur")) s_blurOpen = true;
@@ -173,78 +257,46 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Brightness: {
-            bool show = true;
             ImGui::TextUnformatted("Brightness");
-            params.applyBrightness(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
+            if (!s_brightnessOpen) {
+                if (ImGui::Button("Open Brightness")) s_brightnessOpen = true;
+            } else {
+                bool show = s_brightnessOpen;
+                params.applyBrightness(show, textureNeedsUpdate);
+                if (!show) { s_brightnessOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Contrast: {
-            bool show = true;
             ImGui::TextUnformatted("Contrast");
-            params.applyContrast(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
+            if (!s_contrastOpen) {
+                if (ImGui::Button("Open Contrast")) s_contrastOpen = true;
+            } else {
+                bool show = s_contrastOpen;
+                params.applyContrast(show, textureNeedsUpdate);
+                if (!show) { s_contrastOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Saturation: {
-            bool show = true;
             ImGui::TextUnformatted("Saturation");
-            params.applySaturation(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
+            if (!s_saturationOpen) {
+                if (ImGui::Button("Open Saturation")) s_saturationOpen = true;
+            } else {
+                bool show = s_saturationOpen;
+                params.applySaturation(show, textureNeedsUpdate);
+                if (!show) { s_saturationOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::OilPainting: {
-            bool show = true;
             ImGui::TextUnformatted("Oil Painting");
-            params.applyOilPainting(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
-            break;
-        }
-        case FilterType::Rotate: {
-            bool show = true;
-            ImGui::TextUnformatted("Rotate");
-            params.applyRotate(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
-            break;
-        }
-        case FilterType::Wave: {
-            bool show = true;
-            ImGui::TextUnformatted("Wave");
-            params.applyWave(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
-            break;
-        }
-        case FilterType::Purple: {
-            bool show = true;
-            ImGui::TextUnformatted("Purple");
-            params.applyPurple(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
-            break;
-        }
-        case FilterType::Skew: {
-            bool show = true;
-            ImGui::TextUnformatted("Skew");
-            params.applySkew(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
-            break;
-        }
-        case FilterType::Vignette: {
-            bool show = true;
-            ImGui::TextUnformatted("Vignette");
-            params.applyVignette(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
-            break;
-        }
-        case FilterType::Warmth: {
-            bool show = true;
-            ImGui::TextUnformatted("Warmth");
-            params.applyWarmth(show, textureNeedsUpdate);
-            if (!show) { gPreviewCacheNeedsUpdate = true; }
-            ImGui::TextUnformatted("Oil Painting");
-            if (!s_oilOpen) { if (ImGui::Button("Open Oil Painting")) s_oilOpen = true; }
-            else {
-                bool show = s_oilOpen; params.applyOilPainting(show, textureNeedsUpdate);
-                if (!show) { s_oilOpen = false; gPreviewCacheNeedsUpdate = true; }
+            if (!s_oilPaintingOpen) {
+                if (ImGui::Button("Open Oil Painting")) s_oilPaintingOpen = true;
+            } else {
+                bool show = s_oilPaintingOpen;
+                params.applyOilPainting(show, textureNeedsUpdate);
+                if (!show) { s_oilPaintingOpen = false; gPreviewCacheNeedsUpdate = true; }
             }
             break;
         }
@@ -321,23 +373,25 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Resize: {
-            static bool show = false;
             ImGui::TextUnformatted("Resize (overlay)");
-            if (ImGui::Button("Open Resize Overlay")) {
-                show = true;
+            if (!s_resizeOpen) {
+                if (ImGui::Button("Open Resize")) s_resizeOpen = true;
+            } else {
+                bool show = s_resizeOpen;
+                params.applyResize(show, textureNeedsUpdate);
+                if (!show) { s_resizeOpen = false; gPreviewCacheNeedsUpdate = true; }
             }
-            params.applyResize(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
         case FilterType::Crop: {
-            static bool show = false;
             ImGui::TextUnformatted("Crop (overlay)");
-            if (ImGui::Button("Open Crop Overlay")) {
-                show = true;
+            if (!s_cropOpen) {
+                if (ImGui::Button("Open Crop")) s_cropOpen = true;
+            } else {
+                bool show = s_cropOpen;
+                params.applyCrop(show, textureNeedsUpdate);
+                if (!show) { s_cropOpen = false; gPreviewCacheNeedsUpdate = true; }
             }
-            params.applyCrop(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
             break;
         }
     }
