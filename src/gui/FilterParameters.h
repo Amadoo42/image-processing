@@ -219,6 +219,9 @@ public:
         // Movable & resizable mini window (top-left aligned)
         static ImVec2 panelPos = ImVec2(0, 0);
         static ImVec2 panelSize = ImVec2(360, 220);
+        // Ensure resize state exists before child so in-child grip can use it
+        static bool panelResizing = false;
+        static ImVec2 panelResizeStart;
         ImVec2 winPos = ImGui::GetWindowPos();
         ImVec2 panelTL = winPos + panelPos;
         ImVec2 panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
@@ -303,8 +306,6 @@ public:
         ImGui::InvisibleButton("##crop_panel_resize", ImVec2(cropGrip, cropGrip));
         if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
         draw->AddTriangleFilled(ImVec2(panelBR.x - cropGrip + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - cropGrip + 6), IM_COL32(200, 200, 200, 200));
-        static bool panelResizing = false;
-        static ImVec2 panelResizeStart;
         if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
             if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
             ImVec2 delta = io.MousePos - panelResizeStart;
