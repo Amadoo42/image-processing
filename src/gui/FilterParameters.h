@@ -216,8 +216,23 @@ public:
         draw->AddRectFilled(ImVec2(cropMax.x, cropMin.y), ImVec2(imageMax.x, cropMax.y), IM_COL32(0, 0, 0, 160));
         draw->AddRect(cropMin, cropMax, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
 
-        ImGui::SetCursorPos(ImVec2(20, 20));
-        ImGui::BeginChild("Crop Controls", ImVec2(250, 160), true);
+        // Movable & resizable mini window (top-left aligned)
+        static ImVec2 panelPos = ImVec2(0, 0);
+        static ImVec2 panelSize = ImVec2(300, 180);
+        ImVec2 winPos = ImGui::GetWindowPos();
+        ImVec2 panelTL = winPos + panelPos;
+        ImVec2 panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
+        const float headerH = 28.0f;
+
+        // Panel background and border
+        draw->AddRectFilled(panelTL, panelBR, IM_COL32(20, 20, 20, 230), 6.0f);
+        draw->AddRect(panelTL, panelBR, IM_COL32(255, 255, 255, 64), 6.0f, 0, 1.5f);
+
+        // Panel contents
+        ImGui::SetCursorPos(panelPos + ImVec2(0, headerH));
+        ImGui::BeginChild("Crop Controls", panelSize - ImVec2(0, headerH), false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::Dummy(ImVec2(0, 4));
         ImGui::Text("Crop Parameters");
         ImGui::Separator();
         if (ImGui::InputInt("X", &posX)) changed = true;
@@ -230,10 +245,7 @@ public:
             CropFilter f(posX, posY, newWidth, newHeight);
             processor.applyFilter(f);
             textureNeedsUpdate = true;
-            if (textureID != 0) {
-                glDeleteTextures(1, &textureID);
-                textureID = 0;
-            }
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             ImGui::CloseCurrentPopup();
             show = false;
             init = false;
@@ -242,15 +254,45 @@ public:
         if (ImGui::Button("Cancel")) {
             processor.setImage(originalImage);
             textureNeedsUpdate = true;
-            if (textureID != 0) {
-                glDeleteTextures(1, &textureID);
-                textureID = 0;
-            }
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             ImGui::CloseCurrentPopup();
             show = false;
             init = false;
         }
         ImGui::EndChild();
+
+        // Header (move) and size grip (resize)
+        ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
+        draw->AddRectFilled(panelTL, headerBR, IM_COL32(45, 45, 45, 255), 6.0f);
+        draw->AddText(ImVec2(panelTL.x + 8, panelTL.y + 6), IM_COL32(255,255,255,255), "Crop Controls");
+        ImGui::SetCursorScreenPos(panelTL);
+        ImGui::InvisibleButton("##crop_panel_move", ImVec2(panelSize.x, headerH));
+        static bool panelDragging = false;
+        static ImVec2 panelDragStart;
+        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+            if (!panelDragging) { panelDragging = true; panelDragStart = io.MousePos; }
+            ImVec2 delta = io.MousePos - panelDragStart;
+            panelPos.x = std::clamp(panelPos.x + delta.x, 0.0f, io.DisplaySize.x - panelSize.x);
+            panelPos.y = std::clamp(panelPos.y + delta.y, 0.0f, io.DisplaySize.y - panelSize.y);
+            panelDragStart = io.MousePos;
+        }
+        if (!ImGui::IsMouseDown(0)) panelDragging = false;
+
+        ImVec2 gripTL = ImVec2(panelBR.x - 18, panelBR.y - 18);
+        ImGui::SetCursorScreenPos(gripTL);
+        ImGui::InvisibleButton("##crop_panel_resize", ImVec2(18, 18));
+        draw->AddTriangleFilled(ImVec2(panelBR.x - 14, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 14), IM_COL32(200, 200, 200, 200));
+        static bool panelResizing = false;
+        static ImVec2 panelResizeStart;
+        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+            if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
+            ImVec2 delta = io.MousePos - panelResizeStart;
+            panelSize.x = std::clamp(panelSize.x + delta.x, 240.0f, io.DisplaySize.x - panelPos.x);
+            panelSize.y = std::clamp(panelSize.y + delta.y, 140.0f, io.DisplaySize.y - panelPos.y);
+            panelResizeStart = io.MousePos;
+            panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
+        }
+        if (!ImGui::IsMouseDown(0)) panelResizing = false;
 
         static bool dragging = false;
         static bool resizing = false;
@@ -274,6 +316,7 @@ public:
         }
 
         bool insideCrop = mouse.x >= cropMin.x && mouse.x <= cropMax.x && mouse.y >= cropMin.y && mouse.y <= cropMax.y;
+        bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
         bool overCorner = false;
         int hoveredCorner = -1;
 
@@ -289,7 +332,7 @@ public:
             }
         }
 
-        if (overCorner && ImGui::IsMouseClicked(0)) {
+        if (overCorner && !overPanelArea && ImGui::IsMouseClicked(0)) {
             resizing = true;
             resizeCorner = hoveredCorner;
             dragStart = mouse;
@@ -299,7 +342,7 @@ public:
             startH = newHeight;
         }
 
-        else if (insideCrop && !overCorner && ImGui::IsMouseClicked(0)) {
+        else if (insideCrop && !overCorner && !overPanelArea && ImGui::IsMouseClicked(0)) {
             dragging = true;
             dragStart = mouse;
             startX = posX;
