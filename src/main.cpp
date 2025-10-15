@@ -33,6 +33,7 @@
 #include <string>
 #include <array>
 #include "gui/RenderGUI.h"
+#include "gui/PresetManager.h"
 
 int main(int argc, char* argv[]) {
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
@@ -71,6 +72,8 @@ int main(int argc, char* argv[]) {
     }
 
     setModernStyle();
+    // Load presets on startup
+    gPresetManager.loadFromDisk();
 
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
@@ -97,6 +100,7 @@ int main(int argc, char* argv[]) {
                             gPreviewCacheNeedsUpdate = true;
                             extern int gImageSessionId; gImageSessionId++;
                             extern FilterType gSelectedFilter; gSelectedFilter = FilterType::None;
+                            gPresetManager.clearSession();
                         } else {
                             statusBarMessage = "Failed to load image.";
                         }

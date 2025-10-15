@@ -1,5 +1,7 @@
 #pragma once
 #include "Filter.h"
+#include <algorithm>
+#include <cmath>
 
 class ResizeFilter : public Filter {
 private:
@@ -8,16 +10,37 @@ private:
     bool useRatio = false;
 
     // References: https://en.wikipedia.org/wiki/Bilinear_interpolation
-    double color(Image &image,int i, int j, int newWidth, int newHeight, int c){
-        double srci= i * image.width / newWidth;
-        double srcj= j * image.height / newHeight;
-                
-        int x1 = srci, y1 = srcj, x2 = std::min(image.width - 1, x1 + 1), y2 = std::min(image.height - 1, y1 + 1);
+    double sampleBilinear(const Image &image, int dstX, int dstY, int dstW, int dstH, int c) const {
+        // Map destination pixel center to source space using inclusive mapping
+        const int srcW = std::max(1, image.width);
+        const int srcH = std::max(1, image.height);
 
-        return (x2 - srci) * (y2 - srcj) / ((x2 - x1) * (y2 -y1)) * image(x1,y1,c)
-                        + (srci - x1) * (y2 - srcj) / ((x2 - x1) * (y2 -y1)) * image(x2, y1, c)
-                        + (x2 - srci) * (srcj - y1) / ((x2 - x1) * (y2 -y1)) * image(x1, y2, c)
-                        + (srci - x1) * (srcj - y1) / ((x2 - x1) * (y2 -y1)) * image(x2, y2, c);
+        const double srcX = (dstW > 1)
+            ? (static_cast<double>(dstX) * (srcW - 1)) / static_cast<double>(dstW - 1)
+            : 0.0;
+        const double srcY = (dstH > 1)
+            ? (static_cast<double>(dstY) * (srcH - 1)) / static_cast<double>(dstH - 1)
+            : 0.0;
+
+        const int x1 = static_cast<int>(std::floor(srcX));
+        const int y1 = static_cast<int>(std::floor(srcY));
+        const int x2 = std::min(srcW - 1, x1 + 1);
+        const int y2 = std::min(srcH - 1, y1 + 1);
+
+        const double fx = srcX - x1;
+        const double fy = srcY - y1;
+
+        const double w11 = (1.0 - fx) * (1.0 - fy);
+        const double w21 = fx * (1.0 - fy);
+        const double w12 = (1.0 - fx) * fy;
+        const double w22 = fx * fy;
+
+        const double p11 = image(x1, y1, c);
+        const double p21 = image(x2, y1, c);
+        const double p12 = image(x1, y2, c);
+        const double p22 = image(x2, y2, c);
+
+        return p11 * w11 + p21 * w21 + p12 * w12 + p22 * w22;
     }
 
 public:
@@ -25,21 +48,29 @@ public:
     ResizeFilter(double rX, double rY) : ratioX(rX), ratioY(rY), useRatio(true) {}
 
     void apply(Image &image) override {
-        if(useRatio) {
-            newWidth = image.width * ratioX;
-            newHeight = image.height * ratioY;
+        if (useRatio) {
+            newWidth = static_cast<int>(std::round(static_cast<double>(image.width) * ratioX));
+            newHeight = static_cast<int>(std::round(static_cast<double>(image.height) * ratioY));
         }
+
+        newWidth = std::max(1, newWidth);
+        newHeight = std::max(1, newHeight);
+
+        // Early out if size unchanged
+        if (newWidth == image.width && newHeight == image.height) {
+            return;
+        }
+
         Image newImage(newWidth, newHeight);
-        for(int i = 0; i < newWidth; i++){
-            for(int j=0; j < newHeight; j++){
+        for (int x = 0; x < newWidth; ++x) {
+            for (int y = 0; y < newHeight; ++y) {
+                const double r = sampleBilinear(image, x, y, newWidth, newHeight, 0);
+                const double g = sampleBilinear(image, x, y, newWidth, newHeight, 1);
+                const double b = sampleBilinear(image, x, y, newWidth, newHeight, 2);
 
-                double r = color(image, i, j, newWidth, newHeight, 0);
-                double g = color(image, i, j, newWidth, newHeight, 1);
-                double b = color(image, i, j, newWidth, newHeight, 2);
-
-                newImage(i, j, 0) = r;
-                newImage(i, j, 1) = g;
-                newImage(i, j, 2) = b;
+                newImage(x, y, 0) = static_cast<unsigned char>(std::clamp(static_cast<int>(std::round(r)), 0, 255));
+                newImage(x, y, 1) = static_cast<unsigned char>(std::clamp(static_cast<int>(std::round(g)), 0, 255));
+                newImage(x, y, 2) = static_cast<unsigned char>(std::clamp(static_cast<int>(std::round(b)), 0, 255));
             }
         }
         image = newImage;

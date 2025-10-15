@@ -1,7 +1,8 @@
 // This will basically manage the current image and provide undo/redo functionality
 #pragma once
 
-#include "../external/Image_Class.h"
+#include <GL/gl.h>
+#include "../../external/Image_Class.h"
 #include "../filters/Filter.h"
 #include <vector>
 #include <string>

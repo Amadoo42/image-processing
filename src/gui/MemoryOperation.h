@@ -33,3 +33,16 @@ std::string saveFileDialog_Linux() {
     if(!out.empty()) return out;
     return "";
 }
+
+// Returns a newline-separated list of selected file paths.
+// Caller should split on '\n' and ignore empty lines.
+inline std::string openMultipleFilesDialog_Linux() {
+    // Try kdialog first
+    std::string out = runCapture1("which zenity >/dev/null 2>&1 && "
+                                  "zenity --file-selection --title=\"Select images\" --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.gif' --multiple --separator='\n' 2>/dev/null || "
+                                  "(which kdialog >/dev/null 2>&1 && kdialog --getopenfilename --multiple --separate-output 2>/dev/null) || true");
+    if(!out.empty()) return out;
+    // last resort
+    if(!out.empty()) return out;
+    return "";
+}
