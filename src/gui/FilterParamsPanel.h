@@ -158,6 +158,10 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         }
 
         case FilterType::Blur: {
+            bool show = true;
+            ImGui::TextUnformatted("Blur");
+            params.applyBlur(show, textureNeedsUpdate);
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
             ImGui::TextUnformatted("Blur");
             if (!s_blurOpen) {
                 if (ImGui::Button("Open Blur")) s_blurOpen = true;
@@ -169,27 +173,73 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Brightness: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Brightness");
             params.applyBrightness(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Contrast: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Contrast");
             params.applyContrast(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::Saturation: {
-            static bool show = true;
+            bool show = true;
             ImGui::TextUnformatted("Saturation");
             params.applySaturation(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
             break;
         }
         case FilterType::OilPainting: {
+            bool show = true;
+            ImGui::TextUnformatted("Oil Painting");
+            params.applyOilPainting(show, textureNeedsUpdate);
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
+            break;
+        }
+        case FilterType::Rotate: {
+            bool show = true;
+            ImGui::TextUnformatted("Rotate");
+            params.applyRotate(show, textureNeedsUpdate);
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
+            break;
+        }
+        case FilterType::Wave: {
+            bool show = true;
+            ImGui::TextUnformatted("Wave");
+            params.applyWave(show, textureNeedsUpdate);
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
+            break;
+        }
+        case FilterType::Purple: {
+            bool show = true;
+            ImGui::TextUnformatted("Purple");
+            params.applyPurple(show, textureNeedsUpdate);
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
+            break;
+        }
+        case FilterType::Skew: {
+            bool show = true;
+            ImGui::TextUnformatted("Skew");
+            params.applySkew(show, textureNeedsUpdate);
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
+            break;
+        }
+        case FilterType::Vignette: {
+            bool show = true;
+            ImGui::TextUnformatted("Vignette");
+            params.applyVignette(show, textureNeedsUpdate);
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
+            break;
+        }
+        case FilterType::Warmth: {
+            bool show = true;
+            ImGui::TextUnformatted("Warmth");
+            params.applyWarmth(show, textureNeedsUpdate);
+            if (!show) { gPreviewCacheNeedsUpdate = true; }
             ImGui::TextUnformatted("Oil Painting");
             if (!s_oilOpen) { if (ImGui::Button("Open Oil Painting")) s_oilOpen = true; }
             else {

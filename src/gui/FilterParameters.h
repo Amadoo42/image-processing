@@ -85,11 +85,15 @@ public:
 
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if(show){
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Blur Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                currentItem = 0; // Reset to default value
                 init = true;
             }
 
@@ -101,7 +105,7 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 BlurFilter filter(values1[currentItem], values2[currentItem]); 
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -119,6 +123,7 @@ public:
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
+                currentItem = 0; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -741,11 +746,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         static float factor = 1.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Brightness Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 1.0f; // Reset to default value
                 init = true;
             }
 
@@ -762,7 +771,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 DarkenFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -782,6 +791,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1256,11 +1266,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if(show){
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Rotate Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                currentItem = 0; // Reset to default value
                 init = true;
             }
 
@@ -1272,7 +1286,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 RotateFilter filter(values[currentItem]); 
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1291,6 +1305,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
+                currentItem = 0; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1315,11 +1330,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Purple Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1336,7 +1355,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 PurpleFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -1356,6 +1375,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1377,14 +1397,19 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     }
 
     void applyWave(bool &show, bool &textureNeedsUpdate) {
-        static float amplitude, wavelength;
+        static float amplitude = 0.0f, wavelength = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if(show){
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Wave Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                amplitude = 0.0f; // Reset to default value
+                wavelength = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1401,7 +1426,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 WaveFilter filter(amplitude, wavelength);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             
@@ -1421,6 +1446,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
+                amplitude = 0.0f; // Reset to default value
+                wavelength = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1439,11 +1466,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if(show){
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Oil Painting Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                currentItem = 0; // Reset to default value
                 init = true;
             }
 
@@ -1455,7 +1486,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 OilPaintingFilter filter(5, values[currentItem]); 
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1473,6 +1504,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
+                currentItem = 0; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1486,11 +1518,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Contrast Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1507,7 +1543,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 ContrastFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -1527,6 +1563,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1550,11 +1587,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Saturation Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1571,7 +1612,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 SaturationFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -1591,6 +1632,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1604,11 +1646,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         static float Angle = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Skew Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                Angle = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1625,7 +1671,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 SkewFilter filter(Angle);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -1645,6 +1691,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                Angle = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1658,11 +1705,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Vignette Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1679,7 +1730,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 VigentteFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -1699,6 +1750,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1711,11 +1763,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         static float factor = 0.0f;
         static Image originalImage;
         static bool init = false;
+        extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
+            if (lastSessionId != gImageSessionId) { init = false; }
+            lastSessionId = gImageSessionId;
             if (!BeginParamsUI("Warmth Parameters", &show)) return;
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1732,7 +1788,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 WarmthFilter filter(factor);
-                processor.applyFilter(filter);
+                processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
             }
@@ -1752,6 +1808,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;

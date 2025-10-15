@@ -97,6 +97,9 @@ int main(int argc, char* argv[]) {
                             textureNeedsUpdate = true;
                             statusBarMessage = "Image loaded successfully!";
                             guiSetCurrentImagePath(selected);
+                            gPreviewCacheNeedsUpdate = true;
+                            extern int gImageSessionId; gImageSessionId++;
+                            extern FilterType gSelectedFilter; gSelectedFilter = FilterType::None;
                             gPresetManager.clearSession();
                         } else {
                             statusBarMessage = "Failed to load image.";
