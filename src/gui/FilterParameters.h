@@ -218,7 +218,7 @@ public:
 
         // Movable & resizable mini window (top-left aligned)
         static ImVec2 panelPos = ImVec2(0, 0);
-        static ImVec2 panelSize = ImVec2(300, 180);
+        static ImVec2 panelSize = ImVec2(360, 220);
         ImVec2 winPos = ImGui::GetWindowPos();
         ImVec2 panelTL = winPos + panelPos;
         ImVec2 panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
