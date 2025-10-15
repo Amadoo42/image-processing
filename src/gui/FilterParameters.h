@@ -278,10 +278,12 @@ public:
         }
         if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
-        ImVec2 gripTL = ImVec2(panelBR.x - 18, panelBR.y - 18);
+        const float cropGrip = 28.0f;
+        ImVec2 gripTL = ImVec2(panelBR.x - cropGrip, panelBR.y - cropGrip);
         ImGui::SetCursorScreenPos(gripTL);
-        ImGui::InvisibleButton("##crop_panel_resize", ImVec2(18, 18));
-        draw->AddTriangleFilled(ImVec2(panelBR.x - 14, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 14), IM_COL32(200, 200, 200, 200));
+        ImGui::InvisibleButton("##crop_panel_resize", ImVec2(cropGrip, cropGrip));
+        if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+        draw->AddTriangleFilled(ImVec2(panelBR.x - cropGrip + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - cropGrip + 6), IM_COL32(200, 200, 200, 200));
         static bool panelResizing = false;
         static ImVec2 panelResizeStart;
         if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
@@ -673,11 +675,12 @@ public:
         }
         if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
-        // Size grip bottom-right (last to capture input)
-        ImVec2 gripTL2 = ImVec2(panelBR.x - 18, panelBR.y - 18);
+        // Size grip bottom-right (larger for easier hit)
+        const float grip = 28.0f;
+        ImVec2 gripTL2 = ImVec2(panelBR.x - grip, panelBR.y - grip);
         ImGui::SetCursorScreenPos(gripTL2);
-        ImGui::InvisibleButton("##resize_panel_resize", ImVec2(18, 18));
-        draw->AddTriangleFilled(ImVec2(panelBR.x - 14, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 14), IM_COL32(200, 200, 200, 200));
+        ImGui::InvisibleButton("##resize_panel_resize", ImVec2(grip, grip));
+        draw->AddTriangleFilled(ImVec2(panelBR.x - grip + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - grip + 6), IM_COL32(200, 200, 200, 200));
         static bool panelResizing = false;
         static ImVec2 panelResizeStart;
         if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
@@ -920,10 +923,12 @@ public:
             if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
             // Size grip bottom-right (after child for input priority)
-            ImVec2 gripTL = ImVec2(panelBR.x - 18, panelBR.y - 18);
+            const float mergeGrip = 28.0f;
+            ImVec2 gripTL = ImVec2(panelBR.x - mergeGrip, panelBR.y - mergeGrip);
             ImGui::SetCursorScreenPos(gripTL);
-            ImGui::InvisibleButton("##merge_panel_resize", ImVec2(18, 18));
-            draw->AddTriangleFilled(ImVec2(panelBR.x - 14, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 14), IM_COL32(200, 200, 200, 200));
+            ImGui::InvisibleButton("##merge_panel_resize", ImVec2(mergeGrip, mergeGrip));
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+            draw->AddTriangleFilled(ImVec2(panelBR.x - mergeGrip + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - mergeGrip + 6), IM_COL32(200, 200, 200, 200));
             static bool panelResizing = false;
             static ImVec2 panelResizeStart;
             if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
@@ -1011,10 +1016,12 @@ public:
         if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
         // Size grip bottom-right
-        ImVec2 gripTL = ImVec2(panelBR.x - 18, panelBR.y - 18);
+        const float mergeGrip2 = 28.0f;
+        ImVec2 gripTL = ImVec2(panelBR.x - mergeGrip2, panelBR.y - mergeGrip2);
         ImGui::SetCursorScreenPos(gripTL);
-        ImGui::InvisibleButton("##merge_panel_resize2", ImVec2(18, 18));
-        draw->AddTriangleFilled(ImVec2(panelBR.x - 14, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 14), IM_COL32(200, 200, 200, 200));
+        ImGui::InvisibleButton("##merge_panel_resize2", ImVec2(mergeGrip2, mergeGrip2));
+        if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+        draw->AddTriangleFilled(ImVec2(panelBR.x - mergeGrip2 + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - mergeGrip2 + 6), IM_COL32(200, 200, 200, 200));
         static bool panelResizing = false;
         static ImVec2 panelResizeStart;
         if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
