@@ -18,6 +18,7 @@ struct ParamsInlineScope {
 static FilterType s_prevSelected = FilterType::None;
 static bool s_rotateOpen = false;
 static bool s_skewOpen = false;
+static bool s_blurOpen = false; // effect panel open-state
 // Effect panels open-state
 static bool s_blurOpen = false;
 static bool s_outlineOpen = false;
