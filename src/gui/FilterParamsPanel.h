@@ -19,6 +19,17 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
     static FilterParameters params(processor);
     ParamsInlineScope scope; // ensure inline rendering within this panel
 
+    // Track open states for overlays/inline panels that should close on Apply
+    static FilterType s_prevSelected = FilterType::None;
+    static bool s_rotateOpen = false;
+    static bool s_skewOpen = false;
+    if (selected != s_prevSelected) {
+        s_prevSelected = selected;
+        // Auto-open when a filter is newly selected
+        if (selected == FilterType::Rotate) s_rotateOpen = true;
+        if (selected == FilterType::Skew) s_skewOpen = true;
+    }
+
     auto applySimple = [&](FilterType type, auto makeFilter) {
         if (ImGui::Button("Apply")) {
             auto f = makeFilter();
@@ -136,10 +147,14 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Rotate: {
-            bool show = true; // always show when selected
             ImGui::TextUnformatted("Rotate");
-            params.applyRotate(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!s_rotateOpen) {
+                if (ImGui::Button("Open Rotate")) s_rotateOpen = true;
+            } else {
+                bool show = s_rotateOpen;
+                params.applyRotate(show, textureNeedsUpdate);
+                if (!show) { s_rotateOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Wave: {
@@ -157,10 +172,14 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Skew: {
-            bool show = true; // always show when selected
             ImGui::TextUnformatted("Skew");
-            params.applySkew(show, textureNeedsUpdate);
-            if (!show) gPreviewCacheNeedsUpdate = true;
+            if (!s_skewOpen) {
+                if (ImGui::Button("Open Skew")) s_skewOpen = true;
+            } else {
+                bool show = s_skewOpen;
+                params.applySkew(show, textureNeedsUpdate);
+                if (!show) { s_skewOpen = false; gPreviewCacheNeedsUpdate = true; }
+            }
             break;
         }
         case FilterType::Vignette: {
