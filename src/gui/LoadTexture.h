@@ -1,8 +1,8 @@
 #pragma once
 #include <GL/gl.h>
-#include "../core/ImageProcessor.h"
+#include "../../external/Image_Class.h"
 
-GLuint loadTexture(const Image &image) {
+inline GLuint loadTexture(const Image &image) {
     if(image.width == 0 || image.height == 0) {
         std::cerr << "Invalid image data for texture." << std::endl;
         return 0;

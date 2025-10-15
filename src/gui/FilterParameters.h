@@ -680,19 +680,6 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     if (hoveredCorner != -1 && !overPanelArea && ImGui::IsMouseClicked(0)) {
         resizingCorner = true; activeCorner = hoveredCorner; dragStart = mouse; startW = newWidth; startH = newHeight;
     }
-
-        ImGui::Checkbox("Keep Aspect Ratio", &keepAspect);
-        ImGui::Text("Scale: %.2fx", (float)newWidth / originalImage.width);
-
-        if (ImGui::Button("Apply")) {
-            processor.setImage(originalImage);
-            ResizeFilter f(newWidth, newHeight);
-            processor.applyFilter(f);
-            textureNeedsUpdate = true;
-            glDeleteTextures(1, &textureID);
-            show = false;
-            init = false;
-            gPresetManager.recordStep(FilterStep{FilterType::Resize, {(double)newWidth, (double)newHeight}, ""});
     if (resizingCorner && ImGui::IsMouseDown(0)) {
         ImVec2 delta(mouse.x - dragStart.x, mouse.y - dragStart.y);
         const float previewScaleX = displayedWidth / (float)originalImage.width;
