@@ -449,12 +449,8 @@ public:
         ImVec2 childSize = panelSize - ImVec2(0, headerH);
         ImGui::SetCursorPos(childPos);
         float dpi = std::max(1.0f, ImGui::GetIO().DisplayFramebufferScale.x);
-        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, std::max(14.0f, 16.0f * dpi));
         ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize,  std::max(12.0f, 14.0f * dpi));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab,        IM_COL32(180,180,180,255));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(210,210,210,255));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive,  IM_COL32(240,240,240,255));
-        ImGuiWindowFlags childFlags = ImGuiWindowFlags_AlwaysVerticalScrollbar;
+        ImGuiWindowFlags childFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::BeginChild("Resize Controls", childSize, false, childFlags);
         ImGui::Dummy(ImVec2(0, 6));
         if (ImGui::InputInt("Width", &newWidth)) {
@@ -485,8 +481,7 @@ public:
             init = false;
         }
         ImGui::EndChild();
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar(2);
+        ImGui::PopStyleVar(1);
 
         // === Draw frame ===
         float previewScaleX = (float)newWidth / originalImage.width;
@@ -822,11 +817,8 @@ public:
 
             // Contents area below header
             ImGui::SetCursorPos(panelPos + ImVec2(0, headerH));
-            ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 16.0f);
-            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab,        IM_COL32(180,180,180,255));
-            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(210,210,210,255));
-            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive,  IM_COL32(240,240,240,255));
-            ImGui::BeginChild("Merge Controls (loader)", panelSize - ImVec2(0, headerH), false, 0);
+            ImGui::BeginChild("Merge Controls (loader)", panelSize - ImVec2(0, headerH), false,
+                              ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
             ImGui::Dummy(ImVec2(0, 2));
             ImGui::TextDisabled("Choose image to merge");
             if (ImGui::Button("Choose Merge Image")) {
@@ -853,8 +845,6 @@ public:
                 show = false; init = false;
             }
             ImGui::EndChild();
-            ImGui::PopStyleColor(3);
-            ImGui::PopStyleVar();
 
             // Header for moving (placed after child to capture input)
             ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
@@ -907,11 +897,8 @@ public:
 
         // Contents area below header
         ImGui::SetCursorPos(panelPos + ImVec2(0, headerH));
-        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 16.0f);
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab,        IM_COL32(180,180,180,255));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(210,210,210,255));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive,  IM_COL32(240,240,240,255));
-        ImGui::BeginChild("Merge Controls", panelSize - ImVec2(0, headerH), false, 0);
+        ImGui::BeginChild("Merge Controls", panelSize - ImVec2(0, headerH), false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::Dummy(ImVec2(0, 2));
         if (ImGui::Button("Change Merge Image")) {
             std::string path = openFileDialog_Linux();
@@ -949,8 +936,6 @@ public:
             show = false; init = false; overlayLoaded = false;
         }
         ImGui::EndChild();
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar();
 
         // Header for moving
         ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
