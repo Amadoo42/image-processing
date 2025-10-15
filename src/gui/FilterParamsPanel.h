@@ -183,8 +183,11 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Resize: {
-            static bool show = true;
-            ImGui::TextUnformatted("Resize");
+            static bool show = false; // open overlay on demand
+            ImGui::TextUnformatted("Resize (overlay)");
+            if (ImGui::Button("Open Resize Overlay")) {
+                show = true;
+            }
             params.applyResize(show, textureNeedsUpdate);
             if (!show) gPreviewCacheNeedsUpdate = true;
             break;
