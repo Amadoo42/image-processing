@@ -111,6 +111,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
                     textureNeedsUpdate = true;
                     gPreviewCacheNeedsUpdate = true;
                     gImageSessionId++; // reset parameter sessions
+                    gSelectedFilter = FilterType::None; // reset to default state
                     statusBarMessage = "Image loaded successfully!";
                 }
                 else {
@@ -220,7 +221,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
             std::string q = qraw; for (auto &c : q) c = (char)tolower(c);
             if (q.find("open") != std::string::npos || q == "load") {
                 std::string selected = openFileDialog_Linux();
-                if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; gImageSessionId++; statusBarMessage = "Image loaded successfully!"; }
+                if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; gImageSessionId++; gSelectedFilter = FilterType::None; statusBarMessage = "Image loaded successfully!"; }
             } else if (q.find("save") != std::string::npos) {
                 std::string selected = saveFileDialog_Linux();
                 if (!selected.empty()) { if (processor.saveImage(selected)) { guiSetCurrentImagePath(selected); statusBarMessage = "Image saved to " + selected; } }

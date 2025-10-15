@@ -96,6 +96,7 @@ int main(int argc, char* argv[]) {
                             guiSetCurrentImagePath(selected);
                             gPreviewCacheNeedsUpdate = true;
                             extern int gImageSessionId; gImageSessionId++;
+                            extern FilterType gSelectedFilter; gSelectedFilter = FilterType::None;
                         } else {
                             statusBarMessage = "Failed to load image.";
                         }

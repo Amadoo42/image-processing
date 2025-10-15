@@ -92,6 +92,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                currentItem = 0; // Reset to default value
                 init = true;
             }
 
@@ -120,6 +121,7 @@ public:
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
+                currentItem = 0; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -585,6 +587,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 1.0f; // Reset to default value
                 init = true;
             }
 
@@ -620,6 +623,7 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -687,6 +691,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                currentItem = 0; // Reset to default value
                 init = true;
             }
 
@@ -716,6 +721,7 @@ public:
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
+                currentItem = 0; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -747,6 +753,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -782,6 +789,7 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -803,7 +811,7 @@ public:
     }
 
     void applyWave(bool &show, bool &textureNeedsUpdate) {
-        static float amplitude, wavelength;
+        static float amplitude = 0.0f, wavelength = 0.0f;
         static Image originalImage;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
@@ -814,6 +822,8 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                amplitude = 0.0f; // Reset to default value
+                wavelength = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -849,6 +859,8 @@ public:
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
+                amplitude = 0.0f; // Reset to default value
+                wavelength = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -875,6 +887,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                currentItem = 0; // Reset to default value
                 init = true;
             }
 
@@ -903,6 +916,7 @@ public:
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
+                currentItem = 0; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -924,6 +938,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -959,6 +974,7 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -990,6 +1006,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1025,6 +1042,7 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1045,6 +1063,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                Angle = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1080,6 +1099,7 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                Angle = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1100,6 +1120,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1135,6 +1156,7 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1155,6 +1177,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1190,6 +1213,7 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
