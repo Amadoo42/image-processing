@@ -483,6 +483,9 @@ public:
 
         static ImVec2 panelPos = ImVec2(0, 0);
         static ImVec2 panelSize = ImVec2(300, 200);
+        // Ensure resize state exists before child so in-child grip can use it
+        static bool panelResizing = false;
+        static ImVec2 panelResizeStart;
 
         ImVec2 winPos = ImGui::GetWindowPos();
         ImVec2 panelTL = winPos + panelPos;
@@ -528,6 +531,23 @@ public:
             if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             show = false;
             init = false;
+        }
+
+        // In-child resize grip to ensure clickability above child window
+        {
+            const float grip = 28.0f;
+            ImVec2 childTL = ImGui::GetWindowPos();
+            ImVec2 childGripTL(childTL.x + childSize.x - grip, childTL.y + childSize.y - grip);
+            ImGui::SetCursorScreenPos(childGripTL);
+            ImGui::InvisibleButton("##resize_panel_resize_child", ImVec2(grip, grip));
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+                if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
+                ImVec2 delta = io.MousePos - panelResizeStart;
+                panelSize.x = std::clamp(panelSize.x + delta.x, 240.0f, io.DisplaySize.x - panelPos.x);
+                panelSize.y = std::clamp(panelSize.y + delta.y, 140.0f, io.DisplaySize.y - panelPos.y);
+                panelResizeStart = io.MousePos;
+            }
         }
         ImGui::EndChild();
         ImGui::PopStyleVar(1);
@@ -681,8 +701,6 @@ public:
         ImGui::SetCursorScreenPos(gripTL2);
         ImGui::InvisibleButton("##resize_panel_resize", ImVec2(grip, grip));
         draw->AddTriangleFilled(ImVec2(panelBR.x - grip + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - grip + 6), IM_COL32(200, 200, 200, 200));
-        static bool panelResizing = false;
-        static ImVec2 panelResizeStart;
         if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
             if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
             ImVec2 delta = io.MousePos - panelResizeStart;
