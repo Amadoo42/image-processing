@@ -18,6 +18,16 @@ struct ParamsInlineScope {
 static FilterType s_prevSelected = FilterType::None;
 static bool s_rotateOpen = false;
 static bool s_skewOpen = false;
+// Effect panels open-state
+static bool s_blurOpen = false;
+static bool s_outlineOpen = false;
+static bool s_purpleOpen = false;
+static bool s_infraredOpen = false;
+static bool s_waveOpen = false;
+static bool s_oilOpen = false;
+static bool s_retroOpen = false;
+static bool s_vignetteOpen = false;
+static bool s_warmthOpen = false;
 
 inline void onFilterClicked(FilterType ft) {
     if (ft == FilterType::Rotate) s_rotateOpen = true;
@@ -33,6 +43,15 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         // Auto-open when a filter is newly selected
         if (selected == FilterType::Rotate) s_rotateOpen = true;
         if (selected == FilterType::Skew) s_skewOpen = true;
+        if (selected == FilterType::Blur) s_blurOpen = true;
+        if (selected == FilterType::Outline) s_outlineOpen = true;
+        if (selected == FilterType::Purple) s_purpleOpen = true;
+        if (selected == FilterType::Infrared) s_infraredOpen = true;
+        if (selected == FilterType::Wave) s_waveOpen = true;
+        if (selected == FilterType::OilPainting) s_oilOpen = true;
+        if (selected == FilterType::Retro) s_retroOpen = true;
+        if (selected == FilterType::Vignette) s_vignetteOpen = true;
+        if (selected == FilterType::Warmth) s_warmthOpen = true;
     }
 
     auto applySimple = [&](FilterType type, auto makeFilter) {
