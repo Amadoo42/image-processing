@@ -14,15 +14,20 @@ struct ParamsInlineScope {
     ~ParamsInlineScope() { g_params_inline_mode = false; }
 };
 
+// Track open states for panels that should close on Apply and reopen on selection
+static FilterType s_prevSelected = FilterType::None;
+static bool s_rotateOpen = false;
+static bool s_skewOpen = false;
+
+inline void onFilterClicked(FilterType ft) {
+    if (ft == FilterType::Rotate) s_rotateOpen = true;
+    if (ft == FilterType::Skew)   s_skewOpen = true;
+}
+
 inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType selected, bool &textureNeedsUpdate)
 {
     static FilterParameters params(processor);
     ParamsInlineScope scope; // ensure inline rendering within this panel
-
-    // Track open states for overlays/inline panels that should close on Apply
-    static FilterType s_prevSelected = FilterType::None;
-    static bool s_rotateOpen = false;
-    static bool s_skewOpen = false;
     if (selected != s_prevSelected) {
         s_prevSelected = selected;
         // Auto-open when a filter is newly selected
