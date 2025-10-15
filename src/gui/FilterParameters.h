@@ -173,7 +173,9 @@ public:
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoCollapse;
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse;
 
         if (!ImGui::BeginPopupModal("Crop Overlay", &show, flags)) {
             return;
@@ -214,8 +216,28 @@ public:
         draw->AddRectFilled(ImVec2(cropMax.x, cropMin.y), ImVec2(imageMax.x, cropMax.y), IM_COL32(0, 0, 0, 160));
         draw->AddRect(cropMin, cropMax, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
 
-        ImGui::SetCursorPos(ImVec2(20, 20));
-        ImGui::BeginChild("Crop Controls", ImVec2(250, 160), true);
+        // Movable & resizable mini window (top-left aligned)
+        static ImVec2 panelPos = ImVec2(0, 0);
+        static ImVec2 panelSize = ImVec2(360, 220);
+        // Ensure resize state exists before child so in-child grip can use it
+        static bool panelResizing = false;
+        static ImVec2 panelResizeStart;
+        ImVec2 winPos = ImGui::GetWindowPos();
+        ImVec2 panelTL = winPos + panelPos;
+        ImVec2 panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
+        const float headerH = 28.0f;
+
+        // Panel background and border
+        draw->AddRectFilled(panelTL, panelBR, IM_COL32(20, 20, 20, 230), 6.0f);
+        draw->AddRect(panelTL, panelBR, IM_COL32(255, 255, 255, 64), 6.0f, 0, 1.5f);
+
+        // Panel contents
+        ImVec2 childPos = panelPos + ImVec2(0, headerH);
+        ImVec2 childSize = panelSize - ImVec2(0, headerH);
+        ImGui::SetCursorPos(childPos);
+        ImGui::BeginChild("Crop Controls", childSize, false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::Dummy(ImVec2(0, 4));
         ImGui::Text("Crop Parameters");
         ImGui::Separator();
         if (ImGui::InputInt("X", &posX)) changed = true;
@@ -228,10 +250,7 @@ public:
             CropFilter f(posX, posY, newWidth, newHeight);
             processor.applyFilter(f);
             textureNeedsUpdate = true;
-            if (textureID != 0) {
-                glDeleteTextures(1, &textureID);
-                textureID = 0;
-            }
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             ImGui::CloseCurrentPopup();
             show = false;
             init = false;
@@ -240,15 +259,62 @@ public:
         if (ImGui::Button("Cancel")) {
             processor.setImage(originalImage);
             textureNeedsUpdate = true;
-            if (textureID != 0) {
-                glDeleteTextures(1, &textureID);
-                textureID = 0;
-            }
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             ImGui::CloseCurrentPopup();
             show = false;
             init = false;
         }
+        // In-child resize grip to ensure clickability above child window
+        {
+            const float grip = 28.0f;
+            ImVec2 childTL = winPos + childPos;
+            ImVec2 childGripTL(childTL.x + childSize.x - grip, childTL.y + childSize.y - grip);
+            ImGui::SetCursorScreenPos(childGripTL);
+            ImGui::InvisibleButton("##crop_panel_resize_child", ImVec2(grip, grip));
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+                if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
+                ImVec2 delta = io.MousePos - panelResizeStart;
+                panelSize.x = std::clamp(panelSize.x + delta.x, 240.0f, io.DisplaySize.x - panelPos.x);
+                panelSize.y = std::clamp(panelSize.y + delta.y, 140.0f, io.DisplaySize.y - panelPos.y);
+                panelResizeStart = io.MousePos;
+                panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
+            }
+        }
         ImGui::EndChild();
+
+        // Header (move) and size grip (resize)
+        ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
+        draw->AddRectFilled(panelTL, headerBR, IM_COL32(45, 45, 45, 255), 6.0f);
+        draw->AddText(ImVec2(panelTL.x + 8, panelTL.y + 6), IM_COL32(255,255,255,255), "Crop Controls");
+        ImGui::SetCursorScreenPos(panelTL);
+        ImGui::InvisibleButton("##crop_panel_move", ImVec2(panelSize.x, headerH));
+        static bool panelDragging = false;
+        static ImVec2 panelDragStart;
+        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+            if (!panelDragging) { panelDragging = true; panelDragStart = io.MousePos; }
+            ImVec2 delta = io.MousePos - panelDragStart;
+            panelPos.x = std::clamp(panelPos.x + delta.x, 0.0f, io.DisplaySize.x - panelSize.x);
+            panelPos.y = std::clamp(panelPos.y + delta.y, 0.0f, io.DisplaySize.y - panelSize.y);
+            panelDragStart = io.MousePos;
+        }
+        if (!ImGui::IsMouseDown(0)) panelDragging = false;
+
+        const float cropGrip = 28.0f;
+        ImVec2 gripTL = ImVec2(panelBR.x - cropGrip, panelBR.y - cropGrip);
+        ImGui::SetCursorScreenPos(gripTL);
+        ImGui::InvisibleButton("##crop_panel_resize", ImVec2(cropGrip, cropGrip));
+        if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+        draw->AddTriangleFilled(ImVec2(panelBR.x - cropGrip + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - cropGrip + 6), IM_COL32(200, 200, 200, 200));
+        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+            if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
+            ImVec2 delta = io.MousePos - panelResizeStart;
+            panelSize.x = std::clamp(panelSize.x + delta.x, 240.0f, io.DisplaySize.x - panelPos.x);
+            panelSize.y = std::clamp(panelSize.y + delta.y, 140.0f, io.DisplaySize.y - panelPos.y);
+            panelResizeStart = io.MousePos;
+            panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
+        }
+        if (!ImGui::IsMouseDown(0)) panelResizing = false;
 
         static bool dragging = false;
         static bool resizing = false;
@@ -272,6 +338,7 @@ public:
         }
 
         bool insideCrop = mouse.x >= cropMin.x && mouse.x <= cropMax.x && mouse.y >= cropMin.y && mouse.y <= cropMax.y;
+        bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
         bool overCorner = false;
         int hoveredCorner = -1;
 
@@ -287,7 +354,7 @@ public:
             }
         }
 
-        if (overCorner && ImGui::IsMouseClicked(0)) {
+        if (overCorner && !overPanelArea && ImGui::IsMouseClicked(0)) {
             resizing = true;
             resizeCorner = hoveredCorner;
             dragStart = mouse;
@@ -297,7 +364,7 @@ public:
             startH = newHeight;
         }
 
-        else if (insideCrop && !overCorner && ImGui::IsMouseClicked(0)) {
+        else if (insideCrop && !overCorner && !overPanelArea && ImGui::IsMouseClicked(0)) {
             dragging = true;
             dragStart = mouse;
             startX = posX;
@@ -403,7 +470,9 @@ public:
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoCollapse;
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse;
 
         if (!ImGui::BeginPopupModal("Resize Overlay", &show, flags))
             return;
@@ -434,6 +503,9 @@ public:
 
         static ImVec2 panelPos = ImVec2(0, 0);
         static ImVec2 panelSize = ImVec2(300, 200);
+        // Ensure resize state exists before child so in-child grip can use it
+        static bool panelResizing = false;
+        static ImVec2 panelResizeStart;
 
         ImVec2 winPos = ImGui::GetWindowPos();
         ImVec2 panelTL = winPos + panelPos;
@@ -449,12 +521,8 @@ public:
         ImVec2 childSize = panelSize - ImVec2(0, headerH);
         ImGui::SetCursorPos(childPos);
         float dpi = std::max(1.0f, ImGui::GetIO().DisplayFramebufferScale.x);
-        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, std::max(14.0f, 16.0f * dpi));
         ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize,  std::max(12.0f, 14.0f * dpi));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab,        IM_COL32(180,180,180,255));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(210,210,210,255));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive,  IM_COL32(240,240,240,255));
-        ImGuiWindowFlags childFlags = ImGuiWindowFlags_AlwaysVerticalScrollbar;
+        ImGuiWindowFlags childFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::BeginChild("Resize Controls", childSize, false, childFlags);
         ImGui::Dummy(ImVec2(0, 6));
         if (ImGui::InputInt("Width", &newWidth)) {
@@ -472,7 +540,7 @@ public:
             ResizeFilter f(newWidth, newHeight);
             processor.applyFilter(f);
             textureNeedsUpdate = true;
-            glDeleteTextures(1, &textureID);
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             show = false;
             init = false;
         }
@@ -480,13 +548,29 @@ public:
         if (ImGui::Button("Cancel")) {
             processor.setImage(originalImage);
             textureNeedsUpdate = true;
-            glDeleteTextures(1, &textureID);
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             show = false;
             init = false;
         }
+
+        // In-child resize grip to ensure clickability above child window
+        {
+            const float grip = 28.0f;
+            ImVec2 childTL = ImGui::GetWindowPos();
+            ImVec2 childGripTL(childTL.x + childSize.x - grip, childTL.y + childSize.y - grip);
+            ImGui::SetCursorScreenPos(childGripTL);
+            ImGui::InvisibleButton("##resize_panel_resize_child", ImVec2(grip, grip));
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+                if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
+                ImVec2 delta = io.MousePos - panelResizeStart;
+                panelSize.x = std::clamp(panelSize.x + delta.x, 240.0f, io.DisplaySize.x - panelPos.x);
+                panelSize.y = std::clamp(panelSize.y + delta.y, 140.0f, io.DisplaySize.y - panelPos.y);
+                panelResizeStart = io.MousePos;
+            }
+        }
         ImGui::EndChild();
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar(2);
+        ImGui::PopStyleVar(1);
 
         // === Draw frame ===
         float previewScaleX = (float)newWidth / originalImage.width;
@@ -510,6 +594,8 @@ public:
 
         const float handleR = 8.0f;
         for (auto &c : corners) {
+            bool cInPanel = (c.x >= panelTL.x && c.x <= panelBR.x && c.y >= panelTL.y && c.y <= panelBR.y);
+            if (cInPanel) continue;
             draw->AddCircleFilled(c, handleR, IM_COL32(255, 255, 255, 255));
             draw->AddCircle(c, handleR, IM_COL32(0, 0, 0, 255), 0, 2.0f);
         }
@@ -525,35 +611,43 @@ public:
         for (int e = 0; e < 4; ++e) {
             ImVec2 tl(edgeCenters[e].x - edgeSize.x * 0.5f, edgeCenters[e].y - edgeSize.y * 0.5f);
             ImVec2 br(edgeCenters[e].x + edgeSize.x * 0.5f, edgeCenters[e].y + edgeSize.y * 0.5f);
-            draw->AddRectFilled(tl, br, IM_COL32(255, 255, 255, 220), 3.0f);
-            draw->AddRect(tl, br, IM_COL32(0, 0, 0, 255), 3.0f, 0, 2.0f);
-            ImGui::SetCursorScreenPos(tl);
-            ImGui::InvisibleButton((std::string("##resize_edge_") + char('0' + e)).c_str(), ImVec2(edgeSize.x, edgeSize.y));
-            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
-                resizingEdge = true; activeEdge = e; dragStart = io.MousePos; startW = newWidth; startH = newHeight;
+            bool intersectsPanel = !(br.x <= panelTL.x || tl.x >= panelBR.x || br.y <= panelTL.y || tl.y >= panelBR.y);
+            if (!intersectsPanel) {
+                draw->AddRectFilled(tl, br, IM_COL32(255, 255, 255, 220), 3.0f);
+                draw->AddRect(tl, br, IM_COL32(0, 0, 0, 255), 3.0f, 0, 2.0f);
+            }
+            if (!intersectsPanel) {
+                ImGui::SetCursorScreenPos(tl);
+                ImGui::InvisibleButton((std::string("##resize_edge_") + char('0' + e)).c_str(), ImVec2(edgeSize.x, edgeSize.y));
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
+                    resizingEdge = true; activeEdge = e; dragStart = io.MousePos; startW = newWidth; startH = newHeight;
+                }
             }
         }
 
         // Corner hover/click
         ImVec2 mouse = io.MousePos;
         int hoveredCorner = -1;
+        bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
         if (!resizingEdge && !resizingCorner) {
             for (int i = 0; i < 4; ++i) {
                 float dx = mouse.x - corners[i].x;
                 float dy = mouse.y - corners[i].y;
-                if (dx * dx + dy * dy <= handleR * handleR * 2.0f) { hoveredCorner = i; break; }
+                bool cornerInPanel = (corners[i].x >= panelTL.x && corners[i].x <= panelBR.x && corners[i].y >= panelTL.y && corners[i].y <= panelBR.y);
+                if (!cornerInPanel && dx * dx + dy * dy <= handleR * handleR * 2.0f) { hoveredCorner = i; break; }
             }
         }
-        if (hoveredCorner != -1 && ImGui::IsMouseClicked(0)) {
+        if (hoveredCorner != -1 && !overPanelArea && ImGui::IsMouseClicked(0)) {
             resizingCorner = true; activeCorner = hoveredCorner; dragStart = mouse; startW = newWidth; startH = newHeight;
         }
 
         // Dragging corner
         if (resizingCorner && ImGui::IsMouseDown(0)) {
             ImVec2 delta(mouse.x - dragStart.x, mouse.y - dragStart.y);
-            float previewScale = displayedWidth / (float)originalImage.width;
-            int dx = (int)(delta.x / previewScale);
-            int dy = (int)(delta.y / previewScale);
+            const float previewScaleX = displayedWidth / (float)originalImage.width;
+            const float previewScaleY = displayedHeight / (float)originalImage.height;
+            int dx = (int)(delta.x / previewScaleX);
+            int dy = (int)(delta.y / previewScaleY);
             int tmpW = startW, tmpH = startH;
             switch (activeCorner) {
                 case 0: tmpW = startW - dx; tmpH = startH - dy; break;
@@ -573,9 +667,10 @@ public:
         // Dragging edge
         if (resizingEdge && ImGui::IsMouseDown(0)) {
             ImVec2 delta(mouse.x - dragStart.x, mouse.y - dragStart.y);
-            float previewScale = displayedWidth / (float)originalImage.width;
-            int dx = (int)(delta.x / previewScale);
-            int dy = (int)(delta.y / previewScale);
+            const float previewScaleX = displayedWidth / (float)originalImage.width;
+            const float previewScaleY = displayedHeight / (float)originalImage.height;
+            int dx = (int)(delta.x / previewScaleX);
+            int dy = (int)(delta.y / previewScaleY);
             int tmpW = startW, tmpH = startH;
             switch (activeEdge) {
                 case 0: tmpW = startW - dx; break; // left
@@ -620,13 +715,12 @@ public:
         }
         if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
-        // Size grip bottom-right (last to capture input)
-        ImVec2 gripTL2 = ImVec2(panelBR.x - 18, panelBR.y - 18);
+        // Size grip bottom-right (larger for easier hit)
+        const float grip = 28.0f;
+        ImVec2 gripTL2 = ImVec2(panelBR.x - grip, panelBR.y - grip);
         ImGui::SetCursorScreenPos(gripTL2);
-        ImGui::InvisibleButton("##resize_panel_resize", ImVec2(18, 18));
-        draw->AddTriangleFilled(ImVec2(panelBR.x - 14, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 14), IM_COL32(200, 200, 200, 200));
-        static bool panelResizing = false;
-        static ImVec2 panelResizeStart;
+        ImGui::InvisibleButton("##resize_panel_resize", ImVec2(grip, grip));
+        draw->AddTriangleFilled(ImVec2(panelBR.x - grip + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - grip + 6), IM_COL32(200, 200, 200, 200));
         if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
             if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
             ImVec2 delta = io.MousePos - panelResizeStart;
@@ -808,6 +902,9 @@ public:
             // Movable/resizable control panel (top-left by default)
             static ImVec2 panelPos = ImVec2(0, 0);
             static ImVec2 panelSize = ImVec2(340, 150);
+            // Ensure resize state exists before child so in-child grip can use it
+            static bool panelResizing = false;
+            static ImVec2 panelResizeStart;
 
             ImVec2 winPos = ImGui::GetWindowPos();
             ImVec2 panelTL = winPos + panelPos;
@@ -819,12 +916,11 @@ public:
             draw->AddRect(panelTL, panelBR, IM_COL32(255, 255, 255, 64), 6.0f, 0, 1.5f);
 
             // Contents area below header
-            ImGui::SetCursorPos(panelPos + ImVec2(0, headerH));
-            ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 16.0f);
-            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab,        IM_COL32(180,180,180,255));
-            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(210,210,210,255));
-            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive,  IM_COL32(240,240,240,255));
-            ImGui::BeginChild("Merge Controls (loader)", panelSize - ImVec2(0, headerH), false, 0);
+            ImVec2 childPos = panelPos + ImVec2(0, headerH);
+            ImVec2 childSize = panelSize - ImVec2(0, headerH);
+            ImGui::SetCursorPos(childPos);
+            ImGui::BeginChild("Merge Controls (loader)", childSize, false,
+                              ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
             ImGui::Dummy(ImVec2(0, 2));
             ImGui::TextDisabled("Choose image to merge");
             if (ImGui::Button("Choose Merge Image")) {
@@ -850,9 +946,23 @@ public:
                 ImGui::CloseCurrentPopup();
                 show = false; init = false;
             }
+            // In-child resize grip to ensure clickability
+            {
+                const float grip = 28.0f;
+                ImVec2 childTL = winPos + childPos;
+                ImVec2 childGripTL(childTL.x + childSize.x - grip, childTL.y + childSize.y - grip);
+                ImGui::SetCursorScreenPos(childGripTL);
+                ImGui::InvisibleButton("##merge_panel_resize_child_loader", ImVec2(grip, grip));
+                if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+                    if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
+                    ImVec2 delta = io.MousePos - panelResizeStart;
+                    panelSize.x = std::clamp(panelSize.x + delta.x, 260.0f, io.DisplaySize.x - panelPos.x);
+                    panelSize.y = std::clamp(panelSize.y + delta.y, 120.0f, io.DisplaySize.y - panelPos.y);
+                    panelResizeStart = io.MousePos;
+                }
+            }
             ImGui::EndChild();
-            ImGui::PopStyleColor(3);
-            ImGui::PopStyleVar();
 
             // Header for moving (placed after child to capture input)
             ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
@@ -872,12 +982,12 @@ public:
             if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
             // Size grip bottom-right (after child for input priority)
-            ImVec2 gripTL = ImVec2(panelBR.x - 18, panelBR.y - 18);
+            const float mergeGrip = 28.0f;
+            ImVec2 gripTL = ImVec2(panelBR.x - mergeGrip, panelBR.y - mergeGrip);
             ImGui::SetCursorScreenPos(gripTL);
-            ImGui::InvisibleButton("##merge_panel_resize", ImVec2(18, 18));
-            draw->AddTriangleFilled(ImVec2(panelBR.x - 14, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 14), IM_COL32(200, 200, 200, 200));
-            static bool panelResizing = false;
-            static ImVec2 panelResizeStart;
+            ImGui::InvisibleButton("##merge_panel_resize", ImVec2(mergeGrip, mergeGrip));
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+            draw->AddTriangleFilled(ImVec2(panelBR.x - mergeGrip + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - mergeGrip + 6), IM_COL32(200, 200, 200, 200));
             if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
                 if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
                 ImVec2 delta = io.MousePos - panelResizeStart;
@@ -893,6 +1003,9 @@ public:
         // Movable/resizable control panel (top-left by default)
         static ImVec2 panelPos = ImVec2(0, 0);
         static ImVec2 panelSize = ImVec2(340, 240);
+        // Ensure resize state exists before child so in-child grip can use it
+        static bool panelResizing = false;
+        static ImVec2 panelResizeStart;
 
         ImVec2 winPos = ImGui::GetWindowPos();
         ImVec2 panelTL = winPos + panelPos;
@@ -904,12 +1017,11 @@ public:
         draw->AddRect(panelTL, panelBR, IM_COL32(255, 255, 255, 64), 6.0f, 0, 1.5f);
 
         // Contents area below header
-        ImGui::SetCursorPos(panelPos + ImVec2(0, headerH));
-        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 16.0f);
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab,        IM_COL32(180,180,180,255));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(210,210,210,255));
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive,  IM_COL32(240,240,240,255));
-        ImGui::BeginChild("Merge Controls", panelSize - ImVec2(0, headerH), false, 0);
+        ImVec2 childPos = panelPos + ImVec2(0, headerH);
+        ImVec2 childSize = panelSize - ImVec2(0, headerH);
+        ImGui::SetCursorPos(childPos);
+        ImGui::BeginChild("Merge Controls", childSize, false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::Dummy(ImVec2(0, 2));
         if (ImGui::Button("Change Merge Image")) {
             std::string path = openFileDialog_Linux();
@@ -946,9 +1058,24 @@ public:
             ImGui::CloseCurrentPopup();
             show = false; init = false; overlayLoaded = false;
         }
+        // In-child resize grip to ensure clickability above child window
+        {
+            const float grip = 28.0f;
+            ImVec2 childTL = winPos + childPos;
+            ImVec2 childGripTL(childTL.x + childSize.x - grip, childTL.y + childSize.y - grip);
+            ImGui::SetCursorScreenPos(childGripTL);
+            ImGui::InvisibleButton("##merge_panel_resize_child2", ImVec2(grip, grip));
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+                if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
+                ImVec2 delta = io.MousePos - panelResizeStart;
+                panelSize.x = std::clamp(panelSize.x + delta.x, 260.0f, io.DisplaySize.x - panelPos.x);
+                panelSize.y = std::clamp(panelSize.y + delta.y, 120.0f, io.DisplaySize.y - panelPos.y);
+                panelResizeStart = io.MousePos;
+                panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
+            }
+        }
         ImGui::EndChild();
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar();
 
         // Header for moving
         ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
@@ -968,12 +1095,12 @@ public:
         if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
         // Size grip bottom-right
-        ImVec2 gripTL = ImVec2(panelBR.x - 18, panelBR.y - 18);
+        const float mergeGrip2 = 28.0f;
+        ImVec2 gripTL = ImVec2(panelBR.x - mergeGrip2, panelBR.y - mergeGrip2);
         ImGui::SetCursorScreenPos(gripTL);
-        ImGui::InvisibleButton("##merge_panel_resize2", ImVec2(18, 18));
-        draw->AddTriangleFilled(ImVec2(panelBR.x - 14, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 2), ImVec2(panelBR.x - 2, panelBR.y - 14), IM_COL32(200, 200, 200, 200));
-        static bool panelResizing = false;
-        static ImVec2 panelResizeStart;
+        ImGui::InvisibleButton("##merge_panel_resize2", ImVec2(mergeGrip2, mergeGrip2));
+        if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+        draw->AddTriangleFilled(ImVec2(panelBR.x - mergeGrip2 + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - mergeGrip2 + 6), IM_COL32(200, 200, 200, 200));
         if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
             if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
             ImVec2 delta = io.MousePos - panelResizeStart;
@@ -1030,22 +1157,22 @@ public:
         // Hover corner detection if not resizing edge
         ImVec2 mouse = io.MousePos;
         int hoveredCorner = -1;
-        if (!dragging && !resizingCorner && !resizingEdge) {
+        bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
+        if (!dragging && !resizingCorner && !resizingEdge && !overPanelArea) {
             for (int i = 0; i < 4; ++i) {
                 float dx = mouse.x - corners[i].x;
                 float dy = mouse.y - corners[i].y;
                 if (dx * dx + dy * dy <= handleR * handleR * 2.0f) { hoveredCorner = i; break; }
             }
         }
-
-        if (hoveredCorner != -1 && ImGui::IsMouseClicked(0)) {
+        
+        if (hoveredCorner != -1 && !overPanelArea && ImGui::IsMouseClicked(0)) {
             resizingCorner = true; activeCorner = hoveredCorner; dragStart = mouse;
             startX = posX; startY = posY; startW = overW; startH = overH;
         }
 
         // Drag inside overlay to move (but not when interacting with handles or control panel)
         bool insideOverlay = mouse.x >= overMin.x && mouse.x <= overMax.x && mouse.y >= overMin.y && mouse.y <= overMax.y;
-        bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
         if (insideOverlay && !resizingCorner && !resizingEdge && !edgeHoveredAny && hoveredCorner == -1 && !overPanelArea) {
             if (ImGui::IsMouseClicked(0)) { dragging = true; dragStart = mouse; startX = posX; startY = posY; }
         }
