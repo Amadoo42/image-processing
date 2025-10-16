@@ -743,7 +743,6 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
             if (processor.hasActiveSelection() && gSelectionInverted) {
                 ImVec2 minp = imgMin, maxp = imgMax;
                 draw->AddRectFilled(minp, maxp, IM_COL32(0,0,0,40));
-                }
             }
         } else {
             renderCompareView(processor, zoom_level, pan_offset);
