@@ -1,6 +1,16 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <vector>
+#include <algorithm>
+
+// Utility function to normalize file paths for cross-platform compatibility
+static std::string normalizePath(const std::string& path) {
+    std::string normalized = path;
+    // Convert backslashes to forward slashes for consistency
+    std::replace(normalized.begin(), normalized.end(), '\\', '/');
+    return normalized;
+}
 
 static std::string runCapture1(const char* cmd) {
     std::array<char, 4096> buf;
@@ -15,22 +25,22 @@ static std::string runCapture1(const char* cmd) {
 std::string openFileDialog_Linux() {
     // try kdialog first
     std::string out = runCapture1("which kdialog >/dev/null 2>&1 && kdialog --getopenfilename 2>/dev/null || true");
-    if(!out.empty()) return out;
+    if(!out.empty()) return normalizePath(out);
     // now try zenity cuz kdialog failed for some reason
     out = runCapture1("which zenity >/dev/null 2>&1 && "
         "zenity --file-selection --title=\"Select an image\" --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.gif' 2>/dev/null || true");
-    if(!out.empty()) return out;
+    if(!out.empty()) return normalizePath(out);
     return "";
 }
 
 std::string saveFileDialog_Linux() {
     // try kdialog first
     std::string out = runCapture1("which kdialog >/dev/null 2>&1 && kdialog --getsavefilename 2>/dev/null || true");
-    if(!out.empty()) return out;
+    if(!out.empty()) return normalizePath(out);
     // now try zenity cuz kdialog failed for some reason
     out = runCapture1("which zenity >/dev/null 2>&1 && "
         "zenity --file-selection --save --title=\"Save an image\" --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.gif' 2>/dev/null || true");
-    if(!out.empty()) return out;
+    if(!out.empty()) return normalizePath(out);
     return "";
 }
 
@@ -41,8 +51,54 @@ inline std::string openMultipleFilesDialog_Linux() {
     std::string out = runCapture1("which zenity >/dev/null 2>&1 && "
                                   "zenity --file-selection --title=\"Select images\" --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.gif' --multiple --separator='\n' 2>/dev/null || "
                                   "(which kdialog >/dev/null 2>&1 && kdialog --getopenfilename --multiple --separate-output 2>/dev/null) || true");
-    if(!out.empty()) return out;
+    if(!out.empty()) return normalizePath(out);
     // last resort
-    if(!out.empty()) return out;
+    if(!out.empty()) return normalizePath(out);
     return "";
 }
+
+#ifdef _WIN32
+#include <windows.h>
+#include <commdlg.h>
+#pragma comment(lib, "comdlg32.lib")
+
+inline std::string openFileDialog_Windows(bool save = false, bool multiple = false) {
+    OPENFILENAMEA ofn;
+    CHAR fileBuffer[8192] = {0};
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = nullptr;
+    ofn.lpstrFile = fileBuffer;
+    ofn.nMaxFile = sizeof(fileBuffer);
+    ofn.lpstrFilter = "Images\0*.png;*.jpg;*.jpeg;*.bmp;*.gif\0All\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | (multiple ? OFN_ALLOWMULTISELECT | OFN_EXPLORER : 0);
+    ofn.lpstrInitialDir = nullptr; // Use current directory
+    BOOL ok = FALSE;
+    if (save) ok = GetSaveFileNameA(&ofn);
+    else ok = GetOpenFileNameA(&ofn);
+    if (!ok) return "";
+    // If multiple, buffer contains directory followed by files
+    if (multiple) {
+        std::string dir = ofn.lpstrFile;
+        size_t len = dir.size();
+        std::vector<std::string> files;
+        const char* p = ofn.lpstrFile + len + 1;
+        if (*p == '\0') return normalizePath(dir); // single selection
+        while (*p) {
+            files.emplace_back(p);
+            p += files.back().size() + 1;
+        }
+        std::string joined;
+        for (size_t i = 0; i < files.size(); ++i) {
+            if (i) joined += '\n';
+            // Ensure proper path separator
+            char sep = (dir.back() == '\\' || dir.back() == '/') ? '\0' : '\\';
+            if (sep) joined += dir + sep + files[i];
+            else joined += dir + files[i];
+        }
+        return normalizePath(joined);
+    }
+    return normalizePath(std::string(ofn.lpstrFile));
+}
+#endif

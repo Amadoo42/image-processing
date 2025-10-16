@@ -121,7 +121,12 @@ static void drawTopNavBar(ImageProcessor &processor) {
         bool __hasImage = (__img_nav.width > 0 && __img_nav.height > 0);
         if(ImGui::BeginMenu("File")) {
             if(ImGui::MenuItem(iconLabel(ICON_FA_FOLDER_OPEN, "Open").c_str(), "Ctrl+O")) {
-                std::string selected = openFileDialog_Linux();
+                std::string selected =
+#ifdef _WIN32
+                    openFileDialog_Windows(false, false);
+#else
+                    openFileDialog_Linux();
+#endif
                 if(!selected.empty()) {
                     std::cout << "Image loaded successfully!\n";
                     processor.loadImage(selected);
@@ -141,7 +146,12 @@ static void drawTopNavBar(ImageProcessor &processor) {
             }
             if (!__hasImage) ImGui::BeginDisabled();
             if(ImGui::MenuItem(iconLabel(ICON_FA_FLOPPY_DISK, "Save").c_str(), "Ctrl+S")) {
-                std::string selected = saveFileDialog_Linux();
+                std::string selected =
+#ifdef _WIN32
+                    openFileDialog_Windows(true, false);
+#else
+                    saveFileDialog_Linux();
+#endif
                 if (!selected.empty()) {
                     if (processor.saveImage(selected)) {
                         std::cout << "Image saved to " << selected << std::endl;
@@ -155,7 +165,12 @@ static void drawTopNavBar(ImageProcessor &processor) {
                 }
             }
             if(ImGui::MenuItem(iconLabel(ICON_FA_FLOPPY_DISK_CIRCLE_ARROW_RIGHT, "Save As").c_str())) {
-                std::string selected = saveFileDialog_Linux();
+                std::string selected =
+#ifdef _WIN32
+                    openFileDialog_Windows(true, false);
+#else
+                    saveFileDialog_Linux();
+#endif
                 if (!selected.empty()) {
                     if (processor.saveImage(selected)) {
                         std::cout << "Image saved to " << selected << std::endl;
@@ -179,11 +194,11 @@ static void drawTopNavBar(ImageProcessor &processor) {
         }
         if (ImGui::BeginMenu("Edit")) {
             if (ImGui::MenuItem(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str(), "Ctrl+Z")) {
-                if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; }
+                if(processor.undo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Undo successful."; }
                 else { statusBarMessage = "Nothing to undo."; }
             }
             if (ImGui::MenuItem(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str(), "Ctrl+Y")) {
-                if(processor.redo()) { textureNeedsUpdate = true; statusBarMessage = "Redo successful."; }
+                if(processor.redo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Redo successful."; }
                 else { statusBarMessage = "Nothing to redo."; }
             }
             ImGui::Separator();
@@ -249,19 +264,29 @@ static void drawTopNavBar(ImageProcessor &processor) {
         auto executeQuickCommand = [&](const std::string &qraw){
             std::string q = qraw; for (auto &c : q) c = (char)tolower(c);
             if (q.find("open") != std::string::npos || q == "load") {
-                std::string selected = openFileDialog_Linux();
+                std::string selected =
+#ifdef _WIN32
+                    openFileDialog_Windows(false, false);
+#else
+                    openFileDialog_Linux();
+#endif
                 if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; gImageSessionId++; gSelectedFilter = FilterType::None; statusBarMessage = "Image loaded successfully!"; }
             } else if (q.find("save") != std::string::npos) {
                 const Image &img = processor.getCurrentImage();
                 if (img.width <= 0 || img.height <= 0) { statusBarMessage = "No image loaded."; }
                 else {
-                    std::string selected = saveFileDialog_Linux();
+                    std::string selected =
+#ifdef _WIN32
+                        openFileDialog_Windows(true, false);
+#else
+                        saveFileDialog_Linux();
+#endif
                     if (!selected.empty()) { if (processor.saveImage(selected)) { guiSetCurrentImagePath(selected); statusBarMessage = "Image saved to " + selected; } }
                 }
             } else if (q.find("undo") != std::string::npos) {
-                if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; } else { statusBarMessage = "Nothing to undo."; }
+                if(processor.undo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Undo successful."; } else { statusBarMessage = "Nothing to undo."; }
             } else if (q.find("redo") != std::string::npos) {
-                if(processor.redo()) { textureNeedsUpdate = true; statusBarMessage = "Redo successful."; } else { statusBarMessage = "Nothing to redo."; }
+                if(processor.redo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Redo successful."; } else { statusBarMessage = "Nothing to redo."; }
             } else if (q.find("reset") != std::string::npos || q.find("1:1") != std::string::npos) {
                 const Image &img = processor.getCurrentImage();
                 if (img.width > 0 && img.height > 0) { zoom_level = 1.0f; pan_offset = ImVec2(0,0); } else { statusBarMessage = "No image loaded."; }
@@ -442,7 +467,12 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
     bool __hasImage = (__img_right.width > 0 && __img_right.height > 0);
     if (!__hasImage) ImGui::BeginDisabled();
     if (ImGui::Button("Save", ImVec2(btnW, 0))) {
-        std::string selected = saveFileDialog_Linux();
+        std::string selected =
+#ifdef _WIN32
+            openFileDialog_Windows(true, false);
+#else
+            saveFileDialog_Linux();
+#endif
         if (!selected.empty()) {
             if (processor.saveImage(selected)) { statusBarMessage = std::string("Image saved to ") + selected; }
             else { statusBarMessage = "Failed to save image."; }
@@ -688,6 +718,21 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         ImGui::SameLine();
         ImGui::Dummy(ImVec2(8, 1));
         ImGui::SameLine();
+    if(ImGui::Button(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str())) {
+        if(processor.undo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Undo successful."; }
+        else { statusBarMessage = "Nothing to undo."; }
+    }
+    ImGui::SameLine();
+    if(ImGui::Button(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str())) {
+        if(processor.redo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Redo successful."; }
+        else { statusBarMessage = "Nothing to redo."; }
+    }
+    ImGui::SameLine();
+    const Image &__img_toolbar = processor.getCurrentImage();
+    bool __hasImageToolbar = (__img_toolbar.width > 0 && __img_toolbar.height > 0);
+    if (!__hasImageToolbar) ImGui::BeginDisabled();
+    if(ImGui::Button(iconLabel(ICON_FA_ARROWS_ROTATE, "Reset").c_str())) { zoom_level = 1.0f; pan_offset = ImVec2(0,0); }
+    if (!__hasImageToolbar) ImGui::EndDisabled();
 
         ImGui::TextUnformatted("Zoom");
         ImGui::SameLine();
@@ -929,6 +974,11 @@ void renderGUI(ImageProcessor &processor) {
             static int filterIdx = 0;
             static float progress = 0.0f;
             static char statusBuf[256] = {0};
+            static bool batchRunning = false;
+            static size_t total = 0;
+            static size_t currentIndex = 0;
+            static size_t processed = 0;
+            static int skipped = 0;
             const char* modeLabels[] = {"Apply Preset", "Apply Single Filter"};
 
             // Build filter list (exclude filters needing extra inputs)
@@ -985,40 +1035,55 @@ void renderGUI(ImageProcessor &processor) {
             if (disableBatch) ImGui::BeginDisabled();
             if (ImGui::Button("Start Batch")) {
                 PresetManager::ensureOutputFolder("output");
-                size_t total = selectedFiles.size();
-                size_t processed = 0;
-                int skipped = 0;
+                total = selectedFiles.size();
+                currentIndex = 0;
+                processed = 0;
+                skipped = 0;
+                progress = 0.0f;
+                std::snprintf(statusBuf, sizeof(statusBuf), "Starting...");
                 statusBarMessage = "Batch started";
-                for (size_t i = 0; i < total; ++i) {
-                    const std::string &path = selectedFiles[i];
+                batchRunning = true;
+            }
+
+            if (batchRunning) {
+                if (currentIndex < total) {
+                    const std::string &path = selectedFiles[currentIndex];
                     bool ok = true;
                     Image img;
                     try { img = Image(path); } catch (...) { ok = false; }
-                    if (!ok || img.width <= 0 || img.height <= 0) { skipped++; continue; }
-                    ImageProcessor localProc;
-                    localProc.setImage(img);
-                    if (mode == 0) {
-                        if (presetIdx >= 0) gPresetManager.applyPreset(localProc, presets[presetIdx]);
-                    } else {
-                        if (!batchFilterTypes.empty() && filterIdx >= 0 && filterIdx < (int)batchFilterTypes.size()) {
-                            FilterStep step{ batchFilterTypes[filterIdx], {}, "" };
-                            PresetDefinition single{ "__single__", { step } };
-                            gPresetManager.applyPreset(localProc, single);
+                    if (ok && img.width > 0 && img.height > 0) {
+                        ImageProcessor localProc;
+                        localProc.setImage(img);
+                        if (mode == 0) {
+                            if (presetIdx >= 0) gPresetManager.applyPreset(localProc, presets[presetIdx]);
+                        } else {
+                            if (!batchFilterTypes.empty() && filterIdx >= 0 && filterIdx < (int)batchFilterTypes.size()) {
+                                FilterStep step{ batchFilterTypes[filterIdx], {}, "" };
+                                PresetDefinition single{ "__single__", { step } };
+                                gPresetManager.applyPreset(localProc, single);
+                            } else {
+                                ok = false;
+                            }
+                        }
+                        if (ok) {
+                            std::string filename = path;
+                            size_t pos = filename.find_last_of("/\\");
+                            if (pos != std::string::npos) filename = filename.substr(pos + 1);
+                            std::string outPath = std::string("output/") + filename;
+                            try { localProc.saveImage(outPath); } catch (...) { ok = false; }
                         }
                     }
-                    // Save output
-                    std::string filename = path;
-                    size_t pos = filename.find_last_of("/\\");
-                    if (pos != std::string::npos) filename = filename.substr(pos + 1);
-                    std::string outPath = std::string("output/") + filename;
-                    try { localProc.saveImage(outPath); } catch (...) { skipped++; continue; }
-                    processed++;
-                    progress = (float)processed / (float)total;
+                    if (!ok) skipped++; else processed++;
+                    currentIndex++;
+                    progress = (total > 0) ? (float)processed / (float)total : 0.0f;
                     std::snprintf(statusBuf, sizeof(statusBuf), "Processing image %zu of %zu...", processed, total);
                 }
-                std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped.", selectedFiles.size(), skipped);
-                progress = 1.0f;
-                statusBarMessage = "Batch completed";
+                if (currentIndex >= total) {
+                    batchRunning = false;
+                    std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped.", processed, skipped);
+                    progress = 1.0f;
+                    statusBarMessage = "Batch completed";
+                }
             }
             if (disableBatch) ImGui::EndDisabled();
 
@@ -1049,13 +1114,13 @@ void renderGUI(ImageProcessor &processor) {
             static float warmth = 1.0f;
             static std::string filePath;
 
-            // Build available filter list for builder (allow all)
+            // Build available filter list for builder (exclude Resize/Crop/Merge per requirement)
             static std::vector<FilterType> builderTypes;
             static std::vector<std::string> builderNames;
             if (builderTypes.empty()) {
                 for (int t = (int)FilterType::Grayscale; t <= (int)FilterType::Warmth; ++t) {
                     FilterType ft = (FilterType)t;
-                    if (ft == FilterType::None) continue;
+                    if (ft == FilterType::None || ft == FilterType::Resize || ft == FilterType::Crop || ft == FilterType::Merge) continue;
                     builderTypes.push_back(ft);
                     builderNames.push_back(filterTypeName(ft));
                 }
@@ -1081,10 +1146,10 @@ void renderGUI(ImageProcessor &processor) {
                     ImGui::SliderFloat("Factor", &brightness, 0.0f, 3.0f, "%.2f");
                     break;
                 case FilterType::Contrast:
-                    ImGui::SliderFloat("Factor", &contrast, -3.0f, 3.0f, "%.2f");
+                    ImGui::SliderFloat("Factor", &contrast, 0.0f, 3.0f, "%.2f");
                     break;
                 case FilterType::Saturation:
-                    ImGui::SliderFloat("Factor", &saturation, -3.0f, 3.0f, "%.2f");
+                    ImGui::SliderFloat("Factor", &saturation, 0.0f, 3.0f, "%.2f");
                     break;
                 case FilterType::Rotate: {
                     ImGui::SliderFloat("Degrees", &rotateDeg, -180.0f, 180.0f, "%.0f°");
@@ -1111,7 +1176,7 @@ void renderGUI(ImageProcessor &processor) {
                     ImGui::InputInt("W", &cropW); ImGui::InputInt("H", &cropH);
                     break;
                 case FilterType::Vignette:
-                    ImGui::SliderFloat("Factor", &vignette, -3.0f, 3.0f, "%.2f");
+                    ImGui::SliderFloat("Factor", &vignette, 0.0f, 3.0f, "%.2f");
                     break;
                 case FilterType::Warmth:
                     ImGui::SliderFloat("Factor", &warmth, -3.0f, 3.0f, "%.2f");
@@ -1119,7 +1184,15 @@ void renderGUI(ImageProcessor &processor) {
                 case FilterType::Frame:
                 case FilterType::Merge: {
                     ImGui::Text("Path: %s", filePath.empty() ? "<none>" : filePath.c_str());
-                    if (ImGui::Button("Choose File")) { std::string p = openFileDialog_Linux(); if (!p.empty()) filePath = p; }
+                    if (ImGui::Button("Choose File")) { 
+                        std::string p =
+#ifdef _WIN32
+                            openFileDialog_Windows(false, false);
+#else
+                            openFileDialog_Linux();
+#endif
+                        if (!p.empty()) filePath = p; 
+                    }
                     break; }
                 default: break;
             }
@@ -1159,16 +1232,24 @@ void renderGUI(ImageProcessor &processor) {
 
             ImGui::Separator();
             ImGui::InputText("Preset Name", presetNameBuf, IM_ARRAYSIZE(presetNameBuf));
-            if (draftSteps.empty()) ImGui::BeginDisabled();
+            bool disableSave = draftSteps.empty();
+            if (disableSave) ImGui::BeginDisabled();
             if (ImGui::Button("Save Preset")) {
                 if (presetNameBuf[0] != '\0') {
-                    gPresetManager.addPreset(presetNameBuf, draftSteps);
+                    // Filter out any disallowed steps (safety)
+                    std::vector<FilterStep> filtered;
+                    filtered.reserve(draftSteps.size());
+                    for (const auto &s : draftSteps) {
+                        if (s.type == FilterType::Resize || s.type == FilterType::Crop || s.type == FilterType::Merge) continue;
+                        filtered.push_back(s);
+                    }
+                    gPresetManager.addPreset(presetNameBuf, filtered);
                     draftSteps.clear();
                     presetNameBuf[0] = '\0';
                     showPresetBuilderWindow = false;
                 }
             }
-            if (draftSteps.empty()) ImGui::EndDisabled();
+            if (disableSave) ImGui::EndDisabled();
             ImGui::SameLine(); if (ImGui::Button("Cancel")) { draftSteps.clear(); presetNameBuf[0] = '\0'; showPresetBuilderWindow = false; }
         }
         ImGui::End();

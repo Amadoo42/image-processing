@@ -230,14 +230,19 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 if (ImGui::Button("Open Frame")) s_frameOpen = true;
             } else {
                 if (ImGui::Button("Choose Frame Image")) {
-                    std::string path = openFileDialog_Linux();
+                    std::string path =
+#ifdef _WIN32
+                        openFileDialog_Windows(false, false);
+#else
+                        openFileDialog_Linux();
+#endif
                     if (!path.empty()) {
                         Image frame_image(path);
                         FrameFilter filter(frame_image);
                         processor.applyFilter(filter);
                         textureNeedsUpdate = true;
                         gPreviewCacheNeedsUpdate = true;
-                        gPresetManager.recordStep(FilterStep{FilterType::Frame, {}, path});
+                    // Do not record Frame/Merge/Crop/Resize per requirement
                         s_frameOpen = false;
                     }
                 }
@@ -250,14 +255,19 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 if (ImGui::Button("Open Merge")) s_mergeOpen = true;
             } else {
                 if (ImGui::Button("Choose Merge Image")) {
-                    std::string path = openFileDialog_Linux();
+                    std::string path =
+#ifdef _WIN32
+                        openFileDialog_Windows(false, false);
+#else
+                        openFileDialog_Linux();
+#endif
                     if (!path.empty()) {
                         Image merge_image(path);
                         MergeFilter filter(merge_image);
                         processor.applyFilter(filter);
                         textureNeedsUpdate = true;
                         gPreviewCacheNeedsUpdate = true;
-                        gPresetManager.recordStep(FilterStep{FilterType::Merge, {}, path});
+                        // Do not record Merge per requirement
                         s_mergeOpen = false;
                     }
                 }
