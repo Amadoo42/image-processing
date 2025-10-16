@@ -1373,8 +1373,13 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         ImGui::BeginChild("Rotate Controls", childSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::Dummy(ImVec2(0, 4));
         ImGui::Text("Angle: %d\u00B0", (int)std::round(angleDeg));
+        ImGui::SliderFloat("##angle_slider", &angleDeg, -180.0f, 180.0f, "%.0f\u00B0");
+        if (ImGui::Button("\u21BA -90\u00B0")) { angleDeg -= 90.0f; }
+        ImGui::SameLine();
+        if (ImGui::Button("+90\u00B0 \u21BB")) { angleDeg += 90.0f; }
         ImGui::TextDisabled("Drag the circle handle to rotate");
         ImGui::Separator();
+        
         if (ImGui::Button("Apply")) {
             processor.setImage(originalImage);
             {
