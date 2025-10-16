@@ -1315,7 +1315,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         float hh = displayedHeight * 0.5f;
 
         // Rotation (preview only) using a rotated quad
-        int degrees = (int)std::round(angleDeg);
+        double degreesExact = (double)angleDeg;
         float rad = (float)(angleDeg * 3.14159265358979323846 / 180.0);
         float c = cosf(rad), s = sinf(rad);
         auto rot = [&](ImVec2 p){
@@ -1378,9 +1378,9 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         if (ImGui::Button("Apply")) {
             processor.setImage(originalImage);
             {
-                RotateFilter f((double)degrees, true);
+                RotateFilter f(degreesExact, true);
                 processor.applyFilter(f);
-                gPresetManager.recordStep(FilterStep{FilterType::Rotate, {(double)degrees}, ""});
+                gPresetManager.recordStep(FilterStep{FilterType::Rotate, {degreesExact}, ""});
             }
             textureNeedsUpdate = true;
             if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
@@ -1459,8 +1459,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             float ang = atan2f(m.y - center.y, m.x - center.x); // radians relative to +X
             float deg = (float)(ang * 180.0 / 3.14159265358979323846);
             deg = fmodf(deg + 360.0f, 360.0f); // [0,360)
-            // Map so that up (negative Y) ~ 0°. Convert to [-180,180]
-            float upBased = deg - 90.0f;
+            // Map so that up (negative Y) is 0°. Convert to [-180,180]
+            float upBased = deg + 90.0f;
             while (upBased > 180.0f) upBased -= 360.0f;
             while (upBased < -180.0f) upBased += 360.0f;
             angleDeg = upBased;
