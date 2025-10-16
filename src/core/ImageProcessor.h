@@ -120,8 +120,9 @@ public:
     }
 
     bool saveImage(const std::string &filename) {
-        const Image &composite = getCompositeImage();
-        if (composite.width <= 0 || composite.height <= 0) return false;
+        const Image &compositeRef = getCompositeImage();
+        if (compositeRef.width <= 0 || compositeRef.height <= 0) return false;
+        Image composite = compositeRef; // make non-const copy since saveImage is non-const
         return composite.saveImage(filename);
     }
 
