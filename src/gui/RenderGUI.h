@@ -7,6 +7,7 @@
 #include "CompareView.h"
 #include "FilterPreview.h"
 #include "FilterParamsPanel.h"
+#include "LayerPanel.h"
 #include "../filters/ResizeFilter.h"
 #include "PresetManager.h"
 #include <string>
@@ -41,6 +42,10 @@ static bool showPresetsWindow = false;
 static bool showBatchWindow = false;
 static bool showSaveCurrentPresetPopup = false;
 static bool showPresetBuilderWindow = false;
+static LayerPanel gLayerPanel;
+// Selection tool UI state
+static int gSelectionTool = 0; // 0 None, 1 Rect, 2 Lasso, 3 Wand
+static float gWandTolerance = 10.0f;
 
 inline void guiSetCurrentImagePath(const std::string &path) { gCurrentImagePath = path; }
 
@@ -441,6 +446,11 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
     if (!__hasImage) ImGui::EndDisabled();
 
     ImGui::Separator();
+    // Layers section
+    ImGui::TextUnformatted("Layers");
+    if (gLayerPanel.render(processor)) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; }
+
+    ImGui::Separator();
     // Presets management header and controls
     ImGui::TextUnformatted("Presets");
     if (ImGui::Button("Manage Presets")) { showPresetsWindow = true; }
@@ -563,7 +573,92 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
             pan_offset.y = std::clamp(pan_offset.y, minY - base_pos.y, maxY - base_pos.y);
             ImVec2 image_pos = ImVec2(base_pos.x + pan_offset.x, base_pos.y + pan_offset.y);
             ImGui::SetCursorPos(image_pos);
+            ImVec2 img_screen_min = ImGui::GetCursorScreenPos();
             ImGui::Image((void*)(intptr_t)currentTextureID, zoomed_size);
+            ImVec2 img_screen_max = ImVec2(img_screen_min.x + zoomed_size.x, img_screen_min.y + zoomed_size.y);
+
+            // Selection toolbar (vertical) on the left inside canvas
+            ImGui::SetCursorPos(ImVec2(8, 8));
+            ImGui::BeginChild("SelToolbar", ImVec2(120, 120), true);
+            if (ImGui::RadioButton("None", gSelectionTool == 0)) { gSelectionTool = 0; processor.selection().currentTool = Selection::NONE; }
+            if (ImGui::RadioButton("Rectangle", gSelectionTool == 1)) { gSelectionTool = 1; processor.selection().currentTool = Selection::RECTANGLE; }
+            if (ImGui::RadioButton("Lasso", gSelectionTool == 2)) { gSelectionTool = 2; processor.selection().currentTool = Selection::LASSO; }
+            if (ImGui::RadioButton("Magic Wand", gSelectionTool == 3)) { gSelectionTool = 3; processor.selection().currentTool = Selection::MAGIC_WAND; }
+            if (gSelectionTool == 3) { ImGui::SliderFloat("Tolerance", &gWandTolerance, 1.0f, 64.0f, "%.0f"); }
+            ImGui::EndChild();
+
+            // Mouse interaction over image
+            bool overImage = ImGui::IsMouseHoveringRect(img_screen_min, img_screen_max);
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            auto screenToImage = [&](const ImVec2& p){
+                float u = (p.x - img_screen_min.x) / zoomed_size.x;
+                float v = (p.y - img_screen_min.y) / zoomed_size.y;
+                int ix = std::clamp((int)std::floor(u * currentImage.width), 0, std::max(0, currentImage.width - 1));
+                int iy = std::clamp((int)std::floor(v * currentImage.height), 0, std::max(0, currentImage.height - 1));
+                return ImVec2((float)ix, (float)iy);
+            };
+
+            static bool dragging = false;
+            static ImVec2 dragStart = ImVec2(0,0);
+            static ImVec2 dragEnd = ImVec2(0,0);
+            static std::vector<Point> lassoPts;
+
+            // Begin drag on left button
+            if (overImage && ImGui::IsMouseClicked(0)) {
+                dragging = true;
+                dragStart = screenToImage(ImGui::GetIO().MousePos);
+                dragEnd = dragStart;
+                if (gSelectionTool == 2) { lassoPts.clear(); lassoPts.push_back(Point{(int)dragStart.x, (int)dragStart.y}); }
+                // For wand: apply immediately on click
+                if (gSelectionTool == 3) {
+                    ImVec2 ip = screenToImage(ImGui::GetIO().MousePos);
+                    processor.selection().ensureMaskSize(currentImage.width, currentImage.height);
+                    processor.selection().clear();
+                    processor.selection().setMaskFromMagicWand((int)ip.x, (int)ip.y, gWandTolerance);
+                }
+            }
+            if (dragging && ImGui::IsMouseDown(0)) {
+                dragEnd = screenToImage(ImGui::GetIO().MousePos);
+                if (gSelectionTool == 2) {
+                    Point p{ (int)dragEnd.x, (int)dragEnd.y };
+                    if (lassoPts.empty() || lassoPts.back().x != p.x || lassoPts.back().y != p.y) lassoPts.push_back(p);
+                }
+            }
+            if (dragging && ImGui::IsMouseReleased(0)) {
+                dragging = false;
+                processor.selection().ensureMaskSize(currentImage.width, currentImage.height);
+                processor.selection().clear();
+                if (gSelectionTool == 1) {
+                    int x0 = (int)std::floor(std::min(dragStart.x, dragEnd.x));
+                    int y0 = (int)std::floor(std::min(dragStart.y, dragEnd.y));
+                    int x1 = (int)std::floor(std::max(dragStart.x, dragEnd.x));
+                    int y1 = (int)std::floor(std::max(dragStart.y, dragEnd.y));
+                    processor.selection().setMaskFromRectangle(x0, y0, x1 - x0, y1 - y0);
+                } else if (gSelectionTool == 2) {
+                    processor.selection().setMaskFromPolygon(lassoPts);
+                    lassoPts.clear();
+                }
+            }
+
+            // Overlay selection shape while dragging
+            if (gSelectionTool == 1 && (dragging || (dragStart.x != dragEnd.x && dragStart.y != dragEnd.y))) {
+                ImVec2 a = ImVec2(img_screen_min.x + (std::min(dragStart.x, dragEnd.x) / currentImage.width) * zoomed_size.x,
+                                   img_screen_min.y + (std::min(dragStart.y, dragEnd.y) / currentImage.height) * zoomed_size.y);
+                ImVec2 b = ImVec2(img_screen_min.x + (std::max(dragStart.x, dragEnd.x) / currentImage.width) * zoomed_size.x,
+                                   img_screen_min.y + (std::max(dragStart.y, dragEnd.y) / currentImage.height) * zoomed_size.y);
+                dl->AddRect(a, b, IM_COL32(255, 255, 0, 200), 0.0f, 0, 2.0f);
+            }
+            if (gSelectionTool == 2 && !lassoPts.empty()) {
+                // Draw lasso polyline
+                std::vector<ImVec2> pts;
+                pts.reserve(lassoPts.size());
+                for (const auto &pt : lassoPts) {
+                    ImVec2 sp = ImVec2(img_screen_min.x + (pt.x / (float)currentImage.width) * zoomed_size.x,
+                                        img_screen_min.y + (pt.y / (float)currentImage.height) * zoomed_size.y);
+                    pts.push_back(sp);
+                }
+                if (pts.size() >= 2) dl->AddPolyline(pts.data(), (int)pts.size(), IM_COL32(255,255,0,200), false, 2.0f);
+            }
         } else {
             renderCompareView(processor, zoom_level, pan_offset);
         }
