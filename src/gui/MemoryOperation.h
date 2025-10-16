@@ -59,6 +59,8 @@ inline std::string openMultipleFilesDialog_Linux() {
 
 #ifdef _WIN32
 #include <windows.h>
+#include <commdlg.h>
+#pragma comment(lib, "comdlg32.lib")
 
 inline std::string openFileDialog_Windows(bool save = false, bool multiple = false) {
     OPENFILENAMEA ofn;
