@@ -1072,7 +1072,8 @@ void renderGUI(ImageProcessor &processor) {
 
             ImGui::Separator();
             ImGui::InputText("Preset Name", presetNameBuf, IM_ARRAYSIZE(presetNameBuf));
-            if (draftSteps.empty()) ImGui::BeginDisabled();
+            bool disableSave = draftSteps.empty();
+            if (disableSave) ImGui::BeginDisabled();
             if (ImGui::Button("Save Preset")) {
                 if (presetNameBuf[0] != '\0') {
                     // Filter out any disallowed steps (safety)
@@ -1088,7 +1089,7 @@ void renderGUI(ImageProcessor &processor) {
                     showPresetBuilderWindow = false;
                 }
             }
-            if (draftSteps.empty()) ImGui::EndDisabled();
+            if (disableSave) ImGui::EndDisabled();
             ImGui::SameLine(); if (ImGui::Button("Cancel")) { draftSteps.clear(); presetNameBuf[0] = '\0'; showPresetBuilderWindow = false; }
         }
         ImGui::End();
