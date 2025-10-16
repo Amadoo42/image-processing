@@ -107,7 +107,12 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 if (ImGui::Button("Open Grayscale")) s_grayscaleOpen = true;
             } else {
                 if (ImGui::Button("Apply")) {
-                    GrayscaleFilter f; processor.applyFilter(f);
+                    GrayscaleFilter f;
+                    if (processor.hasSelection()) {
+                        processor.applyFilterSelective(f, processor.getSelectionInvertApply());
+                    } else {
+                        processor.applyFilter(f);
+                    }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Grayscale, {}, ""});
                     s_grayscaleOpen = false;
@@ -121,7 +126,12 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 if (ImGui::Button("Open Invert")) s_invertOpen = true;
             } else {
                 if (ImGui::Button("Apply")) {
-                    InvertFilter f; processor.applyFilter(f);
+                    InvertFilter f;
+                    if (processor.hasSelection()) {
+                        processor.applyFilterSelective(f, processor.getSelectionInvertApply());
+                    } else {
+                        processor.applyFilter(f);
+                    }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Invert, {}, ""});
                     s_invertOpen = false;
@@ -135,7 +145,12 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 if (ImGui::Button("Open Black & White")) s_blackAndWhiteOpen = true;
             } else {
                 if (ImGui::Button("Apply")) {
-                    BlackAndWhiteFilter f; processor.applyFilter(f);
+                    BlackAndWhiteFilter f;
+                    if (processor.hasSelection()) {
+                        processor.applyFilterSelective(f, processor.getSelectionInvertApply());
+                    } else {
+                        processor.applyFilter(f);
+                    }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::BlackAndWhite, {}, ""});
                     s_blackAndWhiteOpen = false;
@@ -177,7 +192,12 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 if (ImGui::Button("Open Retro")) s_retroOpen = true;
             } else {
                 if (ImGui::Button("Apply")) {
-                    RetroFilter f; processor.applyFilter(f);
+                    RetroFilter f;
+                    if (processor.hasSelection()) {
+                        processor.applyFilterSelective(f, processor.getSelectionInvertApply());
+                    } else {
+                        processor.applyFilter(f);
+                    }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Retro, {}, ""});
                     s_retroOpen = false;
@@ -191,7 +211,12 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 if (ImGui::Button("Open Infrared")) s_infraredOpen = true;
             } else {
                 if (ImGui::Button("Apply")) {
-                    InfraredFilter f; processor.applyFilter(f);
+                    InfraredFilter f;
+                    if (processor.hasSelection()) {
+                        processor.applyFilterSelective(f, processor.getSelectionInvertApply());
+                    } else {
+                        processor.applyFilter(f);
+                    }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Infrared, {}, ""});
                     s_infraredOpen = false;
@@ -364,7 +389,12 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                 if (ImGui::Button("Open Outline")) s_outlineOpen = true;
             } else {
                 if (ImGui::Button("Apply")) {
-                    OutlineFilter f; processor.applyFilter(f);
+                    OutlineFilter f;
+                    if (processor.hasSelection()) {
+                        processor.applyFilterSelective(f, processor.getSelectionInvertApply());
+                    } else {
+                        processor.applyFilter(f);
+                    }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Outline, {}, ""});
                     s_outlineOpen = false;

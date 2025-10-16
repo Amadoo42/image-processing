@@ -27,6 +27,15 @@ static GLuint currentTextureID = 0;
 bool textureNeedsUpdate = false;
 static std::string statusBarMessage = "Welcome to Image Processor!";
 
+// --- Selection tools state --------------------------------------------------
+enum class SelectionToolMode { None = 0, Rectangle, MagicWand };
+static SelectionToolMode gSelectionTool = SelectionToolMode::None;
+static bool gSelectionInverseApply = false;   // apply filter to outside of selection
+static int  gMagicWandTolerance = 40;         // 0..765 (sum of abs RGB diffs)
+static bool gHasActiveRectDrag = false;
+static ImVec2 gRectDragStart = ImVec2(0,0);
+static ImVec2 gRectDragEnd = ImVec2(0,0);
+
 // New UI state for refactored layout
 // Left panel is now dedicated filter parameter panel
 static char gSearchBuffer[128] = {0};             // Top-right quick action search
@@ -116,6 +125,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
                 if(!selected.empty()) {
                     std::cout << "Image loaded successfully!\n";
                     processor.loadImage(selected);
+                        processor.clearSelection();
                     guiSetCurrentImagePath(selected);
                     textureNeedsUpdate = true;
                     gPreviewCacheNeedsUpdate = true;
@@ -564,6 +574,86 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
             ImVec2 image_pos = ImVec2(base_pos.x + pan_offset.x, base_pos.y + pan_offset.y);
             ImGui::SetCursorPos(image_pos);
             ImGui::Image((void*)(intptr_t)currentTextureID, zoomed_size);
+
+            // Interactions for selection tools
+            ImVec2 itemMin = ImGui::GetItemRectMin();
+            ImVec2 itemMax = ImGui::GetItemRectMax();
+            bool overImage = ImGui::IsItemHovered();
+            auto screenToPixel = [&](ImVec2 screen)->ImVec2{
+                float ix = (screen.x - itemMin.x) / std::max(0.0001f, zoom_level);
+                float iy = (screen.y - itemMin.y) / std::max(0.0001f, zoom_level);
+                ix = std::floor(ix); iy = std::floor(iy);
+                ix = std::clamp(ix, 0.0f, (float)currentImage.width - 1.0f);
+                iy = std::clamp(iy, 0.0f, (float)currentImage.height - 1.0f);
+                return ImVec2(ix, iy);
+            };
+
+            // Rectangle selection (click-drag)
+            if (gSelectionTool == SelectionToolMode::Rectangle && overImage) {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    gHasActiveRectDrag = true;
+                    gRectDragStart = screenToPixel(io.MousePos);
+                    gRectDragEnd = gRectDragStart;
+                }
+                if (gHasActiveRectDrag && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                    gRectDragEnd = screenToPixel(io.MousePos);
+                }
+                if (gHasActiveRectDrag && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+                    // finalize
+                    ImVec2 a = gRectDragStart; ImVec2 b = gRectDragEnd;
+                    int rx = (int)std::floor(std::min(a.x, b.x));
+                    int ry = (int)std::floor(std::min(a.y, b.y));
+                    int rw = (int)std::abs(b.x - a.x) + 1;
+                    int rh = (int)std::abs(b.y - a.y) + 1;
+                    processor.setRectSelection(rx, ry, rw, rh);
+                    gHasActiveRectDrag = false;
+                    statusBarMessage = "Rectangle selected";
+                }
+            }
+
+            // Magic wand (click)
+            if (gSelectionTool == SelectionToolMode::MagicWand && overImage) {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    ImVec2 p = screenToPixel(io.MousePos);
+                    processor.setMagicWandSelection((int)p.x, (int)p.y, std::max(0, gMagicWandTolerance));
+                    statusBarMessage = "Magic wand selection updated";
+                }
+            }
+
+            // Draw selection overlays
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            // Active rectangle drag preview
+            if (gSelectionTool == SelectionToolMode::Rectangle && gHasActiveRectDrag) {
+                ImVec2 a = gRectDragStart; ImVec2 b = gRectDragEnd;
+                ImVec2 sa = ImVec2(itemMin.x + a.x * zoom_level, itemMin.y + a.y * zoom_level);
+                ImVec2 sb = ImVec2(itemMin.x + b.x * zoom_level, itemMin.y + b.y * zoom_level);
+                ImVec2 rmin(std::min(sa.x, sb.x), std::min(sa.y, sb.y));
+                ImVec2 rmax(std::max(sa.x, sb.x), std::max(sa.y, sb.y));
+                dl->AddRect(rmin, rmax, IM_COL32(0, 255, 255, 255), 0, 0, 2.0f);
+            }
+
+            // Persistent selection bounding box
+            if (processor.hasSelection()) {
+                const auto &mask = processor.getSelectionMask();
+                int w = currentImage.width, h = currentImage.height;
+                int minx = w, miny = h, maxx = -1, maxy = -1;
+                for (int y = 0; y < h; ++y) {
+                    size_t row = (size_t)y * (size_t)w;
+                    for (int x = 0; x < w; ++x) {
+                        if (mask[row + (size_t)x]) {
+                            if (x < minx) minx = x;
+                            if (y < miny) miny = y;
+                            if (x > maxx) maxx = x;
+                            if (y > maxy) maxy = y;
+                        }
+                    }
+                }
+                if (maxx >= minx && maxy >= miny) {
+                    ImVec2 smin(itemMin.x + minx * zoom_level, itemMin.y + miny * zoom_level);
+                    ImVec2 smax(itemMin.x + (maxx + 1) * zoom_level, itemMin.y + (maxy + 1) * zoom_level);
+                    dl->AddRect(smin, smax, IM_COL32(255, 255, 0, 255), 0, 0, 2.0f);
+                }
+            }
         } else {
             renderCompareView(processor, zoom_level, pan_offset);
         }
@@ -573,78 +663,110 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
 
 // --- Bottom Toolbar ---------------------------------------------------------
 static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
-    float height = 36.0f;
+    float height = 52.0f; // taller to host selection tools + status/details
     ImGui::BeginChild("BottomToolbar", ImVec2(0, height), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-
-    if(ImGui::Button(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str())) {
-        if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; }
-        else { statusBarMessage = "Nothing to undo."; }
-    }
-    ImGui::SameLine();
-    if(ImGui::Button(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str())) {
-        if(processor.redo()) { textureNeedsUpdate = true; statusBarMessage = "Redo successful."; }
-        else { statusBarMessage = "Nothing to redo."; }
-    }
-    ImGui::SameLine();
-    const Image &__img_toolbar = processor.getCurrentImage();
-    bool __hasImageToolbar = (__img_toolbar.width > 0 && __img_toolbar.height > 0);
-    if (!__hasImageToolbar) ImGui::BeginDisabled();
-    if(ImGui::Button(iconLabel(ICON_FA_ARROWS_ROTATE, "Reset").c_str())) { zoom_level = 1.0f; pan_offset = ImVec2(0,0); }
-    if (!__hasImageToolbar) ImGui::EndDisabled();
-
-    ImGui::SameLine();
-    ImGui::Dummy(ImVec2(8, 1));
-    ImGui::SameLine();
-
-    // Zoom control
-    ImGui::TextUnformatted("Zoom");
-    ImGui::SameLine();
-    float percent = zoom_level * 100.0f;
-    ImGui::SetNextItemWidth(160.0f);
-    if (!__hasImageToolbar) ImGui::BeginDisabled();
-    if (ImGui::SliderFloat("##zoom", &percent, 10.0f, 400.0f, "%.0f%%")) {
-        zoom_level = percent / 100.0f;
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Fit")) {
-        const Image& img = processor.getCurrentImage();
-        if (img.width > 0 && img.height > 0 && gLastCanvasAvail.x > 0.0f && gLastCanvasAvail.y > 0.0f) {
-            float zx = gLastCanvasAvail.x / img.width;
-            float zy = gLastCanvasAvail.y / img.height;
-            zoom_level = std::max(0.1f, std::min(zx, zy));
+    // Layout the bottom toolbar into 3 columns: Left (global), Center (selection tools), Right (status + info)
+    if (ImGui::BeginTable("BottomToolbarTable", 3, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableNextColumn();
+        // LEFT: Undo/Redo/Reset + Zoom controls
+        if(ImGui::Button(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str())) {
+            if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; }
+            else { statusBarMessage = "Nothing to undo."; }
         }
+        ImGui::SameLine();
+        if(ImGui::Button(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str())) {
+            if(processor.redo()) { textureNeedsUpdate = true; statusBarMessage = "Redo successful."; }
+            else { statusBarMessage = "Nothing to redo."; }
+        }
+        ImGui::SameLine();
+        const Image &__img_toolbar = processor.getCurrentImage();
+        bool __hasImageToolbar = (__img_toolbar.width > 0 && __img_toolbar.height > 0);
+        if (!__hasImageToolbar) ImGui::BeginDisabled();
+        if(ImGui::Button(iconLabel(ICON_FA_ARROWS_ROTATE, "Reset").c_str())) { zoom_level = 1.0f; pan_offset = ImVec2(0,0); }
+        if (!__hasImageToolbar) ImGui::EndDisabled();
+
+        ImGui::SameLine();
+        ImGui::Dummy(ImVec2(8, 1));
+        ImGui::SameLine();
+
+        ImGui::TextUnformatted("Zoom");
+        ImGui::SameLine();
+        float percent = zoom_level * 100.0f;
+        ImGui::SetNextItemWidth(160.0f);
+        if (!__hasImageToolbar) ImGui::BeginDisabled();
+        if (ImGui::SliderFloat("##zoom", &percent, 10.0f, 400.0f, "%.0f%%")) {
+            zoom_level = percent / 100.0f;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Fit")) {
+            const Image& img = processor.getCurrentImage();
+            if (img.width > 0 && img.height > 0 && gLastCanvasAvail.x > 0.0f && gLastCanvasAvail.y > 0.0f) {
+                float zx = gLastCanvasAvail.x / img.width;
+                float zy = gLastCanvasAvail.y / img.height;
+                zoom_level = std::max(0.1f, std::min(zx, zy));
+            }
+        }
+        if (!__hasImageToolbar) ImGui::EndDisabled();
+
+        // CENTER: Selection tools
+        ImGui::TableNextColumn();
+        if (!__hasImageToolbar) ImGui::BeginDisabled();
+        ImGui::TextUnformatted("Selection:"); ImGui::SameLine();
+        bool selNone = (gSelectionTool == SelectionToolMode::None);
+        if (ImGui::RadioButton("None", selNone)) gSelectionTool = SelectionToolMode::None;
+        ImGui::SameLine();
+        bool selRect = (gSelectionTool == SelectionToolMode::Rectangle);
+        if (ImGui::RadioButton("Rectangle", selRect)) gSelectionTool = SelectionToolMode::Rectangle;
+        ImGui::SameLine();
+        bool selWand = (gSelectionTool == SelectionToolMode::MagicWand);
+        if (ImGui::RadioButton("Magic Wand", selWand)) gSelectionTool = SelectionToolMode::MagicWand;
+        // Tolerance slider visible in wand mode
+        if (gSelectionTool == SelectionToolMode::MagicWand) {
+            ImGui::SameLine();
+            ImGui::TextUnformatted("Tol:");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::SliderInt("##wand_tol", &gMagicWandTolerance, 0, 200, "%d");
+        }
+        ImGui::SameLine();
+        ImGui::Checkbox("Apply to outside", &gSelectionInverseApply);
+        // propagate to processor so parameter panels can query invert flag
+        processor.setSelectionInvertApply(gSelectionInverseApply);
+        ImGui::SameLine();
+        if (ImGui::Button("Clear Selection")) {
+            processor.clearSelection();
+            statusBarMessage = "Selection cleared";
+        }
+        if (!__hasImageToolbar) ImGui::EndDisabled();
+
+        // RIGHT: Status text (top line) and image details (second line, right-aligned)
+        ImGui::TableNextColumn();
+        const Image& img = processor.getCurrentImage();
+        auto gcd = [](int a, int b){ while(b){ int t=a%b; a=b; b=t;} return std::max(1, a); };
+        int g = (img.width>0 && img.height>0) ? gcd(img.width, img.height) : 1;
+        int arw = (img.width>0)? img.width / g : 0;
+        int arh = (img.height>0)? img.height / g : 0;
+        std::string fname = gCurrentImagePath;
+        size_t pos = fname.find_last_of("/\\");
+        if (pos != std::string::npos) fname = fname.substr(pos + 1);
+        if (fname.empty()) fname = "Untitled";
+        char infoBuf[256];
+        if (img.width > 0 && img.height > 0)
+            std::snprintf(infoBuf, sizeof(infoBuf), "%s | %dx%d | %d:%d | %.0f%%",
+                        fname.c_str(), img.width, img.height, arw, arh, zoom_level * 100.0f);
+        else
+            std::snprintf(infoBuf, sizeof(infoBuf), "%s", fname.c_str());
+
+        // Status message (first line)
+        ImGui::TextUnformatted(statusBarMessage.c_str());
+        // Details (second line), right-aligned within the column
+        float infoWidth = ImGui::CalcTextSize(infoBuf).x;
+        float avail = ImGui::GetContentRegionAvail().x;
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(0.0f, avail - infoWidth - 8.0f));
+        ImGui::TextUnformatted(infoBuf);
+
+        ImGui::EndTable();
     }
-    if (!__hasImageToolbar) ImGui::EndDisabled();
-
-    // Centered transient status text
-    float toolbarWidth = ImGui::GetWindowWidth();
-    float text_width = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
-    ImGui::SameLine(std::max(0.0f, toolbarWidth * 0.5f - text_width * 0.5f));
-    ImGui::Text("%s", statusBarMessage.c_str());
-
-    // Right-aligned image details
-    const Image& img = processor.getCurrentImage();
-    auto gcd = [](int a, int b){ while(b){ int t=a%b; a=b; b=t;} return std::max(1, a); };
-    int g = (img.width>0 && img.height>0) ? gcd(img.width, img.height) : 1;
-    int arw = (img.width>0)? img.width / g : 0;
-    int arh = (img.height>0)? img.height / g : 0;
-    // Extract file name from stored path
-    std::string fname = gCurrentImagePath;
-    size_t pos = fname.find_last_of("/\\");
-    if (pos != std::string::npos) fname = fname.substr(pos + 1);
-    if (fname.empty()) fname = "Untitled";
-
-    // Build info string: name | WxH | aspect | zoom
-    char infoBuf[256];
-    if (img.width > 0 && img.height > 0)
-        std::snprintf(infoBuf, sizeof(infoBuf), "%s | %dx%d | %d:%d | %.0f%%",
-                      fname.c_str(), img.width, img.height, arw, arh, zoom_level * 100.0f);
-    else
-        std::snprintf(infoBuf, sizeof(infoBuf), "%s", fname.c_str());
-
-    float infoWidth = ImGui::CalcTextSize(infoBuf).x;
-    ImGui::SameLine(std::max(0.0f, toolbarWidth - infoWidth - 8.0f));
-    ImGui::TextUnformatted(infoBuf);
 
     ImGui::EndChild();
 }

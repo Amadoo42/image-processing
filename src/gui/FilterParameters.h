@@ -106,7 +106,8 @@ public:
             if(changed){
                 processor.setImage(originalImage);
                 BlurFilter filter(values1[currentItem], values2[currentItem]); 
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -114,7 +115,8 @@ public:
             if(ImGui::Button("Apply")){
                 BlurFilter filter(values1[currentItem], values2[currentItem]); 
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -772,16 +774,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 DarkenFilter filter(factor);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
-                
             }
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
                 DarkenFilter filter(factor);
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 std::cout << "Brightness filter applied with factor: " << factor << std::endl;
                 show = false;
                 init = false;
@@ -1515,16 +1518,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 PurpleFilter filter(factor);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
-                
             }
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
                 PurpleFilter filter(factor);
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 std::cout << "Purple filter applied with factor: " << factor << std::endl;
                 show = false;
                 init = false;
@@ -1586,7 +1590,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 WaveFilter filter(amplitude, wavelength);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             
@@ -1595,7 +1600,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(ImGui::Button("Apply")){
                 WaveFilter filter(amplitude, wavelength);
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 std::cout << "Wave filter applied with Parameters: " << amplitude << " " << wavelength << std::endl;
                 show = false;
                 init = false;
@@ -1646,7 +1652,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 OilPaintingFilter filter(5, values[currentItem]); 
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1654,7 +1661,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(ImGui::Button("Apply")){
                 OilPaintingFilter filter(5, values[currentItem]); 
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1703,16 +1711,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 ContrastFilter filter(factor);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
-                
             }
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
                 ContrastFilter filter(factor);
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 std::cout << "Contrast filter applied with factor: " << factor << std::endl;
                 show = false;
                 init = false;
@@ -1772,16 +1781,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 SaturationFilter filter(factor);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
-                
             }
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
                 SaturationFilter filter(factor);
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 std::cout << "Saturation filter applied with factor: " << factor << std::endl;
                 show = false;
                 init = false;
@@ -1831,16 +1841,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 SkewFilter filter(Angle);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
-                
             }
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
                 SkewFilter filter(Angle);
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 std::cout << "Skew filter applied with Angle: " << Angle << std::endl;
                 show = false;
                 init = false;
@@ -1890,16 +1901,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 VigentteFilter filter(factor);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
-                
             }
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
                 VigentteFilter filter(factor);
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 std::cout << "Vignette filter applied with factor: " << factor << std::endl;
                 show = false;
                 init = false;
@@ -1948,16 +1960,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(changed){
                 processor.setImage(originalImage);
                 WarmthFilter filter(factor);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
-                
             }
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
                 WarmthFilter filter(factor);
                 processor.setImage(originalImage);
-                processor.applyFilter(filter);
+                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+                else processor.applyFilter(filter);
                 std::cout << "Warmth filter applied with factor: " << factor << std::endl;
                 show = false;
                 init = false;
