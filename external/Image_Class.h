@@ -188,7 +188,17 @@ public:
             stbi_image_free(imageData);
         }
 
-        imageData = stbi_load(filename.c_str(), &width, &height, &channels, STBI_rgb);
+        // Load preserving original channels; allow alpha if present
+        imageData = stbi_load(filename.c_str(), &width, &height, &channels, 0);
+        if (channels != 3 && channels != 4) {
+            // Fallback: convert to 3 channels if unknown format
+            unsigned char* data3 = stbi_load(filename.c_str(), &width, &height, &channels, STBI_rgb);
+            if (data3) {
+                if (imageData) stbi_image_free(imageData);
+                imageData = data3;
+                channels = 3;
+            }
+        }
 
         if (imageData == nullptr) {
             std::cerr << "File Doesn't Exist" << '\n';
@@ -221,16 +231,38 @@ public:
         }
 
         if (extensionType == PNG_TYPE) {
-            stbi_write_png(outputFilename.c_str(), width, height, STBI_rgb, imageData, width * 3);
+            int comp = (channels == 4) ? 4 : 3;
+            stbi_write_png(outputFilename.c_str(), width, height, comp, imageData, width * comp);
         }
         else if (extensionType == BMP_TYPE) {
-            stbi_write_bmp(outputFilename.c_str(), width, height, STBI_rgb, imageData);
+            int comp = (channels == 4) ? 4 : 3;
+            stbi_write_bmp(outputFilename.c_str(), width, height, comp, imageData);
         }
         else if (extensionType == TGA_TYPE) {
-            stbi_write_tga(outputFilename.c_str(), width, height, STBI_rgb, imageData);
+            int comp = (channels == 4) ? 4 : 3;
+            stbi_write_tga(outputFilename.c_str(), width, height, comp, imageData);
         }
         else if (extensionType == JPG_TYPE) {
-            stbi_write_jpg(outputFilename.c_str(), width, height, STBI_rgb, imageData, 90);
+            // JPEG has no alpha; drop alpha if present
+            int comp = 3;
+            if (channels == 4) {
+                // naive drop alpha into a temporary 3-channel buffer
+                size_t total = static_cast<size_t>(width) * static_cast<size_t>(height);
+                unsigned char* rgb = (unsigned char*)malloc(total * 3);
+                if (rgb) {
+                    for (size_t i = 0; i < total; ++i) {
+                        rgb[i*3+0] = imageData[i*4+0];
+                        rgb[i*3+1] = imageData[i*4+1];
+                        rgb[i*3+2] = imageData[i*4+2];
+                    }
+                    stbi_write_jpg(outputFilename.c_str(), width, height, comp, rgb, 90);
+                    free(rgb);
+                } else {
+                    stbi_write_jpg(outputFilename.c_str(), width, height, comp, imageData, 90);
+                }
+            } else {
+                stbi_write_jpg(outputFilename.c_str(), width, height, comp, imageData, 90);
+            }
         }
 
         return true;

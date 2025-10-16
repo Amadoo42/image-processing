@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <vector>
 
 static std::string runCapture1(const char* cmd) {
     std::array<char, 4096> buf;
@@ -46,3 +47,43 @@ inline std::string openMultipleFilesDialog_Linux() {
     if(!out.empty()) return out;
     return "";
 }
+
+#ifdef _WIN32
+#include <windows.h>
+
+inline std::string openFileDialog_Windows(bool save = false, bool multiple = false) {
+    OPENFILENAMEA ofn;
+    CHAR fileBuffer[8192] = {0};
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = nullptr;
+    ofn.lpstrFile = fileBuffer;
+    ofn.nMaxFile = sizeof(fileBuffer);
+    ofn.lpstrFilter = "Images\0*.png;*.jpg;*.jpeg;*.bmp;*.gif\0All\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | (multiple ? OFN_ALLOWMULTISELECT | OFN_EXPLORER : 0);
+    BOOL ok = FALSE;
+    if (save) ok = GetSaveFileNameA(&ofn);
+    else ok = GetOpenFileNameA(&ofn);
+    if (!ok) return "";
+    // If multiple, buffer contains directory followed by files
+    if (multiple) {
+        std::string dir = ofn.lpstrFile;
+        size_t len = dir.size();
+        std::vector<std::string> files;
+        const char* p = ofn.lpstrFile + len + 1;
+        if (*p == '\0') return dir; // single selection
+        while (*p) {
+            files.emplace_back(p);
+            p += files.back().size() + 1;
+        }
+        std::string joined;
+        for (size_t i = 0; i < files.size(); ++i) {
+            if (i) joined += '\n';
+            joined += dir + "\\" + files[i];
+        }
+        return joined;
+    }
+    return std::string(ofn.lpstrFile);
+}
+#endif

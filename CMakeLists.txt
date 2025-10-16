@@ -44,4 +44,13 @@ if(UNIX)
     target_link_libraries(image_processor pthread)
 endif()
 
+# Windows-specific settings
+if (WIN32)
+    # Link against opengl32 on Windows
+    target_link_libraries(image_processor opengl32)
+    # Ensure Unicode and static runtime if desired
+    add_definitions(-DUNICODE -D_UNICODE)
+    # SDL2 on Windows typically needs setup of include/lib via environment or installed package
+endif()
+
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
