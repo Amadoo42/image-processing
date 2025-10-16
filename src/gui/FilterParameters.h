@@ -4,6 +4,7 @@
 #include "MemoryOperation.h"
 #include "LoadTexture.h"
 #include "PresetManager.h"
+#include <cmath>
 #include "../filters/GrayscaleFilter.h"
 #include "../filters/InvertFilter.h"
 #include "../filters/BlurFilter.h"
@@ -1260,59 +1261,217 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     }
 
     void applyRotate(bool &show, bool &textureNeedsUpdate) {
-        static int currentItem = 0;
-        const char* items[] = {"90", "180", "270"};
-        int values[] = {90, 180, 270};
-
+        // Overlay-style rotate with handle and 90° step buttons
         static Image originalImage;
         static bool init = false;
-        extern int gImageSessionId; static int lastSessionId = -1;
-        if(show){
-            if (lastSessionId != gImageSessionId) { init = false; }
-            lastSessionId = gImageSessionId;
-            if (!BeginParamsUI("Rotate Parameters", &show)) return;
+        static GLuint textureID = 0;
+        static int angleIndex = 0; // 0=0°,1=90°,2=180°,3=270°
+        static bool handleDragging = false;
+        static ImVec2 dragStart;
 
-            if(!init){
-                originalImage = processor.getCurrentImage();
-                currentItem = 0; // Reset to default value
-                init = true;
+        if (!show) {
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
+            init = false; handleDragging = false; angleIndex = 0;
+            return;
+        }
+
+        ImGuiIO &io = ImGui::GetIO();
+        if (!init) {
+            ImGui::OpenPopup("Rotate Overlay");
+            originalImage = processor.getCurrentImage();
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
+            textureID = loadTexture(originalImage);
+            angleIndex = 0;
+            handleDragging = false;
+            init = true;
+        }
+
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(io.DisplaySize);
+        ImGuiWindowFlags flags =
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse;
+
+        if (!ImGui::BeginPopupModal("Rotate Overlay", &show, flags)) return;
+
+        ImDrawList *draw = ImGui::GetWindowDrawList();
+        draw->AddRectFilled(ImVec2(0, 0), io.DisplaySize, IM_COL32(0, 0, 0, 220));
+
+        // Fit image to screen
+        float displayedWidth = (float)originalImage.width;
+        float displayedHeight = (float)originalImage.height;
+        float scale = 1.0f;
+        if (displayedWidth > io.DisplaySize.x) scale = io.DisplaySize.x / displayedWidth;
+        if (displayedHeight * scale > io.DisplaySize.y) scale = io.DisplaySize.y / displayedHeight;
+        displayedWidth *= scale;
+        displayedHeight *= scale;
+
+        ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f);
+        float hw = displayedWidth * 0.5f;
+        float hh = displayedHeight * 0.5f;
+
+        // Rotation (preview only) using a rotated quad
+        int degrees = (angleIndex % 4 + 4) % 4 * 90;
+        float rad = (float)(degrees * 3.14159265358979323846 / 180.0);
+        float c = cosf(rad), s = sinf(rad);
+        auto rot = [&](ImVec2 p){
+            ImVec2 r;
+            r.x = c * p.x - s * p.y;
+            r.y = s * p.x + c * p.y;
+            return r;
+        };
+
+        // Base corners relative to center: TL, TR, BR, BL
+        ImVec2 tl = center + rot(ImVec2(-hw, -hh));
+        ImVec2 tr = center + rot(ImVec2( hw, -hh));
+        ImVec2 br = center + rot(ImVec2( hw,  hh));
+        ImVec2 bl = center + rot(ImVec2(-hw,  hh));
+
+        // Draw rotated image
+        if (textureID != 0) {
+            draw->AddImageQuad((void*)(intptr_t)textureID, tl, tr, br, bl,
+                               ImVec2(0,0), ImVec2(1,0), ImVec2(1,1), ImVec2(0,1), IM_COL32(255,255,255,255));
+        }
+        // Draw frame
+        draw->AddPolyline(&tl, 1, IM_COL32(0,0,0,0), false, 0.0f); // ensure drawlist not empty for pointers
+        draw->AddLine(tl, tr, IM_COL32(255,255,255,180), 2.0f);
+        draw->AddLine(tr, br, IM_COL32(255,255,255,180), 2.0f);
+        draw->AddLine(br, bl, IM_COL32(255,255,255,180), 2.0f);
+        draw->AddLine(bl, tl, IM_COL32(255,255,255,180), 2.0f);
+
+        // Rotate handle at top-center
+        ImVec2 topCenter = center + rot(ImVec2(0.0f, -hh));
+        float handleOffset = 28.0f;
+        ImVec2 handlePos = topCenter + rot(ImVec2(0.0f, -handleOffset));
+        draw->AddLine(topCenter, handlePos, IM_COL32(255,255,255,160), 2.0f);
+        float handleR = 9.0f;
+        draw->AddCircleFilled(handlePos, handleR, IM_COL32(255,255,255,255));
+        draw->AddCircle(handlePos, handleR, IM_COL32(0,0,0,255), 0, 2.0f);
+
+        // Control panel (top-left), fully opaque to intercept inputs
+        static ImVec2 panelPos = ImVec2(0, 0);
+        static ImVec2 panelSize = ImVec2(320, 160);
+        static bool panelResizing = false; static ImVec2 panelResizeStart;
+        ImVec2 winPos = ImGui::GetWindowPos();
+        ImVec2 panelTL = winPos + panelPos;
+        ImVec2 panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
+        const float headerH = 28.0f;
+        draw->AddRectFilled(panelTL, panelBR, IM_COL32(30,30,30,255), 6.0f);
+        ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
+        draw->AddRectFilled(panelTL, headerBR, IM_COL32(45,45,45,255), 6.0f);
+        draw->AddRect(panelTL, panelBR, IM_COL32(255,255,255,64), 6.0f, 0, 1.5f);
+        draw->AddText(ImVec2(panelTL.x + 8, panelTL.y + 6), IM_COL32(255,255,255,255), "Rotate Controls");
+
+        // Panel content area
+        ImVec2 childPos = panelPos + ImVec2(0, headerH);
+        ImVec2 childSize = panelSize - ImVec2(0, headerH);
+        ImGui::SetCursorPos(childPos);
+        ImGui::BeginChild("Rotate Controls", childSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::Dummy(ImVec2(0, 4));
+        ImGui::Text("Angle: %d\u00B0", degrees);
+        if (ImGui::Button("\u21BA Rotate -90\u00B0")) { angleIndex = (angleIndex + 3) % 4; }
+        ImGui::SameLine();
+        if (ImGui::Button("Rotate +90\u00B0 \u21BB")) { angleIndex = (angleIndex + 1) % 4; }
+        ImGui::Separator();
+        if (ImGui::Button("Apply")) {
+            processor.setImage(originalImage);
+            if (degrees != 0) {
+                RotateFilter f(degrees);
+                processor.applyFilter(f);
+                gPresetManager.recordStep(FilterStep{FilterType::Rotate, {(double)degrees}, ""});
             }
-
-            ImGui::Text("Angle:");
-            ImGui::SameLine();
-            bool changed = false;
-            if(ImGui::Combo("Angle", &currentItem, items, IM_ARRAYSIZE(items))) changed = true; // fixed
-
-            if(changed){
-                processor.setImage(originalImage);
-                RotateFilter filter(values[currentItem]); 
-                processor.applyFilterNoHistory(filter);
-                textureNeedsUpdate = true;
+            textureNeedsUpdate = true;
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
+            ImGui::CloseCurrentPopup();
+            show = false; init = false; handleDragging = false; angleIndex = 0;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) {
+            processor.setImage(originalImage);
+            textureNeedsUpdate = true;
+            if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
+            ImGui::CloseCurrentPopup();
+            show = false; init = false; handleDragging = false; angleIndex = 0;
+        }
+        // In-child resize grip
+        {
+            const float grip = 28.0f;
+            ImVec2 childTL = winPos + childPos;
+            ImVec2 childGripTL(childTL.x + childSize.x - grip, childTL.y + childSize.y - grip);
+            ImGui::SetCursorScreenPos(childGripTL);
+            ImGui::InvisibleButton("##rotate_panel_resize_child", ImVec2(grip, grip));
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+                if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
+                ImVec2 delta = io.MousePos - panelResizeStart;
+                panelSize.x = std::clamp(panelSize.x + delta.x, 240.0f, io.DisplaySize.x - panelPos.x);
+                panelSize.y = std::clamp(panelSize.y + delta.y, 120.0f, io.DisplaySize.y - panelPos.y);
+                panelResizeStart = io.MousePos;
             }
-            ImGui::Separator();
+        }
+        ImGui::EndChild();
 
-            if(ImGui::Button("Apply")){
-                RotateFilter filter(values[currentItem]); 
-                processor.setImage(originalImage);
-                processor.applyFilter(filter);
-                std::cout << "Rotated by: " << values[currentItem] << std::endl;
-                show = false;
-                init = false;
-                textureNeedsUpdate = true;
-                gPresetManager.recordStep(FilterStep{FilterType::Rotate, {(double)values[currentItem]}, ""});
+        // Panel header move (after child for input priority)
+        ImGui::SetCursorScreenPos(panelTL);
+        ImGui::InvisibleButton("##rotate_panel_move", ImVec2(panelSize.x, headerH));
+        static bool panelDragging = false; static ImVec2 panelDragStart;
+        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+            if (!panelDragging) { panelDragging = true; panelDragStart = io.MousePos; }
+            ImVec2 delta = io.MousePos - panelDragStart;
+            panelPos.x = std::clamp(panelPos.x + delta.x, 0.0f, io.DisplaySize.x - panelSize.x);
+            panelPos.y = std::clamp(panelPos.y + delta.y, 0.0f, io.DisplaySize.y - panelSize.y);
+            panelDragStart = io.MousePos;
+        }
+        if (!ImGui::IsMouseDown(0)) panelDragging = false;
+
+        // Panel outer grip
+        const float grip = 28.0f;
+        ImVec2 gripTL = ImVec2(panelBR.x - grip, panelBR.y - grip);
+        ImGui::SetCursorScreenPos(gripTL);
+        ImGui::InvisibleButton("##rotate_panel_resize", ImVec2(grip, grip));
+        if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+        draw->AddTriangleFilled(ImVec2(panelBR.x - grip + 6, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - 4), ImVec2(panelBR.x - 4, panelBR.y - grip + 6), IM_COL32(200,200,200,200));
+        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+            if (!panelResizing) { panelResizing = true; panelResizeStart = io.MousePos; }
+            ImVec2 delta = io.MousePos - panelResizeStart;
+            panelSize.x = std::clamp(panelSize.x + delta.x, 240.0f, io.DisplaySize.x - panelPos.x);
+            panelSize.y = std::clamp(panelSize.y + delta.y, 120.0f, io.DisplaySize.y - panelPos.y);
+            panelResizeStart = io.MousePos;
+        }
+        if (!ImGui::IsMouseDown(0)) panelResizing = false;
+
+        // Handle interaction (click to step, drag to snap to nearest 90°)
+        bool handleOverPanel = (handlePos.x >= panelTL.x && handlePos.x <= panelBR.x && handlePos.y >= panelTL.y && handlePos.y <= panelBR.y);
+        if (!handleOverPanel) {
+            ImVec2 handleTL(handlePos.x - handleR, handlePos.y - handleR);
+            ImGui::SetCursorScreenPos(handleTL);
+            ImGui::InvisibleButton("##rotate_handle", ImVec2(handleR * 2.0f, handleR * 2.0f));
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+                if (io.KeyShift) angleIndex = (angleIndex + 3) % 4; else angleIndex = (angleIndex + 1) % 4;
             }
-
-            ImGui::SameLine();
-            if(ImGui::Button("Cancel")){
-                processor.setImage(originalImage);
-                currentItem = 0; // Reset to default value
-                show = false;
-                init = false;
-                textureNeedsUpdate = true;
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+                handleDragging = true;
             }
+        }
+        if (handleDragging && ImGui::IsMouseDown(0)) {
+            ImVec2 m = io.MousePos;
+            float ang = atan2f(m.y - center.y, m.x - center.x); // radians relative to +X
+            float deg = (float)(ang * 180.0 / 3.14159265358979323846);
+            deg = fmodf(deg + 360.0f, 360.0f); // [0,360)
+            // Map so that up (negative Y) ~ 0°, then snap to 90° steps
+            float upBased = fmodf(deg - 90.0f + 360.0f, 360.0f);
+            int snap = (int)floorf((upBased + 45.0f) / 90.0f) % 4; // nearest of 0,1,2,3
+            angleIndex = (snap + 4) % 4;
+        }
+        if (!ImGui::IsMouseDown(0)) handleDragging = false;
 
-            EndParamsUI();
-        }else init = false;
+        ImGui::EndPopup();
     }
 
     void applyOutline(bool &show, bool &textureNeedsUpdate) {
