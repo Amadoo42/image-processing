@@ -42,16 +42,6 @@ static bool showBatchWindow = false;
 static bool showSaveCurrentPresetPopup = false;
 static bool showPresetBuilderWindow = false;
 
-// --- Selection & Layers UI state -------------------------------------------
-enum class SelectionTool { None, Rectangle, MagicWand };
-static SelectionTool gSelectionTool = SelectionTool::None;
-static bool gSelectionInverted = false;
-static int gMagicWandTolerance = 20;
-// Rectangle tool state (image-space)
-static bool gRectSelecting = false;
-static ImVec2 gRectStartImg = ImVec2(0,0);
-static ImVec2 gRectEndImg = ImVec2(0,0);
-
 inline void guiSetCurrentImagePath(const std::string &path) { gCurrentImagePath = path; }
 
 void setModernStyle() {
@@ -433,14 +423,13 @@ static void drawHistogramPlaceholder(const Image &img) {
 // --- Right Panel ------------------------------------------------------------
 static void drawRightPanel(ImageProcessor &processor, float width) {
     ImGui::BeginChild("RightPanel", ImVec2(width, 0), true);
-    // Right panel now hosts Save, Presets and Filters only
-    const Image &__img_right = processor.getCurrentImage();
-    bool __hasImage = (__img_right.width > 0 && __img_right.height > 0);
 
     // Action buttons aligned to the right
     float full = ImGui::GetContentRegionAvail().x;
     float btnW = 80.0f;
     ImGui::SetCursorPosX(std::max(0.0f, full - (btnW + 0.0f)));
+    const Image &__img_right = processor.getCurrentImage();
+    bool __hasImage = (__img_right.width > 0 && __img_right.height > 0);
     if (!__hasImage) ImGui::BeginDisabled();
     if (ImGui::Button("Save", ImVec2(btnW, 0))) {
         std::string selected = saveFileDialog_Linux();
@@ -575,110 +564,6 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
             ImVec2 image_pos = ImVec2(base_pos.x + pan_offset.x, base_pos.y + pan_offset.y);
             ImGui::SetCursorPos(image_pos);
             ImGui::Image((void*)(intptr_t)currentTextureID, zoomed_size);
-
-            // Overlay for selection tools
-            ImVec2 imgMin = ImGui::GetItemRectMin();
-            ImVec2 imgMax = ImGui::GetItemRectMax();
-            ImDrawList* draw = ImGui::GetWindowDrawList();
-            auto screenToImage = [&](ImVec2 p)->ImVec2{
-                ImVec2 clamped = ImVec2(std::clamp(p.x, imgMin.x, imgMax.x), std::clamp(p.y, imgMin.y, imgMax.y));
-                ImVec2 delta = ImVec2(clamped.x - imgMin.x, clamped.y - imgMin.y);
-                return ImVec2(delta.x / zoom_level, delta.y / zoom_level);
-            };
-            auto imageToScreen = [&](ImVec2 p)->ImVec2{
-                return ImVec2(imgMin.x + p.x * zoom_level, imgMin.y + p.y * zoom_level);
-            };
-
-            bool hovered = ImGui::IsItemHovered();
-            ImVec2 mouse = ImGui::GetIO().MousePos;
-            // Rectangle tool interaction
-            if (gSelectionTool == SelectionTool::Rectangle && hovered) {
-                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    gRectSelecting = true;
-                    gRectStartImg = screenToImage(mouse);
-                    gRectEndImg = gRectStartImg;
-                }
-                if (gRectSelecting && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-                    gRectEndImg = screenToImage(mouse);
-                }
-                if (gRectSelecting && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-                    ImVec2 a = gRectStartImg, b = gRectEndImg;
-                    int x = (int)std::floor(std::min(a.x, b.x));
-                    int y = (int)std::floor(std::min(a.y, b.y));
-                    int w = (int)std::ceil(std::abs(b.x - a.x));
-                    int h = (int)std::ceil(std::abs(b.y - a.y));
-                    processor.setRectSelection(x, y, w, h);
-                    processor.setSelectionInvert(gSelectionInverted);
-                    gRectSelecting = false;
-                    statusBarMessage = "Rectangle selection set";
-                }
-                // Draw provisional rectangle
-                if (gRectSelecting) {
-                    ImVec2 a = imageToScreen(gRectStartImg);
-                    ImVec2 b = imageToScreen(gRectEndImg);
-                    draw->AddRect(a, b, IM_COL32(255,255,255,200), 0.0f, 0, 2.0f);
-                }
-            }
-
-            // Magic wand interaction
-            if (gSelectionTool == SelectionTool::MagicWand && hovered) {
-                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    ImVec2 p = screenToImage(mouse);
-                    int sx = std::clamp((int)std::floor(p.x), 0, currentImage.width - 1);
-                    int sy = std::clamp((int)std::floor(p.y), 0, currentImage.height - 1);
-                    processor.setMagicWandSelection(sx, sy, gMagicWandTolerance);
-                    processor.setSelectionInvert(gSelectionInverted);
-                    statusBarMessage = "Magic Wand selection set";
-                }
-            }
-
-            // Draw selection bounding box if any and dashed marquee
-            {
-                int rx, ry, rw, rh;
-                if (processor.getSelectionBounds(rx, ry, rw, rh)) {
-                    ImVec2 a = imageToScreen(ImVec2((float)rx, (float)ry));
-                    ImVec2 b = imageToScreen(ImVec2((float)(rx + rw), (float)(ry + rh)));
-                    // marching ants effect using time-based offset
-                    float t = ImGui::GetTime();
-                    ImU32 col1 = IM_COL32(255,255,255,180);
-                    ImU32 col2 = IM_COL32(0,0,0,180);
-                    const float seg = 6.0f;
-                    auto drawDashed = [&](ImVec2 p0, ImVec2 p1){
-                        ImVec2 dir = ImVec2(p1.x - p0.x, p1.y - p0.y);
-                        float len = sqrtf(dir.x*dir.x + dir.y*dir.y);
-                        if (len <= 0.0f) return;
-                        ImVec2 step = ImVec2(dir.x / len, dir.y / len);
-                        float offset = fmodf(t * 60.0f, seg * 2.0f);
-                        for (float s = -offset; s < len; s += seg*2.0f) {
-                            float s0 = std::max(0.0f, s);
-                            float s1 = std::min(len, s + seg);
-                            if (s1 <= s0) continue;
-                            ImVec2 q0 = ImVec2(p0.x + step.x * s0, p0.y + step.y * s0);
-                            ImVec2 q1 = ImVec2(p0.x + step.x * s1, p0.y + step.y * s1);
-                            draw->AddLine(q0, q1, col1, 1.5f);
-                            // second color offset
-                            float s2 = s + seg*0.5f;
-                            float s3 = s2 + seg;
-                            s2 = std::max(0.0f, s2); s3 = std::min(len, s3);
-                            if (s3 > s2) {
-                                ImVec2 r0 = ImVec2(p0.x + step.x * s2, p0.y + step.y * s2);
-                                ImVec2 r1 = ImVec2(p0.x + step.x * s3, p0.y + step.y * s3);
-                                draw->AddLine(r0, r1, col2, 1.5f);
-                            }
-                        }
-                    };
-                    drawDashed(a, ImVec2(b.x, a.y));
-                    drawDashed(ImVec2(b.x, a.y), b);
-                    drawDashed(b, ImVec2(a.x, b.y));
-                    drawDashed(ImVec2(a.x, b.y), a);
-                }
-            }
-
-            // Invert overlay hint
-            if (processor.hasActiveSelection() && gSelectionInverted) {
-                ImVec2 minp = imgMin, maxp = imgMax;
-                draw->AddRectFilled(minp, maxp, IM_COL32(0,0,0,40));
-            }
         } else {
             renderCompareView(processor, zoom_level, pan_offset);
         }
@@ -731,45 +616,33 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
     }
     if (!__hasImageToolbar) ImGui::EndDisabled();
 
-    // Selection toolbar (without Lasso)
-    ImGui::SameLine(); ImGui::Dummy(ImVec2(12,1)); ImGui::SameLine();
-    ImGui::TextUnformatted("Selection:"); ImGui::SameLine();
-    if (!__hasImageToolbar) ImGui::BeginDisabled();
-    bool rectOn = (gSelectionTool == SelectionTool::Rectangle);
-    if (ImGui::Selectable("Rect", rectOn, 0, ImVec2(40, 0))) { gSelectionTool = rectOn ? SelectionTool::None : SelectionTool::Rectangle; }
-    ImGui::SameLine();
-    bool wandOn = (gSelectionTool == SelectionTool::MagicWand);
-    if (ImGui::Selectable("Wand", wandOn, 0, ImVec2(48, 0))) { gSelectionTool = wandOn ? SelectionTool::None : SelectionTool::MagicWand; }
-    if (gSelectionTool == SelectionTool::MagicWand) { ImGui::SameLine(); ImGui::SetNextItemWidth(120.0f); ImGui::SliderInt("Tol", &gMagicWandTolerance, 0, 100); }
-    ImGui::SameLine();
-    if (ImGui::Button("Clear Sel")) { processor.clearSelection(); statusBarMessage = "Selection cleared"; }
-    ImGui::SameLine();
-    bool inv = gSelectionInverted; if (ImGui::Checkbox("Invert", &inv)) { gSelectionInverted = inv; processor.setSelectionInvert(inv); }
-    if (!__hasImageToolbar) ImGui::EndDisabled();
-
-    // Move status text to the right, without overlapping image details
+    // Centered transient status text
     float toolbarWidth = ImGui::GetWindowWidth();
-    // Build image details first to know its width
+    float text_width = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
+    ImGui::SameLine(std::max(0.0f, toolbarWidth * 0.5f - text_width * 0.5f));
+    ImGui::Text("%s", statusBarMessage.c_str());
+
+    // Right-aligned image details
     const Image& img = processor.getCurrentImage();
     auto gcd = [](int a, int b){ while(b){ int t=a%b; a=b; b=t;} return std::max(1, a); };
     int g = (img.width>0 && img.height>0) ? gcd(img.width, img.height) : 1;
     int arw = (img.width>0)? img.width / g : 0;
     int arh = (img.height>0)? img.height / g : 0;
-    std::string fname = gCurrentImagePath; size_t pos = fname.find_last_of("/\\"); if (pos != std::string::npos) fname = fname.substr(pos + 1); if (fname.empty()) fname = "Untitled";
+    // Extract file name from stored path
+    std::string fname = gCurrentImagePath;
+    size_t pos = fname.find_last_of("/\\");
+    if (pos != std::string::npos) fname = fname.substr(pos + 1);
+    if (fname.empty()) fname = "Untitled";
+
+    // Build info string: name | WxH | aspect | zoom
     char infoBuf[256];
     if (img.width > 0 && img.height > 0)
-        std::snprintf(infoBuf, sizeof(infoBuf), "%s | %dx%d | %d:%d | %.0f%%", fname.c_str(), img.width, img.height, arw, arh, zoom_level * 100.0f);
+        std::snprintf(infoBuf, sizeof(infoBuf), "%s | %dx%d | %d:%d | %.0f%%",
+                      fname.c_str(), img.width, img.height, arw, arh, zoom_level * 100.0f);
     else
         std::snprintf(infoBuf, sizeof(infoBuf), "%s", fname.c_str());
+
     float infoWidth = ImGui::CalcTextSize(infoBuf).x;
-
-    // Now compute status width and place it to the right of center but before info
-    float statusWidth = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
-    float statusX = std::max(0.0f, toolbarWidth - infoWidth - statusWidth - 16.0f);
-    ImGui::SameLine(statusX);
-    ImGui::Text("%s", statusBarMessage.c_str());
-
-    // Finally, right-align image details at the far right
     ImGui::SameLine(std::max(0.0f, toolbarWidth - infoWidth - 8.0f));
     ImGui::TextUnformatted(infoBuf);
 
