@@ -917,7 +917,7 @@ void renderGUI(ImageProcessor &processor) {
             static float brightness = 1.0f;
             static float contrast = 1.0f;
             static float saturation = 1.0f;
-            static int rotateDeg = 90;
+            static float rotateDeg = 0.0f;
             static float skewDeg = 0.0f;
             static float waveAmp = 0.0f, waveLen = 10.0f;
             static int oilRadius = 5, oilIntensity = 20;
@@ -965,9 +965,7 @@ void renderGUI(ImageProcessor &processor) {
                     ImGui::SliderFloat("Factor", &saturation, -3.0f, 3.0f, "%.2f");
                     break;
                 case FilterType::Rotate: {
-                    const char* items[] = {"90","180","270"};
-                    int idx = (rotateDeg==180?1:(rotateDeg==270?2:0));
-                    if (ImGui::Combo("Degrees", &idx, items, 3)) rotateDeg = idx==0?90:idx==1?180:270;
+                    ImGui::SliderFloat("Degrees", &rotateDeg, -180.0f, 180.0f, "%.0f°");
                     break; }
                 case FilterType::Skew:
                     ImGui::SliderFloat("Angle", &skewDeg, -90.0f, 90.0f, "%.1f");
@@ -1011,7 +1009,7 @@ void renderGUI(ImageProcessor &processor) {
                     case FilterType::Brightness: s.params = { (double)brightness }; break;
                     case FilterType::Contrast: s.params = { (double)contrast }; break;
                     case FilterType::Saturation: s.params = { (double)saturation }; break;
-                    case FilterType::Rotate: s.params = { (double)rotateDeg }; break;
+                    case FilterType::Rotate: s.params = { (double)((int)(rotateDeg > 0 ? rotateDeg + 0.5f : rotateDeg - 0.5f)) }; break;
                     case FilterType::Skew: s.params = { (double)skewDeg }; break;
                     case FilterType::Wave: s.params = { (double)waveAmp, (double)waveLen }; break;
                     case FilterType::OilPainting: s.params = { (double)oilRadius, (double)oilIntensity }; break;

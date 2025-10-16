@@ -227,7 +227,7 @@ private:
             case FilterType::Warmth: { double factor = paramOr(step, 0, 1.0); WarmthFilter f(factor); processor.applyFilter(f); return true; }
             case FilterType::Vignette: { double factor = paramOr(step, 0, 1.0); VigentteFilter f(factor); processor.applyFilter(f); return true; }
             case FilterType::Blur: { int kSize = (int)paramOr(step, 0, 13.0); double sigma = paramOr(step, 1, 2.0); if (kSize % 2 == 0) kSize += 1; BlurFilter f(kSize, sigma); processor.applyFilter(f); return true; }
-            case FilterType::Rotate: { int deg = (int)paramOr(step, 0, 90.0); RotateFilter f(deg); processor.applyFilter(f); return true; }
+            case FilterType::Rotate: { double deg = paramOr(step, 0, 0.0); RotateFilter f(deg, true); processor.applyFilter(f); return true; }
             case FilterType::Skew: { double deg = paramOr(step, 0, 0.0); SkewFilter f(deg); processor.applyFilter(f); return true; }
             case FilterType::Wave: { double a = paramOr(step, 0, 0.0); double w = paramOr(step, 1, 1.0); WaveFilter f((float)a, (float)w); processor.applyFilter(f); return true; }
             case FilterType::OilPainting: { int radius = (int)paramOr(step, 0, 5.0); int intensity = (int)paramOr(step, 1, 20.0); OilPaintingFilter f(radius, intensity); processor.applyFilter(f); return true; }

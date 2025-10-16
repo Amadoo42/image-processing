@@ -1265,13 +1265,12 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         static Image originalImage;
         static bool init = false;
         static GLuint textureID = 0;
-        static int angleIndex = 0; // 0=0°,1=90°,2=180°,3=270°
+        static float angleDeg = 0.0f; // continuous angle in degrees [-180,180]
         static bool handleDragging = false;
-        static ImVec2 dragStart;
 
         if (!show) {
             if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
-            init = false; handleDragging = false; angleIndex = 0;
+            init = false; handleDragging = false; angleDeg = 0.0f;
             return;
         }
 
@@ -1281,7 +1280,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             originalImage = processor.getCurrentImage();
             if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             textureID = loadTexture(originalImage);
-            angleIndex = 0;
+            angleDeg = 0.0f;
             handleDragging = false;
             init = true;
         }
@@ -1316,8 +1315,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         float hh = displayedHeight * 0.5f;
 
         // Rotation (preview only) using a rotated quad
-        int degrees = (angleIndex % 4 + 4) % 4 * 90;
-        float rad = (float)(degrees * 3.14159265358979323846 / 180.0);
+        int degrees = (int)std::round(angleDeg);
+        float rad = (float)(angleDeg * 3.14159265358979323846 / 180.0);
         float c = cosf(rad), s = sinf(rad);
         auto rot = [&](ImVec2 p){
             ImVec2 r;
@@ -1373,22 +1372,26 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         ImGui::SetCursorPos(childPos);
         ImGui::BeginChild("Rotate Controls", childSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::Dummy(ImVec2(0, 4));
-        ImGui::Text("Angle: %d\u00B0", degrees);
-        if (ImGui::Button("\u21BA Rotate -90\u00B0")) { angleIndex = (angleIndex + 3) % 4; }
+        ImGui::Text("Angle: %d\u00B0", (int)std::round(angleDeg));
+        ImGui::SliderFloat("##angle_slider", &angleDeg, -180.0f, 180.0f, "%.0f\u00B0");
+        if (ImGui::Button("\u21BA -90\u00B0")) { angleDeg -= 90.0f; }
         ImGui::SameLine();
-        if (ImGui::Button("Rotate +90\u00B0 \u21BB")) { angleIndex = (angleIndex + 1) % 4; }
+        if (ImGui::Button("+90\u00B0 \u21BB")) { angleDeg += 90.0f; }
+        if (ImGui::IsItemDeactivatedAfterEdit()) { /* noop */ }
+        // Keep angle in [-180,180]
+        if (angleDeg > 180.0f) angleDeg -= 360.0f; else if (angleDeg < -180.0f) angleDeg += 360.0f;
         ImGui::Separator();
         if (ImGui::Button("Apply")) {
             processor.setImage(originalImage);
-            if (degrees != 0) {
-                RotateFilter f(degrees);
+            {
+                RotateFilter f((double)degrees, true);
                 processor.applyFilter(f);
                 gPresetManager.recordStep(FilterStep{FilterType::Rotate, {(double)degrees}, ""});
             }
             textureNeedsUpdate = true;
             if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             ImGui::CloseCurrentPopup();
-            show = false; init = false; handleDragging = false; angleIndex = 0;
+            show = false; init = false; handleDragging = false; angleDeg = 0.0f;
         }
         ImGui::SameLine();
         if (ImGui::Button("Cancel")) {
@@ -1396,7 +1399,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             textureNeedsUpdate = true;
             if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             ImGui::CloseCurrentPopup();
-            show = false; init = false; handleDragging = false; angleIndex = 0;
+            show = false; init = false; handleDragging = false; angleDeg = 0.0f;
         }
         // In-child resize grip
         {
@@ -1453,7 +1456,9 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::InvisibleButton("##rotate_handle", ImVec2(handleR * 2.0f, handleR * 2.0f));
             if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-                if (io.KeyShift) angleIndex = (angleIndex + 3) % 4; else angleIndex = (angleIndex + 1) % 4;
+                // Click toggles +90, Shift-click -90 for convenience
+                angleDeg += io.KeyShift ? -90.0f : 90.0f;
+                if (angleDeg > 180.0f) angleDeg -= 360.0f; else if (angleDeg < -180.0f) angleDeg += 360.0f;
             }
             if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
                 handleDragging = true;
@@ -1464,10 +1469,11 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             float ang = atan2f(m.y - center.y, m.x - center.x); // radians relative to +X
             float deg = (float)(ang * 180.0 / 3.14159265358979323846);
             deg = fmodf(deg + 360.0f, 360.0f); // [0,360)
-            // Map so that up (negative Y) ~ 0°, then snap to 90° steps
-            float upBased = fmodf(deg - 90.0f + 360.0f, 360.0f);
-            int snap = (int)floorf((upBased + 45.0f) / 90.0f) % 4; // nearest of 0,1,2,3
-            angleIndex = (snap + 4) % 4;
+            // Map so that up (negative Y) ~ 0°. Convert to [-180,180]
+            float upBased = deg - 90.0f;
+            while (upBased > 180.0f) upBased -= 360.0f;
+            while (upBased < -180.0f) upBased += 360.0f;
+            angleDeg = upBased;
         }
         if (!ImGui::IsMouseDown(0)) handleDragging = false;
 
