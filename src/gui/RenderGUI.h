@@ -962,13 +962,13 @@ void renderGUI(ImageProcessor &processor) {
             static float warmth = 1.0f;
             static std::string filePath;
 
-            // Build available filter list for builder (allow all)
+            // Build available filter list for builder (exclude Resize/Crop/Merge per requirement)
             static std::vector<FilterType> builderTypes;
             static std::vector<std::string> builderNames;
             if (builderTypes.empty()) {
                 for (int t = (int)FilterType::Grayscale; t <= (int)FilterType::Warmth; ++t) {
                     FilterType ft = (FilterType)t;
-                    if (ft == FilterType::None) continue;
+                    if (ft == FilterType::None || ft == FilterType::Resize || ft == FilterType::Crop || ft == FilterType::Merge) continue;
                     builderTypes.push_back(ft);
                     builderNames.push_back(filterTypeName(ft));
                 }
@@ -1075,7 +1075,14 @@ void renderGUI(ImageProcessor &processor) {
             if (draftSteps.empty()) ImGui::BeginDisabled();
             if (ImGui::Button("Save Preset")) {
                 if (presetNameBuf[0] != '\0') {
-                    gPresetManager.addPreset(presetNameBuf, draftSteps);
+                    // Filter out any disallowed steps (safety)
+                    std::vector<FilterStep> filtered;
+                    filtered.reserve(draftSteps.size());
+                    for (const auto &s : draftSteps) {
+                        if (s.type == FilterType::Resize || s.type == FilterType::Crop || s.type == FilterType::Merge) continue;
+                        filtered.push_back(s);
+                    }
+                    gPresetManager.addPreset(presetNameBuf, filtered);
                     draftSteps.clear();
                     presetNameBuf[0] = '\0';
                     showPresetBuilderWindow = false;
