@@ -106,13 +106,18 @@ int main(int argc, char* argv[]) {
                         }
                     }
                     if (event.key.keysym.sym == SDLK_s) {
-                        std::string selected = saveFileDialog_Linux();
-                        if (!selected.empty()) {
-                            if (imageProcessor.saveImage(selected)) {
-                                statusBarMessage = "Image saved to " + selected;
-                                guiSetCurrentImagePath(selected);
-                            } else {
-                                statusBarMessage = "Failed to save image.";
+                        const Image &img = imageProcessor.getCurrentImage();
+                        if (img.width <= 0 || img.height <= 0) {
+                            statusBarMessage = "No image loaded.";
+                        } else {
+                            std::string selected = saveFileDialog_Linux();
+                            if (!selected.empty()) {
+                                if (imageProcessor.saveImage(selected)) {
+                                    statusBarMessage = "Image saved to " + selected;
+                                    guiSetCurrentImagePath(selected);
+                                } else {
+                                    statusBarMessage = "Failed to save image.";
+                                }
                             }
                         }
                     }

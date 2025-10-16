@@ -108,6 +108,8 @@ void setModernStyle() {
 static void drawTopNavBar(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();
     if(ImGui::BeginMainMenuBar()) {
+        const Image &__img_nav = processor.getCurrentImage();
+        bool __hasImage = (__img_nav.width > 0 && __img_nav.height > 0);
         if(ImGui::BeginMenu("File")) {
             if(ImGui::MenuItem(iconLabel(ICON_FA_FOLDER_OPEN, "Open").c_str(), "Ctrl+O")) {
                 std::string selected = openFileDialog_Linux();
@@ -127,6 +129,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
                     statusBarMessage = "Failed to load image.";
                 }
             }
+            if (!__hasImage) ImGui::BeginDisabled();
             if(ImGui::MenuItem(iconLabel(ICON_FA_FLOPPY_DISK, "Save").c_str(), "Ctrl+S")) {
                 std::string selected = saveFileDialog_Linux();
                 if (!selected.empty()) {
@@ -155,6 +158,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
                     }
                 }
             }
+            if (!__hasImage) ImGui::EndDisabled();
             if (ImGui::MenuItem("Batch Process Images")) {
                 showBatchWindow = true;
             }
@@ -176,6 +180,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
             if (ImGui::MenuItem(iconLabel(ICON_FA_GEAR, "Preferences").c_str())) {
                 showPreferencesWindow = true;
             }
+            if (!__hasImage) ImGui::BeginDisabled();
             if (ImGui::BeginMenu("Filters")) {
                 if (ImGui::BeginMenu("Basic")) {
                     if (ImGui::MenuItem("Grayscale", nullptr, gSelectedFilter == FilterType::Grayscale)) gSelectedFilter = FilterType::Grayscale;
@@ -211,12 +216,15 @@ static void drawTopNavBar(ImageProcessor &processor) {
                 }
                 ImGui::EndMenu();
             }
+            if (!__hasImage) ImGui::EndDisabled();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
+            if (!__hasImage) ImGui::BeginDisabled();
             if (ImGui::MenuItem(iconLabel(ICON_FA_SQUARE_SPLIT, "Compare Side-by-Side").c_str(), nullptr, compareMode)) {
                 compareMode = !compareMode;
             }
+            if (!__hasImage) ImGui::EndDisabled();
             ImGui::EndMenu();
         }
         if(ImGui::BeginMenu("Help")) {
@@ -234,21 +242,27 @@ static void drawTopNavBar(ImageProcessor &processor) {
                 std::string selected = openFileDialog_Linux();
                 if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; gImageSessionId++; gSelectedFilter = FilterType::None; statusBarMessage = "Image loaded successfully!"; }
             } else if (q.find("save") != std::string::npos) {
-                std::string selected = saveFileDialog_Linux();
-                if (!selected.empty()) { if (processor.saveImage(selected)) { guiSetCurrentImagePath(selected); statusBarMessage = "Image saved to " + selected; } }
+                const Image &img = processor.getCurrentImage();
+                if (img.width <= 0 || img.height <= 0) { statusBarMessage = "No image loaded."; }
+                else {
+                    std::string selected = saveFileDialog_Linux();
+                    if (!selected.empty()) { if (processor.saveImage(selected)) { guiSetCurrentImagePath(selected); statusBarMessage = "Image saved to " + selected; } }
+                }
             } else if (q.find("undo") != std::string::npos) {
                 if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; } else { statusBarMessage = "Nothing to undo."; }
             } else if (q.find("redo") != std::string::npos) {
                 if(processor.redo()) { textureNeedsUpdate = true; statusBarMessage = "Redo successful."; } else { statusBarMessage = "Nothing to redo."; }
             } else if (q.find("reset") != std::string::npos || q.find("1:1") != std::string::npos) {
-                zoom_level = 1.0f; pan_offset = ImVec2(0,0);
+                const Image &img = processor.getCurrentImage();
+                if (img.width > 0 && img.height > 0) { zoom_level = 1.0f; pan_offset = ImVec2(0,0); } else { statusBarMessage = "No image loaded."; }
             } else if (q.find("fit") != std::string::npos) {
                 const Image& img = processor.getCurrentImage();
                 if (img.width > 0 && img.height > 0 && gLastCanvasAvail.x > 0.0f && gLastCanvasAvail.y > 0.0f) {
                     float zx = gLastCanvasAvail.x / img.width; float zy = gLastCanvasAvail.y / img.height; zoom_level = std::max(0.1f, std::min(zx, zy));
                 }
             } else if (q.find("compare") != std::string::npos) {
-                compareMode = !compareMode;
+                const Image &img = processor.getCurrentImage();
+                if (img.width > 0 && img.height > 0) compareMode = !compareMode; else statusBarMessage = "No image loaded.";
             }
         };
 
@@ -314,14 +328,22 @@ static void drawTopNavBar(ImageProcessor &processor) {
 static void drawLeftParamsPanel(ImageProcessor &processor, float width) {
     ImGui::BeginChild("LeftParamsPanel", ImVec2(width, 0), true);
     // Filter parameters first
+    const Image &__img_left = processor.getCurrentImage();
+    bool __hasImageLeft = (__img_left.width > 0 && __img_left.height > 0);
     ImGui::TextUnformatted("Filter Parameters");
     ImGui::Separator();
-    renderFilterParamsPanel(processor, gSelectedFilter, textureNeedsUpdate);
+    if (!__hasImageLeft) {
+        ImGui::TextDisabled("No image loaded.");
+    } else {
+        renderFilterParamsPanel(processor, gSelectedFilter, textureNeedsUpdate);
+    }
 
     ImGui::NewLine();
     ImGui::TextUnformatted("History");
     ImGui::Separator();
-    {
+    if (!__hasImageLeft) {
+        ImGui::TextDisabled("Open an image to see history.");
+    } else {
         static std::vector<GLuint> historyTextures;
         static bool historyValid = false;
         static size_t lastUndoCount = (size_t)-1;
@@ -406,6 +428,9 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
     float full = ImGui::GetContentRegionAvail().x;
     float btnW = 80.0f;
     ImGui::SetCursorPosX(std::max(0.0f, full - (btnW + 0.0f)));
+    const Image &__img_right = processor.getCurrentImage();
+    bool __hasImage = (__img_right.width > 0 && __img_right.height > 0);
+    if (!__hasImage) ImGui::BeginDisabled();
     if (ImGui::Button("Save", ImVec2(btnW, 0))) {
         std::string selected = saveFileDialog_Linux();
         if (!selected.empty()) {
@@ -413,6 +438,7 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
             else { statusBarMessage = "Failed to save image."; }
         }
     }
+    if (!__hasImage) ImGui::EndDisabled();
 
     ImGui::Separator();
     // Presets management header and controls
@@ -429,7 +455,10 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
     // Category dropdown then content
     static int categoryIndex = 0; // 0 Basic, 1 Transform, 2 Effects
     const char* categories[] = {"Basic Adjustments", "Transformations", "Effects"};
+    const Image &__img_filters = processor.getCurrentImage();
+    bool __hasImageFilters = (__img_filters.width > 0 && __img_filters.height > 0);
     ImGui::SetNextItemWidth(-1);
+    if (!__hasImageFilters) ImGui::BeginDisabled();
     if (ImGui::BeginCombo("##filterCategory", categories[categoryIndex])) {
         for (int i = 0; i < 3; ++i) {
             bool selected = categoryIndex == i;
@@ -439,6 +468,7 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
         }
         ImGui::EndCombo();
     }
+    if (!__hasImageFilters) ImGui::EndDisabled();
 
     static FilterPreviewCache previewCache;
     bool invalidate = gPreviewCacheNeedsUpdate;
@@ -448,6 +478,9 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
         frozenForPreviews = processor.getCurrentImage();
     }
     ImGui::BeginChild("FiltersContent", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+    if (!__hasImageFilters) {
+        ImGui::TextDisabled("Load an image to preview and apply filters.");
+    } else {
     if (categoryIndex == 0) {
         // Basic adjustments with previews
         std::vector<FilterType> basics = {
@@ -486,6 +519,7 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
             FilterType::Frame
         };
         renderFilterPreviewGrid(previewCache, processor, effectsPreview, gSelectedFilter, invalidate, "effects_sidebar", 2, ImVec2(120, 90), &frozenForPreviews);
+    }
     }
     ImGui::EndChild();
     if (invalidate) { gPreviewCacheNeedsUpdate = false; }
@@ -552,7 +586,11 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         else { statusBarMessage = "Nothing to redo."; }
     }
     ImGui::SameLine();
+    const Image &__img_toolbar = processor.getCurrentImage();
+    bool __hasImageToolbar = (__img_toolbar.width > 0 && __img_toolbar.height > 0);
+    if (!__hasImageToolbar) ImGui::BeginDisabled();
     if(ImGui::Button(iconLabel(ICON_FA_ARROWS_ROTATE, "Reset").c_str())) { zoom_level = 1.0f; pan_offset = ImVec2(0,0); }
+    if (!__hasImageToolbar) ImGui::EndDisabled();
 
     ImGui::SameLine();
     ImGui::Dummy(ImVec2(8, 1));
@@ -563,6 +601,7 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
     ImGui::SameLine();
     float percent = zoom_level * 100.0f;
     ImGui::SetNextItemWidth(160.0f);
+    if (!__hasImageToolbar) ImGui::BeginDisabled();
     if (ImGui::SliderFloat("##zoom", &percent, 10.0f, 400.0f, "%.0f%%")) {
         zoom_level = percent / 100.0f;
     }
@@ -575,6 +614,7 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
             zoom_level = std::max(0.1f, std::min(zx, zy));
         }
     }
+    if (!__hasImageToolbar) ImGui::EndDisabled();
 
     // Centered transient status text
     float toolbarWidth = ImGui::GetWindowWidth();

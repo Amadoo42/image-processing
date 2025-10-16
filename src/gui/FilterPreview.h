@@ -50,13 +50,12 @@ public:
 
     void invalidate() { cacheValid = false; }
 
-    // Build previews if needed for the provided filter list
+    // Prepare cache structures; previews are generated lazily per tile
     void ensureBuilt(const Image &src, const std::vector<FilterType> &filters) {
         if (src.width <= 0 || src.height <= 0) return;
 
         size_t sig = signature(src);
         if (!cacheValid || sig != lastSignature) {
-            // Rebuild base thumbnail for new source image
             releaseTextures();
             previews.clear();
             baseThumb = makeBaseThumb(src);
@@ -64,21 +63,14 @@ public:
             lastSignature = sig;
         }
 
-        // Ensure entries exist for requested filters
         for (FilterType t : filters) {
             if (!isPreviewable(t)) continue;
             if (previews.find(t) != previews.end()) continue;
-
             PreviewEntry entry;
             entry.type = t;
             entry.name = filterTypeName(t);
             entry.texture = 0;
-            entry.built = false;
-
-            Image thumbCopy = baseThumb;
-            applyPreviewFilter(t, thumbCopy);
-            entry.image = thumbCopy;
-            entry.built = true;
+            entry.built = false; // build on demand
             previews[t] = std::move(entry);
         }
     }
@@ -88,7 +80,15 @@ public:
         auto it = previews.find(t);
         if (it == previews.end()) return 0;
         PreviewEntry &e = it->second;
-        if (!e.built) return 0;
+        if (!e.built) {
+            // Build image on demand
+            Image thumbCopy = baseThumb;
+            if (thumbCopy.width > 0 && thumbCopy.height > 0) {
+                applyPreviewFilter(t, thumbCopy);
+                e.image = thumbCopy;
+            }
+            e.built = true;
+        }
         if (e.texture == 0 && e.image.width > 0 && e.image.height > 0) {
             e.texture = loadTexture(e.image);
         }
@@ -221,7 +221,7 @@ inline bool renderFilterPreviewGrid(FilterPreviewCache &cache,
                 ImVec2 q = ImGui::GetItemRectMax();
                 ImVec2 center = ImVec2((p.x+q.x)*0.5f, (p.y+q.y)*0.5f);
                 ImDrawList* dl = ImGui::GetWindowDrawList();
-                const char* txt = "Generating...";
+                const char* txt = (src.width <= 0 || src.height <= 0) ? "No image loaded" : "Generating...";
                 ImVec2 sz = ImGui::CalcTextSize(txt);
                 dl->AddText(ImVec2(center.x - sz.x*0.5f, center.y - sz.y*0.5f), IM_COL32(255,255,255,200), txt);
             }
