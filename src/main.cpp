@@ -91,7 +91,12 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_KEYDOWN) {
                 if (io.KeyCtrl) {
                     if (event.key.keysym.sym == SDLK_o) {
-                        std::string selected = openFileDialog_Linux();
+                        std::string selected =
+#ifdef _WIN32
+                            openFileDialog_Windows(false, false);
+#else
+                            openFileDialog_Linux();
+#endif
                         if(!selected.empty()) {
                             imageProcessor.loadImage(selected);
                             textureNeedsUpdate = true;
@@ -110,7 +115,12 @@ int main(int argc, char* argv[]) {
                         if (img.width <= 0 || img.height <= 0) {
                             statusBarMessage = "No image loaded.";
                         } else {
-                            std::string selected = saveFileDialog_Linux();
+                            std::string selected =
+#ifdef _WIN32
+                                openFileDialog_Windows(true, false);
+#else
+                                saveFileDialog_Linux();
+#endif
                             if (!selected.empty()) {
                                 if (imageProcessor.saveImage(selected)) {
                                     statusBarMessage = "Image saved to " + selected;
@@ -124,6 +134,7 @@ int main(int argc, char* argv[]) {
                     if (event.key.keysym.sym == SDLK_z) {
                         if(imageProcessor.undo()) {
                             textureNeedsUpdate = true;
+                            gPreviewCacheNeedsUpdate = true;
                             statusBarMessage = "Undo successful.";
                         } else {
                             statusBarMessage = "Nothing to undo.";
@@ -132,6 +143,7 @@ int main(int argc, char* argv[]) {
                     if (event.key.keysym.sym == SDLK_y) {
                         if(imageProcessor.redo()) {
                             textureNeedsUpdate = true;
+                            gPreviewCacheNeedsUpdate = true;
                             statusBarMessage = "Redo successful.";
                         } else {
                             statusBarMessage = "Nothing to redo.";

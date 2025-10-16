@@ -34,6 +34,13 @@ inline ImVec2 operator+(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x + 
 inline ImVec2 operator-(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x - b.x, a.y - b.y); }
 inline ImVec2 operator*(const ImVec2& a, float b) { return ImVec2(a.x * b, a.y * b); }
 
+inline bool ClampedInputFloat(const char* label, float* v, float min_val, float max_val, const char* format = "%.2f") {
+    bool changed = ImGui::InputFloat(label, v, 0.0f, 0.0f, format);
+    if (changed) {
+        *v = std::clamp(*v, min_val, max_val);
+    }
+    return changed;
+}
 // Inline rendering flag for parameter UIs. When true, parameter widgets
 // are rendered inline without opening separate windows.
 static bool g_params_inline_mode = false;
@@ -263,7 +270,7 @@ public:
             ImGui::CloseCurrentPopup();
             show = false;
             init = false;
-            gPresetManager.recordStep(FilterStep{FilterType::Crop, {(double)posX, (double)posY, (double)newWidth, (double)newHeight}, ""});
+            // Do not record Crop in presets
         }
         ImGui::SameLine();
         if (ImGui::Button("Cancel")) {
@@ -767,7 +774,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -804,7 +811,13 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
     void applyFrame(bool &show, bool &textureNeedsUpdate) {
         if(show){
-            Image frame_image(openFileDialog_Linux());
+            Image frame_image(
+#ifdef _WIN32
+                openFileDialog_Windows(false, false)
+#else
+                openFileDialog_Linux()
+#endif
+            );
             FrameFilter filter(frame_image);
             processor.applyFilter(filter);
             std::cout << "Applied Frame Filter\n";
@@ -938,7 +951,12 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Dummy(ImVec2(0, 2));
             ImGui::TextDisabled("Choose image to merge");
             if (ImGui::Button("Choose Merge Image")) {
-                std::string path = openFileDialog_Linux();
+                std::string path =
+#ifdef _WIN32
+                    openFileDialog_Windows(false, false);
+#else
+                    openFileDialog_Linux();
+#endif
                 if (!path.empty()) {
                     overlayImage = Image(path);
                     overlayTexID = loadTexture(overlayImage);
@@ -1038,7 +1056,12 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::Dummy(ImVec2(0, 2));
         if (ImGui::Button("Change Merge Image")) {
-            std::string path = openFileDialog_Linux();
+            std::string path =
+#ifdef _WIN32
+                openFileDialog_Windows(false, false);
+#else
+                openFileDialog_Linux();
+#endif
             if (!path.empty()) {
                 overlayImage = Image(path);
                 if (overlayTexID) glDeleteTextures(1, &overlayTexID);
@@ -1510,7 +1533,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1557,7 +1580,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     }
 
     void applyWave(bool &show, bool &textureNeedsUpdate) {
-        static float amplitude = 0.0f, wavelength = 0.0f;
+        static float amplitude = 1.0f, wavelength = 1.0f;
         static Image originalImage;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
@@ -1568,8 +1591,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
-                amplitude = 0.0f; // Reset to default value
-                wavelength = 0.0f; // Reset to default value
+                amplitude = 1.0f; // Reset to default value
+                wavelength = 1.0f; // Reset to default value
                 init = true;
             }
 
@@ -1585,7 +1608,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(changed){
                 processor.setImage(originalImage);
-                WaveFilter filter(amplitude, wavelength);
+                float safeWavelength = (wavelength <= 0.0f) ? 1.0f : wavelength;
+                WaveFilter filter(amplitude, safeWavelength);
                 processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
@@ -1593,7 +1617,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
             
             if(ImGui::Button("Apply")){
-                WaveFilter filter(amplitude, wavelength);
+                float safeWavelength = (wavelength <= 0.0f) ? 1.0f : wavelength;
+                WaveFilter filter(amplitude, safeWavelength);
                 processor.setImage(originalImage);
                 processor.applyFilter(filter);
                 std::cout << "Wave filter applied with Parameters: " << amplitude << " " << wavelength << std::endl;
@@ -1606,8 +1631,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
-                amplitude = 0.0f; // Reset to default value
-                wavelength = 0.0f; // Reset to default value
+                amplitude = 1.0f; // Reset to default value
+                wavelength = 1.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1675,7 +1700,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     }
 
     void applyContrast(bool &show, bool &textureNeedsUpdate) {
-        static float factor = 0.0f;
+        static float factor = 1.0f;
         static Image originalImage;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
@@ -1686,7 +1711,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
-                factor = 0.0f; // Reset to default value
+                factor = 1.0f; // Reset to default value
                 init = true;
             }
 
@@ -1694,15 +1719,16 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::SliderFloat("##FactorSlider", &factor, -3.0f, 3.0f, "%.2f"))changed = true;
+            if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
-                ContrastFilter filter(factor);
+                float safe = std::max(0.0f, factor);
+                ContrastFilter filter(safe);
                 processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
@@ -1710,7 +1736,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
-                ContrastFilter filter(factor);
+                float safe = std::max(0.0f, factor);
+                ContrastFilter filter(safe);
                 processor.setImage(originalImage);
                 processor.applyFilter(filter);
                 std::cout << "Contrast filter applied with factor: " << factor << std::endl;
@@ -1723,7 +1750,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
-                factor = 0.0f; // Reset to default value
+                factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1744,7 +1771,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     }
 
     void applySaturation(bool &show, bool &textureNeedsUpdate) {
-        static float factor = 0.0f;
+        static float factor = 1.0f;
         static Image originalImage;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
@@ -1755,7 +1782,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
-                factor = 0.0f; // Reset to default value
+                factor = 1.0f; // Reset to default value
                 init = true;
             }
 
@@ -1763,15 +1790,16 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::SliderFloat("##FactorSlider", &factor, -3.0f, 3.0f, "%.2f"))changed = true;
+            if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
-                SaturationFilter filter(factor);
+                float safe = std::max(0.0f, factor);
+                SaturationFilter filter(safe);
                 processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
@@ -1779,7 +1807,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
-                SaturationFilter filter(factor);
+                float safe = std::max(0.0f, factor);
+                SaturationFilter filter(safe);
                 processor.setImage(originalImage);
                 processor.applyFilter(filter);
                 std::cout << "Saturation filter applied with factor: " << factor << std::endl;
@@ -1792,7 +1821,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
-                factor = 0.0f; // Reset to default value
+                factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1826,7 +1855,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##AngleInput", &Angle, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##AngleInput", &Angle, -90.0f, 90.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1862,7 +1891,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     }
 
     void applyVignette(bool &show, bool &textureNeedsUpdate) {
-        static float factor = 0.0f;
+        static float factor = 1.0f;
         static Image originalImage;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
@@ -1873,7 +1902,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
-                factor = 0.0f; // Reset to default value
+                factor = 1.0f; // Reset to default value
                 init = true;
             }
 
@@ -1881,15 +1910,16 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::SliderFloat("##FactorSlider", &factor, -3.0f, 3.0f, "%.2f"))changed = true;
+            if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
-                VigentteFilter filter(factor);
+                float safe = std::max(0.0f, factor);
+                VigentteFilter filter(safe);
                 processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
                 
@@ -1897,7 +1927,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
-                VigentteFilter filter(factor);
+                float safe = std::max(0.0f, factor);
+                VigentteFilter filter(safe);
                 processor.setImage(originalImage);
                 processor.applyFilter(filter);
                 std::cout << "Vignette filter applied with factor: " << factor << std::endl;
@@ -1910,7 +1941,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
-                factor = 0.0f; // Reset to default value
+                factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1943,7 +1974,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, -3.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);

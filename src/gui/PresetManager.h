@@ -83,7 +83,12 @@ public:
     void clearSession() { sessionSteps.clear(); }
     bool isSessionEmpty() const { return sessionSteps.empty(); }
     const std::vector<FilterStep>& getSessionSteps() const { return sessionSteps; }
-    void recordStep(const FilterStep &step) { sessionSteps.push_back(step); }
+    void recordStep(const FilterStep &step) {
+        // Do not track non-deterministic or geometry-altering steps in presets
+        if (step.type == FilterType::Merge || step.type == FilterType::Resize || step.type == FilterType::Crop)
+            return;
+        sessionSteps.push_back(step);
+    }
 
     const std::vector<PresetDefinition>& getPresets() const { return presets; }
 
