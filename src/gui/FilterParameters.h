@@ -263,7 +263,7 @@ public:
             ImGui::CloseCurrentPopup();
             show = false;
             init = false;
-            gPresetManager.recordStep(FilterStep{FilterType::Crop, {(double)posX, (double)posY, (double)newWidth, (double)newHeight}, ""});
+            // Do not record Crop in presets
         }
         ImGui::SameLine();
         if (ImGui::Button("Cancel")) {

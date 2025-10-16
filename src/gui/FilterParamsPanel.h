@@ -217,7 +217,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                         processor.applyFilter(filter);
                         textureNeedsUpdate = true;
                         gPreviewCacheNeedsUpdate = true;
-                        gPresetManager.recordStep(FilterStep{FilterType::Frame, {}, path});
+                    // Do not record Frame/Merge/Crop/Resize per requirement
                         s_frameOpen = false;
                     }
                 }
@@ -242,7 +242,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                         processor.applyFilter(filter);
                         textureNeedsUpdate = true;
                         gPreviewCacheNeedsUpdate = true;
-                        gPresetManager.recordStep(FilterStep{FilterType::Merge, {}, path});
+                        // Do not record Merge per requirement
                         s_mergeOpen = false;
                     }
                 }
