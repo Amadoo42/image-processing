@@ -35,7 +35,7 @@ private:
     std::vector<std::vector<Layer>> layersRedoHistory;
     int historySize;
 
-    // Layers and active index
+    // Layers and active index (kept but simplified to single background layer behavior)
     std::vector<Layer> layers;
     int activeLayerIndex = 0;
 
@@ -163,76 +163,19 @@ public:
 
     const GLuint& getTextureID() const { return currentTextureID; }
 
-    // -------- Layers API (basic) --------
+    // -------- Layers API (reduced) --------
+    // Keep a minimal API for compatibility; operate on single layer only.
     int getLayerCount() const { return (int)layers.size(); }
-    int getActiveLayer() const { return activeLayerIndex; }
-    void setActiveLayer(int idx) { if (idx >= 0 && idx < (int)layers.size()) activeLayerIndex = idx; }
+    int getActiveLayer() const { return 0; }
+    void setActiveLayer(int) {}
     const Layer& getLayer(int idx) const { return layers[idx]; }
     Layer& getLayer(int idx) { return layers[idx]; }
-
-    // Create a new blank layer (black) on top with 0 opacity by default
-    int newLayer(const std::string &name = "Layer") {
-        if (!hasImage()) return -1;
-        pushUndo();
-        redoHistory.clear(); layersRedoHistory.clear();
-        Layer L;
-        L.content = Image(currentImage.width, currentImage.height);
-        std::fill(L.content.imageData, L.content.imageData + (size_t)L.content.width * (size_t)L.content.height * 3, 0);
-        L.name = name;
-        L.visible = true;
-        L.opacity = 0.0f; // start invisible to avoid covering background
-        layers.push_back(L);
-        activeLayerIndex = (int)layers.size() - 1;
-        compositeLayers();
-        return activeLayerIndex;
-    }
-
-    // Duplicate an existing layer
-    int duplicateLayer(int idx) {
-        if (idx < 0 || idx >= (int)layers.size()) return -1;
-        pushUndo();
-        redoHistory.clear(); layersRedoHistory.clear();
-        Layer copy = layers[idx];
-        copy.name += " Copy";
-        layers.insert(layers.begin() + idx + 1, copy);
-        activeLayerIndex = idx + 1;
-        compositeLayers();
-        return activeLayerIndex;
-    }
-
-    void deleteLayer(int idx) {
-        if (layers.size() <= 1) return; // always keep at least one
-        if (idx < 0 || idx >= (int)layers.size()) return;
-        pushUndo();
-        redoHistory.clear(); layersRedoHistory.clear();
-        layers.erase(layers.begin() + idx);
-        if (activeLayerIndex >= (int)layers.size()) activeLayerIndex = (int)layers.size() - 1;
-        compositeLayers();
-    }
-
-    void moveLayer(int from, int to) {
-        if (from < 0 || from >= (int)layers.size() || to < 0 || to >= (int)layers.size() || from == to) return;
-        pushUndo();
-        redoHistory.clear(); layersRedoHistory.clear();
-        Layer tmp = layers[from];
-        layers.erase(layers.begin() + from);
-        layers.insert(layers.begin() + to, tmp);
-        activeLayerIndex = to;
-        compositeLayers();
-    }
-
-    void setLayerVisibility(int idx, bool vis) {
-        if (idx >= 0 && idx < (int)layers.size()) {
-            pushUndo(); redoHistory.clear(); layersRedoHistory.clear();
-            layers[idx].visible = vis; compositeLayers();
-        }
-    }
-    void setLayerOpacity(int idx, float op) {
-        if (idx >= 0 && idx < (int)layers.size()) {
-            pushUndo(); redoHistory.clear(); layersRedoHistory.clear();
-            layers[idx].opacity = std::clamp(op, 0.0f, 1.0f); compositeLayers();
-        }
-    }
+    int newLayer(const std::string&) { return 0; }
+    int duplicateLayer(int) { return 0; }
+    void deleteLayer(int) {}
+    void moveLayer(int, int) {}
+    void setLayerVisibility(int, bool) { compositeLayers(); }
+    void setLayerOpacity(int, float) { compositeLayers(); }
 
     // -------- Selection API --------
     bool hasActiveSelection() const { return selectionActive; }

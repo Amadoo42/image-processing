@@ -43,7 +43,7 @@ static bool showSaveCurrentPresetPopup = false;
 static bool showPresetBuilderWindow = false;
 
 // --- Selection & Layers UI state -------------------------------------------
-enum class SelectionTool { None, Rectangle, Lasso, MagicWand };
+enum class SelectionTool { None, Rectangle, MagicWand };
 static SelectionTool gSelectionTool = SelectionTool::None;
 static bool gSelectionInverted = false;
 static int gMagicWandTolerance = 20;
@@ -51,9 +51,6 @@ static int gMagicWandTolerance = 20;
 static bool gRectSelecting = false;
 static ImVec2 gRectStartImg = ImVec2(0,0);
 static ImVec2 gRectEndImg = ImVec2(0,0);
-// Lasso tool state (image-space points)
-static bool gLassoActive = false;
-static std::vector<ImVec2> gLassoPointsImg;
 
 inline void guiSetCurrentImagePath(const std::string &path) { gCurrentImagePath = path; }
 
@@ -436,45 +433,9 @@ static void drawHistogramPlaceholder(const Image &img) {
 // --- Right Panel ------------------------------------------------------------
 static void drawRightPanel(ImageProcessor &processor, float width) {
     ImGui::BeginChild("RightPanel", ImVec2(width, 0), true);
-    // Layers section
+    // Right panel now hosts Save, Presets and Filters only
     const Image &__img_right = processor.getCurrentImage();
     bool __hasImage = (__img_right.width > 0 && __img_right.height > 0);
-    ImGui::TextUnformatted("Layers");
-    ImGui::Separator();
-    if (!__hasImage) {
-        ImGui::TextDisabled("Open an image to manage layers.");
-    } else {
-        // Action row
-        if (ImGui::Button("New")) { processor.newLayer("Layer"); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; }
-        ImGui::SameLine();
-        if (ImGui::Button("Duplicate")) { processor.duplicateLayer(processor.getActiveLayer()); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; }
-        ImGui::SameLine();
-        if (ImGui::Button("Delete")) { processor.deleteLayer(processor.getActiveLayer()); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; }
-        
-        // Layers list (top-most last)
-        int count = processor.getLayerCount();
-        int active = processor.getActiveLayer();
-        ImGui::BeginChild("LayerList", ImVec2(0, 180), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-        for (int i = count - 1; i >= 0; --i) {
-            int displayIndex = i;
-            const auto &L = processor.getLayer(displayIndex);
-            ImGui::PushID(displayIndex);
-            bool sel = (displayIndex == active);
-            if (ImGui::Selectable(L.name.c_str(), sel)) { processor.setActiveLayer(displayIndex); }
-            ImGui::SameLine();
-            bool vis = L.visible; if (ImGui::Checkbox("Visible", &vis)) { processor.setLayerVisibility(displayIndex, vis); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; }
-            ImGui::SameLine();
-            float op = L.opacity; ImGui::SetNextItemWidth(100.0f);
-            if (ImGui::SliderFloat("Opacity", &op, 0.0f, 1.0f, "%.2f")) { processor.setLayerOpacity(displayIndex, op); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; }
-            // Reorder buttons (Up moves toward top i.e., higher index)
-            if (ImGui::Button("Up")) { int to = std::min(displayIndex + 1, count - 1); processor.moveLayer(displayIndex, to); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; }
-            ImGui::SameLine();
-            if (ImGui::Button("Down")) { int to = std::max(displayIndex - 1, 0); processor.moveLayer(displayIndex, to); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; }
-            ImGui::Separator();
-            ImGui::PopID();
-        }
-        ImGui::EndChild();
-    }
 
     // Action buttons aligned to the right
     float full = ImGui::GetContentRegionAvail().x;
@@ -659,32 +620,6 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
                 }
             }
 
-            // Lasso tool interaction
-            if (gSelectionTool == SelectionTool::Lasso && hovered) {
-                if (!gLassoActive) { gLassoActive = true; gLassoPointsImg.clear(); }
-                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    gLassoPointsImg.push_back(screenToImage(mouse));
-                }
-                // Draw polyline preview
-                for (size_t i = 1; i < gLassoPointsImg.size(); ++i) {
-                    draw->AddLine(imageToScreen(gLassoPointsImg[i-1]), imageToScreen(gLassoPointsImg[i]), IM_COL32(255,255,255,200), 2.0f);
-                }
-                if (!gLassoPointsImg.empty()) {
-                    draw->AddCircleFilled(imageToScreen(gLassoPointsImg.back()), 3.0f, IM_COL32(255,255,255,220));
-                }
-            } else if (gLassoActive && gSelectionTool != SelectionTool::Lasso) {
-                // If tool switched away, finalize into a polygon if >2 points
-                if (gLassoPointsImg.size() >= 3) {
-                    std::vector<std::pair<int,int>> pts;
-                    pts.reserve(gLassoPointsImg.size());
-                    for (auto &p : gLassoPointsImg) pts.push_back({ (int)std::round(p.x), (int)std::round(p.y) });
-                    processor.setPolygonSelection(pts);
-                    processor.setSelectionInvert(gSelectionInverted);
-                    statusBarMessage = "Lasso selection set";
-                }
-                gLassoActive = false; gLassoPointsImg.clear();
-            }
-
             // Magic wand interaction
             if (gSelectionTool == SelectionTool::MagicWand && hovered) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
@@ -796,52 +731,45 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
     }
     if (!__hasImageToolbar) ImGui::EndDisabled();
 
-    // Selection toolbar
+    // Selection toolbar (without Lasso)
     ImGui::SameLine(); ImGui::Dummy(ImVec2(12,1)); ImGui::SameLine();
     ImGui::TextUnformatted("Selection:"); ImGui::SameLine();
     if (!__hasImageToolbar) ImGui::BeginDisabled();
     bool rectOn = (gSelectionTool == SelectionTool::Rectangle);
     if (ImGui::Selectable("Rect", rectOn, 0, ImVec2(40, 0))) { gSelectionTool = rectOn ? SelectionTool::None : SelectionTool::Rectangle; }
     ImGui::SameLine();
-    bool lassoOn = (gSelectionTool == SelectionTool::Lasso);
-    if (ImGui::Selectable("Lasso", lassoOn, 0, ImVec2(52, 0))) { gSelectionTool = lassoOn ? SelectionTool::None : SelectionTool::Lasso; }
-    ImGui::SameLine();
     bool wandOn = (gSelectionTool == SelectionTool::MagicWand);
     if (ImGui::Selectable("Wand", wandOn, 0, ImVec2(48, 0))) { gSelectionTool = wandOn ? SelectionTool::None : SelectionTool::MagicWand; }
     if (gSelectionTool == SelectionTool::MagicWand) { ImGui::SameLine(); ImGui::SetNextItemWidth(120.0f); ImGui::SliderInt("Tol", &gMagicWandTolerance, 0, 100); }
     ImGui::SameLine();
-    if (ImGui::Button("Clear Sel")) { processor.clearSelection(); gLassoActive = false; gLassoPointsImg.clear(); statusBarMessage = "Selection cleared"; }
+    if (ImGui::Button("Clear Sel")) { processor.clearSelection(); statusBarMessage = "Selection cleared"; }
     ImGui::SameLine();
     bool inv = gSelectionInverted; if (ImGui::Checkbox("Invert", &inv)) { gSelectionInverted = inv; processor.setSelectionInvert(inv); }
     if (!__hasImageToolbar) ImGui::EndDisabled();
 
-    // Centered transient status text
+    // Move status text to the right, without overlapping image details
     float toolbarWidth = ImGui::GetWindowWidth();
-    float text_width = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
-    ImGui::SameLine(std::max(0.0f, toolbarWidth * 0.5f - text_width * 0.5f));
-    ImGui::Text("%s", statusBarMessage.c_str());
-
-    // Right-aligned image details
+    // Build image details first to know its width
     const Image& img = processor.getCurrentImage();
     auto gcd = [](int a, int b){ while(b){ int t=a%b; a=b; b=t;} return std::max(1, a); };
     int g = (img.width>0 && img.height>0) ? gcd(img.width, img.height) : 1;
     int arw = (img.width>0)? img.width / g : 0;
     int arh = (img.height>0)? img.height / g : 0;
-    // Extract file name from stored path
-    std::string fname = gCurrentImagePath;
-    size_t pos = fname.find_last_of("/\\");
-    if (pos != std::string::npos) fname = fname.substr(pos + 1);
-    if (fname.empty()) fname = "Untitled";
-
-    // Build info string: name | WxH | aspect | zoom
+    std::string fname = gCurrentImagePath; size_t pos = fname.find_last_of("/\\"); if (pos != std::string::npos) fname = fname.substr(pos + 1); if (fname.empty()) fname = "Untitled";
     char infoBuf[256];
     if (img.width > 0 && img.height > 0)
-        std::snprintf(infoBuf, sizeof(infoBuf), "%s | %dx%d | %d:%d | %.0f%%",
-                      fname.c_str(), img.width, img.height, arw, arh, zoom_level * 100.0f);
+        std::snprintf(infoBuf, sizeof(infoBuf), "%s | %dx%d | %d:%d | %.0f%%", fname.c_str(), img.width, img.height, arw, arh, zoom_level * 100.0f);
     else
         std::snprintf(infoBuf, sizeof(infoBuf), "%s", fname.c_str());
-
     float infoWidth = ImGui::CalcTextSize(infoBuf).x;
+
+    // Now compute status width and place it to the right of center but before info
+    float statusWidth = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
+    float statusX = std::max(0.0f, toolbarWidth - infoWidth - statusWidth - 16.0f);
+    ImGui::SameLine(statusX);
+    ImGui::Text("%s", statusBarMessage.c_str());
+
+    // Finally, right-align image details at the far right
     ImGui::SameLine(std::max(0.0f, toolbarWidth - infoWidth - 8.0f));
     ImGui::TextUnformatted(infoBuf);
 
