@@ -1056,7 +1056,12 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::Dummy(ImVec2(0, 2));
         if (ImGui::Button("Change Merge Image")) {
-            std::string path = openFileDialog_Linux();
+            std::string path =
+#ifdef _WIN32
+                openFileDialog_Windows(false, false);
+#else
+                openFileDialog_Linux();
+#endif
             if (!path.empty()) {
                 overlayImage = Image(path);
                 if (overlayTexID) glDeleteTextures(1, &overlayTexID);

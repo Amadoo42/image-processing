@@ -254,13 +254,23 @@ static void drawTopNavBar(ImageProcessor &processor) {
         auto executeQuickCommand = [&](const std::string &qraw){
             std::string q = qraw; for (auto &c : q) c = (char)tolower(c);
             if (q.find("open") != std::string::npos || q == "load") {
-                std::string selected = openFileDialog_Linux();
+                std::string selected =
+#ifdef _WIN32
+                    openFileDialog_Windows(false, false);
+#else
+                    openFileDialog_Linux();
+#endif
                 if(!selected.empty()) { processor.loadImage(selected); guiSetCurrentImagePath(selected); textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; gImageSessionId++; gSelectedFilter = FilterType::None; statusBarMessage = "Image loaded successfully!"; }
             } else if (q.find("save") != std::string::npos) {
                 const Image &img = processor.getCurrentImage();
                 if (img.width <= 0 || img.height <= 0) { statusBarMessage = "No image loaded."; }
                 else {
-                    std::string selected = saveFileDialog_Linux();
+                    std::string selected =
+#ifdef _WIN32
+                        openFileDialog_Windows(true, false);
+#else
+                        saveFileDialog_Linux();
+#endif
                     if (!selected.empty()) { if (processor.saveImage(selected)) { guiSetCurrentImagePath(selected); statusBarMessage = "Image saved to " + selected; } }
                 }
             } else if (q.find("undo") != std::string::npos) {
@@ -447,7 +457,12 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
     bool __hasImage = (__img_right.width > 0 && __img_right.height > 0);
     if (!__hasImage) ImGui::BeginDisabled();
     if (ImGui::Button("Save", ImVec2(btnW, 0))) {
-        std::string selected = saveFileDialog_Linux();
+        std::string selected =
+#ifdef _WIN32
+            openFileDialog_Windows(true, false);
+#else
+            saveFileDialog_Linux();
+#endif
         if (!selected.empty()) {
             if (processor.saveImage(selected)) { statusBarMessage = std::string("Image saved to ") + selected; }
             else { statusBarMessage = "Failed to save image."; }
@@ -1032,7 +1047,15 @@ void renderGUI(ImageProcessor &processor) {
                 case FilterType::Frame:
                 case FilterType::Merge: {
                     ImGui::Text("Path: %s", filePath.empty() ? "<none>" : filePath.c_str());
-                    if (ImGui::Button("Choose File")) { std::string p = openFileDialog_Linux(); if (!p.empty()) filePath = p; }
+                    if (ImGui::Button("Choose File")) { 
+                        std::string p =
+#ifdef _WIN32
+                            openFileDialog_Windows(false, false);
+#else
+                            openFileDialog_Linux();
+#endif
+                        if (!p.empty()) filePath = p; 
+                    }
                     break; }
                 default: break;
             }
