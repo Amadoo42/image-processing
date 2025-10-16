@@ -1373,13 +1373,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         ImGui::BeginChild("Rotate Controls", childSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::Dummy(ImVec2(0, 4));
         ImGui::Text("Angle: %d\u00B0", (int)std::round(angleDeg));
-        ImGui::SliderFloat("##angle_slider", &angleDeg, -180.0f, 180.0f, "%.0f\u00B0");
-        if (ImGui::Button("\u21BA -90\u00B0")) { angleDeg -= 90.0f; }
-        ImGui::SameLine();
-        if (ImGui::Button("+90\u00B0 \u21BB")) { angleDeg += 90.0f; }
-        if (ImGui::IsItemDeactivatedAfterEdit()) { /* noop */ }
-        // Keep angle in [-180,180]
-        if (angleDeg > 180.0f) angleDeg -= 360.0f; else if (angleDeg < -180.0f) angleDeg += 360.0f;
+        ImGui::TextDisabled("Drag the circle handle to rotate");
         ImGui::Separator();
         if (ImGui::Button("Apply")) {
             processor.setImage(originalImage);
@@ -1455,11 +1449,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SetCursorScreenPos(handleTL);
             ImGui::InvisibleButton("##rotate_handle", ImVec2(handleR * 2.0f, handleR * 2.0f));
             if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-                // Click toggles +90, Shift-click -90 for convenience
-                angleDeg += io.KeyShift ? -90.0f : 90.0f;
-                if (angleDeg > 180.0f) angleDeg -= 360.0f; else if (angleDeg < -180.0f) angleDeg += 360.0f;
-            }
+            // no click-to-step; drag only
             if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
                 handleDragging = true;
             }
