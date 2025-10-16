@@ -698,42 +698,48 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
     // Layout the bottom toolbar into 3 columns: Left (global), Center (selection tools), Right (status + info)
     if (ImGui::BeginTable("BottomToolbarTable", 3, ImGuiTableFlags_SizingStretchSame)) {
         ImGui::TableNextColumn();
+
         // LEFT: Undo/Redo/Reset + Zoom controls
-        if(ImGui::Button(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str())) {
-            if(processor.undo()) { textureNeedsUpdate = true; statusBarMessage = "Undo successful."; }
-            else { statusBarMessage = "Nothing to undo."; }
-        }
-        ImGui::SameLine();
-        if(ImGui::Button(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str())) {
-            if(processor.redo()) { textureNeedsUpdate = true; statusBarMessage = "Redo successful."; }
-            else { statusBarMessage = "Nothing to redo."; }
-        }
-        ImGui::SameLine();
         const Image &__img_toolbar = processor.getCurrentImage();
         bool __hasImageToolbar = (__img_toolbar.width > 0 && __img_toolbar.height > 0);
+
+        // Undo
+        if (ImGui::Button(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str())) {
+            if (processor.undo()) {
+                textureNeedsUpdate = true;
+                gPreviewCacheNeedsUpdate = true;
+                statusBarMessage = "Undo successful.";
+            } else {
+                statusBarMessage = "Nothing to undo.";
+            }
+        }
+        ImGui::SameLine();
+
+        // Redo
+        if (ImGui::Button(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str())) {
+            if (processor.redo()) {
+                textureNeedsUpdate = true;
+                gPreviewCacheNeedsUpdate = true;
+                statusBarMessage = "Redo successful.";
+            } else {
+                statusBarMessage = "Nothing to redo.";
+            }
+        }
+        ImGui::SameLine();
+
+        // Reset
         if (!__hasImageToolbar) ImGui::BeginDisabled();
-        if(ImGui::Button(iconLabel(ICON_FA_ARROWS_ROTATE, "Reset").c_str())) { zoom_level = 1.0f; pan_offset = ImVec2(0,0); }
+        if (ImGui::Button(iconLabel(ICON_FA_ARROWS_ROTATE, "Reset").c_str())) {
+            zoom_level = 1.0f;
+            pan_offset = ImVec2(0, 0);
+        }
         if (!__hasImageToolbar) ImGui::EndDisabled();
 
         ImGui::SameLine();
         ImGui::Dummy(ImVec2(8, 1));
         ImGui::SameLine();
-    if(ImGui::Button(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str())) {
-        if(processor.undo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Undo successful."; }
-        else { statusBarMessage = "Nothing to undo."; }
-    }
-    ImGui::SameLine();
-    if(ImGui::Button(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str())) {
-        if(processor.redo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Redo successful."; }
-        else { statusBarMessage = "Nothing to redo."; }
-    }
-    ImGui::SameLine();
-    const Image &__img_toolbar = processor.getCurrentImage();
-    bool __hasImageToolbar = (__img_toolbar.width > 0 && __img_toolbar.height > 0);
-    if (!__hasImageToolbar) ImGui::BeginDisabled();
-    if(ImGui::Button(iconLabel(ICON_FA_ARROWS_ROTATE, "Reset").c_str())) { zoom_level = 1.0f; pan_offset = ImVec2(0,0); }
-    if (!__hasImageToolbar) ImGui::EndDisabled();
 
+        // Zoom controls
         ImGui::TextUnformatted("Zoom");
         ImGui::SameLine();
         float percent = zoom_level * 100.0f;
@@ -802,12 +808,25 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         else
             std::snprintf(infoBuf, sizeof(infoBuf), "%s", fname.c_str());
 
-        // Status message (first line)
-        ImGui::TextUnformatted(statusBarMessage.c_str());
-        // Details (second line), right-aligned within the column
+        // Lay out: Status bar glued to right and ending at left of the image info
         float infoWidth = ImGui::CalcTextSize(infoBuf).x;
+        float statusWidth = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
         float avail = ImGui::GetContentRegionAvail().x;
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(0.0f, avail - infoWidth - 8.0f));
+
+        // Compute right-aligned positions
+        float rightPad = 8.0f;
+        float infoX = ImGui::GetCursorPosX() + std::max(0.0f, avail - infoWidth - rightPad);
+        float statusX = infoX - statusWidth - 12.0f; // Small gap between status and info
+
+        // Render statusBarMessage at the calculated position
+        if (statusWidth > 0.0f) {
+            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), statusX));
+            ImGui::TextUnformatted(statusBarMessage.c_str());
+        }
+
+        ImGui::SameLine();
+        // Render infoBuf right-glued
+        ImGui::SetCursorPosX(infoX);
         ImGui::TextUnformatted(infoBuf);
 
         ImGui::EndTable();

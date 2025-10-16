@@ -1612,12 +1612,10 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(changed){
                 processor.setImage(originalImage);
-                WaveFilter filter(amplitude, wavelength);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
                 float safeWavelength = (wavelength <= 0.0f) ? 1.0f : wavelength;
                 WaveFilter filter(amplitude, safeWavelength);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             
@@ -1737,12 +1735,10 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(changed){
                 processor.setImage(originalImage);
-                ContrastFilter filter(factor);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
                 float safe = std::max(0.0f, factor);
                 ContrastFilter filter(safe);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1809,14 +1805,12 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
-            if(changed){
+            if(changed) {
                 processor.setImage(originalImage);
-                SaturationFilter filter(factor);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
                 float safe = std::max(0.0f, factor);
                 SaturationFilter filter(safe);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1935,12 +1929,12 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(changed){
                 processor.setImage(originalImage);
-                VigentteFilter filter(factor);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
                 float safe = std::max(0.0f, factor);
                 VigentteFilter filter(safe);
-                processor.applyFilterNoHistory(filter);
+                if (processor.hasSelection())
+                    processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+                else
+                    processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
