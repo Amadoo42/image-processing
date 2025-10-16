@@ -34,6 +34,13 @@ inline ImVec2 operator+(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x + 
 inline ImVec2 operator-(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x - b.x, a.y - b.y); }
 inline ImVec2 operator*(const ImVec2& a, float b) { return ImVec2(a.x * b, a.y * b); }
 
+inline bool ClampedInputFloat(const char* label, float* v, float min_val, float max_val, const char* format = "%.2f") {
+    bool changed = ImGui::InputFloat(label, v, 0.0f, 0.0f, format);
+    if (changed) {
+        *v = std::clamp(*v, min_val, max_val);
+    }
+    return changed;
+}
 // Inline rendering flag for parameter UIs. When true, parameter widgets
 // are rendered inline without opening separate windows.
 static bool g_params_inline_mode = false;
@@ -767,7 +774,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1521,7 +1528,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1711,7 +1718,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1782,7 +1789,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1843,7 +1850,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##AngleInput", &Angle, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##AngleInput", &Angle, -90.0f, 90.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1902,7 +1909,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1962,7 +1969,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             
             ImGui::SameLine();
-            if(ImGui::InputFloat("##FactorInput", &factor, 0.0f, 0.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, -3.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
