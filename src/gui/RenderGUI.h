@@ -30,7 +30,7 @@ static std::string statusBarMessage = "Welcome to Image Processor!";
 
 // --- Selection tools state --------------------------------------------------
 enum class SelectionToolMode { None = 0, Rectangle, MagicWand };
-static SelectionToolMode gSelectionTool = SelectionToolMode::None;
+SelectionToolMode gSelectionTool = SelectionToolMode::None;
 static bool gSelectionInverseApply = false;   // apply filter to outside of selection
 static int  gMagicWandTolerance = 40;         // 0..765 (sum of abs RGB diffs)
 static bool gHasActiveRectDrag = false;

@@ -8,7 +8,7 @@
 extern bool gPreviewCacheNeedsUpdate;
 
 // Forward declarations
-enum class SelectionToolMode;
+enum class SelectionToolMode { None = 0, Rectangle, MagicWand };
 extern SelectionToolMode gSelectionTool;
 
 // Render inline parameter panels by forcing inline mode for parameter windows.
@@ -113,7 +113,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
     bool shouldDisableFilter = false;
     if (selected == FilterType::Resize || selected == FilterType::Flip || selected == FilterType::Rotate || 
         selected == FilterType::Merge || selected == FilterType::Crop || selected == FilterType::Frame) {
-        extern SelectionToolMode gSelectionTool;
         shouldDisableFilter = (gSelectionTool != SelectionToolMode::None);
     }
     

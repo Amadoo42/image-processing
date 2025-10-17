@@ -16,6 +16,7 @@
 #include "../filters/FrameFilter.h"
 #include "../filters/HorizontalFlipFilter.h"
 #include "../filters/VerticalFlipFilter.h"
+#include "../filters/FlipFilter.h"
 #include "../filters/MergeFilter.h"
 #include "../filters/RotateFilter.h"
 #include "../filters/OutlineFilter.h"

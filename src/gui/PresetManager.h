@@ -35,6 +35,7 @@
 #include "../filters/SkewFilter.h"
 #include "../filters/VigentteFilter.h"
 #include "../filters/VerticalFlipFilter.h"
+#include "../filters/FlipFilter.h"
 #include "../filters/WarmthFilter.h"
 
 struct FilterStep {
