@@ -8,6 +8,7 @@
 #include "FilterPreview.h"
 #include "FilterParamsPanel.h"
 #include "../filters/ResizeFilter.h"
+#include "../filters/FlipFilter.h"
 #include "PresetManager.h"
 #include <string>
 #include <algorithm>
@@ -28,13 +29,17 @@ bool textureNeedsUpdate = false;
 static std::string statusBarMessage = "Welcome to Image Processor!";
 
 // --- Selection tools state --------------------------------------------------
-enum class SelectionToolMode { None = 0, Rectangle, MagicWand };
-static SelectionToolMode gSelectionTool = SelectionToolMode::None;
+#include "SelectionTools.h"
+SelectionToolMode gSelectionTool = SelectionToolMode::None;
 static bool gSelectionInverseApply = false;   // apply filter to outside of selection
 static int  gMagicWandTolerance = 40;         // 0..765 (sum of abs RGB diffs)
 static bool gHasActiveRectDrag = false;
 static ImVec2 gRectDragStart = ImVec2(0,0);
 static ImVec2 gRectDragEnd = ImVec2(0,0);
+Image gOriginalImageForPreview;        // stores original image for filter previews
+bool gHasOriginalImageForPreview = false; // flag to track if we have a valid original image
+static int gUndoHistorySize = 20;      // configurable undo/redo history size
+static char gBatchOutputDirectory[256] = "output"; // configurable batch output directory
 
 // New UI state for refactored layout
 // Left panel is now dedicated filter parameter panel
@@ -164,25 +169,6 @@ static void drawTopNavBar(ImageProcessor &processor) {
                     }
                 }
             }
-            if(ImGui::MenuItem(iconLabel(ICON_FA_FLOPPY_DISK_CIRCLE_ARROW_RIGHT, "Save As").c_str())) {
-                std::string selected =
-#ifdef _WIN32
-                    openFileDialog_Windows(true, false);
-#else
-                    saveFileDialog_Linux();
-#endif
-                if (!selected.empty()) {
-                    if (processor.saveImage(selected)) {
-                        std::cout << "Image saved to " << selected << std::endl;
-                        statusBarMessage = "Image saved to " + selected;
-                        guiSetCurrentImagePath(selected);
-                    }
-                    else {
-                        std::cerr << "Failed to save image." << std::endl;
-                        statusBarMessage = "Failed to save image.";
-                    }
-                }
-            }
             if (!__hasImage) ImGui::EndDisabled();
             if (ImGui::MenuItem("Batch Process Images")) {
                 showBatchWindow = true;
@@ -194,11 +180,23 @@ static void drawTopNavBar(ImageProcessor &processor) {
         }
         if (ImGui::BeginMenu("Edit")) {
             if (ImGui::MenuItem(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str(), "Ctrl+Z")) {
-                if(processor.undo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Undo successful."; }
+                if(processor.undo()) { 
+                    textureNeedsUpdate = true; 
+                    gPreviewCacheNeedsUpdate = true; 
+                    gSelectedFilter = FilterType::None; // Reset filter selection
+                    gPresetManager.clearSession(); // Clear preset session
+                    statusBarMessage = "Undo successful."; 
+                }
                 else { statusBarMessage = "Nothing to undo."; }
             }
             if (ImGui::MenuItem(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str(), "Ctrl+Y")) {
-                if(processor.redo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Redo successful."; }
+                if(processor.redo()) { 
+                    textureNeedsUpdate = true; 
+                    gPreviewCacheNeedsUpdate = true; 
+                    gSelectedFilter = FilterType::None; // Reset filter selection
+                    gPresetManager.clearSession(); // Clear preset session
+                    statusBarMessage = "Redo successful."; 
+                }
                 else { statusBarMessage = "Nothing to redo."; }
             }
             ImGui::Separator();
@@ -217,18 +215,25 @@ static void drawTopNavBar(ImageProcessor &processor) {
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu("Transform")) {
+                    bool hasSelection = (gSelectionTool != SelectionToolMode::None);
+                    if (hasSelection) ImGui::BeginDisabled();
                     if (ImGui::MenuItem("Crop", nullptr, gSelectedFilter == FilterType::Crop)) gSelectedFilter = FilterType::Crop;
                     if (ImGui::MenuItem("Resize", nullptr, gSelectedFilter == FilterType::Resize)) gSelectedFilter = FilterType::Resize;
-                    if (ImGui::MenuItem("Horizontal Flip", nullptr, gSelectedFilter == FilterType::HorizontalFlip)) gSelectedFilter = FilterType::HorizontalFlip;
-                    if (ImGui::MenuItem("Vertical Flip", nullptr, gSelectedFilter == FilterType::VerticalFlip)) gSelectedFilter = FilterType::VerticalFlip;
+                    if (ImGui::MenuItem("Flip", nullptr, gSelectedFilter == FilterType::Flip)) gSelectedFilter = FilterType::Flip;
                     if (ImGui::MenuItem("Rotate", nullptr, gSelectedFilter == FilterType::Rotate)) gSelectedFilter = FilterType::Rotate;
+                    if (hasSelection) ImGui::EndDisabled();
                     if (ImGui::MenuItem("Skew", nullptr, gSelectedFilter == FilterType::Skew)) gSelectedFilter = FilterType::Skew;
+                    if (hasSelection) ImGui::BeginDisabled();
                     if (ImGui::MenuItem("Merge", nullptr, gSelectedFilter == FilterType::Merge)) gSelectedFilter = FilterType::Merge;
+                    if (hasSelection) ImGui::EndDisabled();
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu("Effects")) {
                     if (ImGui::MenuItem("Blur", nullptr, gSelectedFilter == FilterType::Blur)) gSelectedFilter = FilterType::Blur;
+                    bool hasSelection = (gSelectionTool != SelectionToolMode::None);
+                    if (hasSelection) ImGui::BeginDisabled();
                     if (ImGui::MenuItem("Frame", nullptr, gSelectedFilter == FilterType::Frame)) gSelectedFilter = FilterType::Frame;
+                    if (hasSelection) ImGui::EndDisabled();
                     if (ImGui::MenuItem("Outline", nullptr, gSelectedFilter == FilterType::Outline)) gSelectedFilter = FilterType::Outline;
                     if (ImGui::MenuItem("Purple", nullptr, gSelectedFilter == FilterType::Purple)) gSelectedFilter = FilterType::Purple;
                     if (ImGui::MenuItem("Infrared", nullptr, gSelectedFilter == FilterType::Infrared)) gSelectedFilter = FilterType::Infrared;
@@ -256,9 +261,58 @@ static void drawTopNavBar(ImageProcessor &processor) {
             if (ImGui::MenuItem(iconLabel(ICON_FA_QUESTION_CIRCLE, "About").c_str())) {
                 showAboutWindow = true;
             }
-            ImGui::MenuItem(iconLabel(ICON_FA_BOOK, "Documentation").c_str(), nullptr, false, false);
             ImGui::EndMenu();
         }
+
+        float totalWidth = ImGui::GetWindowWidth();
+        float menuBarHeight = ImGui::GetFrameHeight();
+        float currentX = ImGui::GetCursorPosX();
+        
+        float estRightWidth = 350.0f; 
+
+        float availableCenterWidth = totalWidth - currentX - estRightWidth;
+        float selectionToolsWidthEstimate = 500.0f;
+        float padding = std::max(0.0f, (availableCenterWidth / 2.0f) - (selectionToolsWidthEstimate / 2.0f));
+
+        if (padding > 0) {
+            ImGui::SameLine(currentX + padding);
+        } else {
+            ImGui::SameLine();
+        }
+
+        ImGui::TableNextColumn();
+        if (!__hasImage) ImGui::BeginDisabled();
+        ImGui::TextUnformatted("Selection:"); ImGui::SameLine();
+        bool selNone = (gSelectionTool == SelectionToolMode::None);
+        if (ImGui::RadioButton("None", selNone)) gSelectionTool = SelectionToolMode::None;
+        ImGui::SameLine();
+        bool selRect = (gSelectionTool == SelectionToolMode::Rectangle);
+        if (ImGui::RadioButton("Rectangle", selRect)) gSelectionTool = SelectionToolMode::Rectangle;
+        ImGui::SameLine();
+        bool selWand = (gSelectionTool == SelectionToolMode::MagicWand);
+        if (ImGui::RadioButton("Magic Wand", selWand)) gSelectionTool = SelectionToolMode::MagicWand;
+        
+        // Move to next line for better layout
+        ImGui::SameLine();
+        ImGui::Checkbox("Apply to outside", &gSelectionInverseApply);
+        // propagate to processor so parameter panels can query invert flag
+        processor.setSelectionInvertApply(gSelectionInverseApply);
+        ImGui::SameLine();
+        if (ImGui::Button("Clear Selection")) {
+            processor.clearSelection();
+            statusBarMessage = "Selection cleared";
+        }
+        
+        // Tolerance slider on its own line when magic wand is selected
+        if (gSelectionTool == SelectionToolMode::MagicWand) {
+            ImGui::SameLine();
+            ImGui::Text("Tolerance:");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(200.0f);
+            ImGui::SliderInt("##wand_tol", &gMagicWandTolerance, 0, 200, "%d");
+        }
+
+        if (!__hasImage) ImGui::EndDisabled();
 
         // Right-aligned search field (functional + sticky suggestions)
         auto executeQuickCommand = [&](const std::string &qraw){
@@ -537,13 +591,17 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
         auto addItem = [&](const char* label, FilterType t) {
             if (ImGui::Selectable(label, gSelectedFilter == t)) gSelectedFilter = t;
         };
+        bool hasSelection = (gSelectionTool != SelectionToolMode::None);
+        if (hasSelection) ImGui::BeginDisabled();
         addItem("Crop", FilterType::Crop);
         addItem("Resize", FilterType::Resize);
-        addItem("Horizontal Flip", FilterType::HorizontalFlip);
-        addItem("Vertical Flip", FilterType::VerticalFlip);
+        addItem("Flip", FilterType::Flip);
         addItem("Rotate", FilterType::Rotate);
+        if (hasSelection) ImGui::EndDisabled();
         addItem("Skew", FilterType::Skew);
+        if (hasSelection) ImGui::BeginDisabled();
         addItem("Merge", FilterType::Merge);
+        if (hasSelection) ImGui::EndDisabled();
     } else {
         // Effects: preview grid for previewables + text entries for non-previewables
         std::vector<FilterType> effectsPreview = {
@@ -558,6 +616,12 @@ static void drawRightPanel(ImageProcessor &processor, float width) {
             FilterType::Warmth,
             FilterType::Frame
         };
+        
+        // Filter out disabled effects when selection tools are active
+        if (gSelectionTool != SelectionToolMode::None) {
+            effectsPreview.erase(std::remove(effectsPreview.begin(), effectsPreview.end(), FilterType::Frame), effectsPreview.end());
+        }
+        
         renderFilterPreviewGrid(previewCache, processor, effectsPreview, gSelectedFilter, invalidate, "effects_sidebar", 2, ImVec2(120, 90), &frozenForPreviews);
     }
     }
@@ -662,26 +726,71 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
                 dl->AddRect(rmin, rmax, IM_COL32(0, 255, 255, 255), 0, 0, 2.0f);
             }
 
-            // Persistent selection bounding box
+            // Persistent selection display
             if (processor.hasSelection()) {
                 const auto &mask = processor.getSelectionMask();
                 int w = currentImage.width, h = currentImage.height;
-                int minx = w, miny = h, maxx = -1, maxy = -1;
-                for (int y = 0; y < h; ++y) {
-                    size_t row = (size_t)y * (size_t)w;
-                    for (int x = 0; x < w; ++x) {
-                        if (mask[row + (size_t)x]) {
-                            if (x < minx) minx = x;
-                            if (y < miny) miny = y;
-                            if (x > maxx) maxx = x;
-                            if (y > maxy) maxy = y;
+                
+                if (gSelectionTool == SelectionToolMode::MagicWand) {
+                    // For magic wand, draw the actual selection mask as a lasso-like outline
+                    std::vector<ImVec2> outlinePoints;
+                    
+                    // Find outline points by checking for edges in the selection mask
+                    for (int y = 0; y < h; ++y) {
+                        for (int x = 0; x < w; ++x) {
+                            size_t idx = (size_t)y * (size_t)w + (size_t)x;
+                            if (mask[idx]) {
+                                // Check if this pixel is on the edge of the selection
+                                bool isEdge = false;
+                                for (int dy = -1; dy <= 1; ++dy) {
+                                    for (int dx = -1; dx <= 1; ++dx) {
+                                        int nx = x + dx;
+                                        int ny = y + dy;
+                                        if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                                            size_t nidx = (size_t)ny * (size_t)w + (size_t)nx;
+                                            if (!mask[nidx]) {
+                                                isEdge = true;
+                                                break;
+                                            }
+                                        } else {
+                                            isEdge = true;
+                                            break;
+                                        }
+                                    }
+                                    if (isEdge) break;
+                                }
+                                
+                                if (isEdge) {
+                                    ImVec2 screenPos(itemMin.x + x * zoom_level, itemMin.y + y * zoom_level);
+                                    outlinePoints.push_back(screenPos);
+                                }
+                            }
                         }
                     }
-                }
-                if (maxx >= minx && maxy >= miny) {
-                    ImVec2 smin(itemMin.x + minx * zoom_level, itemMin.y + miny * zoom_level);
-                    ImVec2 smax(itemMin.x + (maxx + 1) * zoom_level, itemMin.y + (maxy + 1) * zoom_level);
-                    dl->AddRect(smin, smax, IM_COL32(255, 255, 0, 255), 0, 0, 2.0f);
+                    
+                    // Draw the outline points
+                    for (size_t i = 0; i < outlinePoints.size(); ++i) {
+                        dl->AddCircleFilled(outlinePoints[i], 1.0f, IM_COL32(255, 255, 0, 255));
+                    }
+                } else {
+                    // For rectangle selection, draw the bounding box
+                    int minx = w, miny = h, maxx = -1, maxy = -1;
+                    for (int y = 0; y < h; ++y) {
+                        size_t row = (size_t)y * (size_t)w;
+                        for (int x = 0; x < w; ++x) {
+                            if (mask[row + (size_t)x]) {
+                                if (x < minx) minx = x;
+                                if (y < miny) miny = y;
+                                if (x > maxx) maxx = x;
+                                if (y > maxy) maxy = y;
+                            }
+                        }
+                    }
+                    if (maxx >= minx && maxy >= miny) {
+                        ImVec2 smin(itemMin.x + minx * zoom_level, itemMin.y + miny * zoom_level);
+                        ImVec2 smax(itemMin.x + (maxx + 1) * zoom_level, itemMin.y + (maxy + 1) * zoom_level);
+                        dl->AddRect(smin, smax, IM_COL32(255, 255, 0, 255), 0, 0, 2.0f);
+                    }
                 }
             }
         } else {
@@ -693,10 +802,16 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
 
 // --- Bottom Toolbar ---------------------------------------------------------
 static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
-    float height = 52.0f; // taller to host selection tools + status/details
+    float height = 52.0f;
     ImGui::BeginChild("BottomToolbar", ImVec2(0, height), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-    // Layout the bottom toolbar into 3 columns: Left (global), Center (selection tools), Right (status + info)
-    if (ImGui::BeginTable("BottomToolbarTable", 3, ImGuiTableFlags_SizingStretchSame)) {
+    
+    // Use a 2-column layout: Left (controls) and Right (status/info)
+    if (ImGui::BeginTable("BottomToolbarTable", 2, ImGuiTableFlags_None)) {
+        // Set up columns: first takes minimum needed, second stretches
+        ImGui::TableSetupColumn("Left", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Right", ImGuiTableColumnFlags_WidthStretch);
+        
+        ImGui::TableNextRow();
         ImGui::TableNextColumn();
 
         // LEFT: Undo/Redo/Reset + Zoom controls
@@ -708,6 +823,8 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
             if (processor.undo()) {
                 textureNeedsUpdate = true;
                 gPreviewCacheNeedsUpdate = true;
+                gSelectedFilter = FilterType::None;
+                gPresetManager.clearSession();
                 statusBarMessage = "Undo successful.";
             } else {
                 statusBarMessage = "Nothing to undo.";
@@ -720,6 +837,8 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
             if (processor.redo()) {
                 textureNeedsUpdate = true;
                 gPreviewCacheNeedsUpdate = true;
+                gSelectedFilter = FilterType::None;
+                gPresetManager.clearSession();
                 statusBarMessage = "Redo successful.";
             } else {
                 statusBarMessage = "Nothing to redo.";
@@ -759,39 +878,9 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         }
         if (!__hasImageToolbar) ImGui::EndDisabled();
 
-        // CENTER: Selection tools
+        // RIGHT: Status text and image details (right-aligned)
         ImGui::TableNextColumn();
-        if (!__hasImageToolbar) ImGui::BeginDisabled();
-        ImGui::TextUnformatted("Selection:"); ImGui::SameLine();
-        bool selNone = (gSelectionTool == SelectionToolMode::None);
-        if (ImGui::RadioButton("None", selNone)) gSelectionTool = SelectionToolMode::None;
-        ImGui::SameLine();
-        bool selRect = (gSelectionTool == SelectionToolMode::Rectangle);
-        if (ImGui::RadioButton("Rectangle", selRect)) gSelectionTool = SelectionToolMode::Rectangle;
-        ImGui::SameLine();
-        bool selWand = (gSelectionTool == SelectionToolMode::MagicWand);
-        if (ImGui::RadioButton("Magic Wand", selWand)) gSelectionTool = SelectionToolMode::MagicWand;
-        // Tolerance slider visible in wand mode
-        if (gSelectionTool == SelectionToolMode::MagicWand) {
-            ImGui::SameLine();
-            ImGui::TextUnformatted("Tol:");
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(120.0f);
-            ImGui::SliderInt("##wand_tol", &gMagicWandTolerance, 0, 200, "%d");
-        }
-        ImGui::SameLine();
-        ImGui::Checkbox("Apply to outside", &gSelectionInverseApply);
-        // propagate to processor so parameter panels can query invert flag
-        processor.setSelectionInvertApply(gSelectionInverseApply);
-        ImGui::SameLine();
-        if (ImGui::Button("Clear Selection")) {
-            processor.clearSelection();
-            statusBarMessage = "Selection cleared";
-        }
-        if (!__hasImageToolbar) ImGui::EndDisabled();
-
-        // RIGHT: Status text (top line) and image details (second line, right-aligned)
-        ImGui::TableNextColumn();
+        
         const Image& img = processor.getCurrentImage();
         auto gcd = [](int a, int b){ while(b){ int t=a%b; a=b; b=t;} return std::max(1, a); };
         int g = (img.width>0 && img.height>0) ? gcd(img.width, img.height) : 1;
@@ -801,6 +890,7 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         size_t pos = fname.find_last_of("/\\");
         if (pos != std::string::npos) fname = fname.substr(pos + 1);
         if (fname.empty()) fname = "Untitled";
+        
         char infoBuf[256];
         if (img.width > 0 && img.height > 0)
             std::snprintf(infoBuf, sizeof(infoBuf), "%s | %dx%d | %d:%d | %.0f%%",
@@ -808,25 +898,22 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         else
             std::snprintf(infoBuf, sizeof(infoBuf), "%s", fname.c_str());
 
-        // Lay out: Status bar glued to right and ending at left of the image info
-        float infoWidth = ImGui::CalcTextSize(infoBuf).x;
+        // Calculate widths and positions for right-alignment
         float statusWidth = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
+        float infoWidth = ImGui::CalcTextSize(infoBuf).x;
+        float gap = 12.0f;
+        float compositeWidth = statusWidth + gap + infoWidth;
         float avail = ImGui::GetContentRegionAvail().x;
-
-        // Compute right-aligned positions
-        float rightPad = 8.0f;
-        float infoX = ImGui::GetCursorPosX() + std::max(0.0f, avail - infoWidth - rightPad);
-        float statusX = infoX - statusWidth - 12.0f; // Small gap between status and info
-
-        // Render statusBarMessage at the calculated position
-        if (statusWidth > 0.0f) {
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), statusX));
-            ImGui::TextUnformatted(statusBarMessage.c_str());
-        }
-
-        ImGui::SameLine();
-        // Render infoBuf right-glued
-        ImGui::SetCursorPosX(infoX);
+        
+        // Right-align by setting cursor position
+        float startX = ImGui::GetCursorPosX() + std::max(0.0f, avail - compositeWidth);
+        
+        // Render status message
+        ImGui::SetCursorPosX(startX);
+        ImGui::TextUnformatted(statusBarMessage.c_str());
+        
+        // Render info text
+        ImGui::SameLine(0.0f, gap);
         ImGui::TextUnformatted(infoBuf);
 
         ImGui::EndTable();
@@ -834,6 +921,7 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
 
     ImGui::EndChild();
 }
+
 
 void renderGUI(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();
@@ -864,14 +952,62 @@ void renderGUI(ImageProcessor &processor) {
                 else if (preferences_theme == 1) { setModernStyle(); is_dark_theme = true; }
                 else { ImGui::StyleColorsClassic(); is_dark_theme = false; }
             }
+            
+            ImGui::Separator();
+            ImGui::Text("Undo/Redo History");
+            ImGui::Separator();
+            ImGui::SliderInt("History Size", &gUndoHistorySize, 5, 100, "%d steps");
+            ImGui::Text("Current history size: %d steps", gUndoHistorySize);
+            if (ImGui::Button("Apply History Size")) {
+                processor.setHistorySize(gUndoHistorySize);
+            }
         }
         ImGui::End();
     }
 
     if (showAboutWindow) {
-        if (ImGui::Begin("About", &showAboutWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Image Processing GUI");
-            ImGui::Text("Using Dear ImGui");
+        if (ImGui::Begin("About & Documentation", &showAboutWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Image Processing GUI v1.0");
+            ImGui::Separator();
+            
+            ImGui::Text("Features:");
+            ImGui::BulletText("Advanced image editing with 20+ filters");
+            ImGui::BulletText("Real-time preview and parameter adjustment");
+            ImGui::BulletText("Selection tools (Rectangle, Magic Wand)");
+            ImGui::BulletText("Preset management and batch processing");
+            ImGui::BulletText("Undo/Redo with 20-step history");
+            ImGui::BulletText("Compare view for before/after comparison");
+            
+            ImGui::Separator();
+            ImGui::Text("Supported Formats:");
+            ImGui::Text("Input: JPG, PNG, BMP, TGA");
+            ImGui::Text("Output: JPG, PNG, BMP");
+            
+            ImGui::Separator();
+            ImGui::Text("Keyboard Shortcuts:");
+            ImGui::Text("Ctrl+O - Open Image");
+            ImGui::Text("Ctrl+S - Save Image");
+            ImGui::Text("Ctrl+Z - Undo");
+            ImGui::Text("Ctrl+Y - Redo");
+            
+            ImGui::Separator();
+            ImGui::Text("Built with:");
+            ImGui::Text("• Dear ImGui for the interface");
+            ImGui::Text("• SDL2 for window management");
+            ImGui::Text("• OpenGL for rendering");
+            ImGui::Text("• Custom C++ image processing engine");
+            
+            ImGui::Separator();
+            ImGui::Text("Usage Tips:");
+            ImGui::BulletText("Use mouse wheel to zoom in/out");
+            ImGui::BulletText("Right-click and drag to pan around the image");
+            ImGui::BulletText("Selection tools work with most filters");
+            ImGui::BulletText("Create presets to save filter combinations");
+            ImGui::BulletText("Use batch processing for multiple images");
+            
+            if (ImGui::Button("Close")) {
+                showAboutWindow = false;
+            }
         }
         ImGui::End();
     }
@@ -951,7 +1087,7 @@ void renderGUI(ImageProcessor &processor) {
             }
             if (applyIdx < 0) ImGui::BeginDisabled();
             if (ImGui::Button("Apply Now")) {
-                if (applyIdx >= 0) { gPresetManager.applyPreset(processor, presets[applyIdx]); textureNeedsUpdate = true; }
+                if (applyIdx >= 0) { gPresetManager.applyPresetBatch(processor, presets[applyIdx]); textureNeedsUpdate = true; }
             }
             if (applyIdx < 0) ImGui::EndDisabled();
         }
@@ -992,7 +1128,7 @@ void renderGUI(ImageProcessor &processor) {
             static int presetIdx = -1;
             static int filterIdx = 0;
             static float progress = 0.0f;
-            static char statusBuf[256] = {0};
+            static char statusBuf[512] = {0};
             static bool batchRunning = false;
             static size_t total = 0;
             static size_t currentIndex = 0;
@@ -1026,6 +1162,19 @@ void renderGUI(ImageProcessor &processor) {
             ImGui::Text("%zu selected", selectedFiles.size());
 
             ImGui::Separator();
+            ImGui::Text("Output Directory");
+            ImGui::InputText("##outputDir", gBatchOutputDirectory, IM_ARRAYSIZE(gBatchOutputDirectory));
+            ImGui::SameLine();
+            if (ImGui::Button("Browse")) {
+                std::string selectedDir = openDirectoryDialog();
+                if (!selectedDir.empty()) {
+                    strncpy(gBatchOutputDirectory, selectedDir.c_str(), IM_ARRAYSIZE(gBatchOutputDirectory) - 1);
+                    gBatchOutputDirectory[IM_ARRAYSIZE(gBatchOutputDirectory) - 1] = '\0';
+                    statusBarMessage = "Output directory set to: " + selectedDir;
+                }
+            }
+
+            ImGui::Separator();
             ImGui::Text("Mode");
             ImGui::RadioButton(modeLabels[0], &mode, 0); ImGui::SameLine();
             ImGui::RadioButton(modeLabels[1], &mode, 1);
@@ -1053,7 +1202,7 @@ void renderGUI(ImageProcessor &processor) {
             bool disableBatch = selectedFiles.empty() || (mode == 0 && presetIdx < 0);
             if (disableBatch) ImGui::BeginDisabled();
             if (ImGui::Button("Start Batch")) {
-                PresetManager::ensureOutputFolder("output");
+                PresetManager::ensureOutputFolder(gBatchOutputDirectory);
                 total = selectedFiles.size();
                 currentIndex = 0;
                 processed = 0;
@@ -1074,12 +1223,12 @@ void renderGUI(ImageProcessor &processor) {
                         ImageProcessor localProc;
                         localProc.setImage(img);
                         if (mode == 0) {
-                            if (presetIdx >= 0) gPresetManager.applyPreset(localProc, presets[presetIdx]);
+                            if (presetIdx >= 0) gPresetManager.applyPresetBatch(localProc, presets[presetIdx]);
                         } else {
                             if (!batchFilterTypes.empty() && filterIdx >= 0 && filterIdx < (int)batchFilterTypes.size()) {
                                 FilterStep step{ batchFilterTypes[filterIdx], {}, "" };
                                 PresetDefinition single{ "__single__", { step } };
-                                gPresetManager.applyPreset(localProc, single);
+                                gPresetManager.applyPresetBatch(localProc, single);
                             } else {
                                 ok = false;
                             }
@@ -1088,7 +1237,7 @@ void renderGUI(ImageProcessor &processor) {
                             std::string filename = path;
                             size_t pos = filename.find_last_of("/\\");
                             if (pos != std::string::npos) filename = filename.substr(pos + 1);
-                            std::string outPath = std::string("output/") + filename;
+                            std::string outPath = std::string(gBatchOutputDirectory) + "/" + filename;
                             try { localProc.saveImage(outPath); } catch (...) { ok = false; }
                         }
                     }
@@ -1099,9 +1248,9 @@ void renderGUI(ImageProcessor &processor) {
                 }
                 if (currentIndex >= total) {
                     batchRunning = false;
-                    std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped.", processed, skipped);
+                    std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped. Images saved to: %s/", processed, skipped, gBatchOutputDirectory);
                     progress = 1.0f;
-                    statusBarMessage = "Batch completed";
+                    statusBarMessage = "Batch completed - images saved to " + std::string(gBatchOutputDirectory) + "/ folder";
                 }
             }
             if (disableBatch) ImGui::EndDisabled();

@@ -35,6 +35,7 @@
 #include "../filters/SkewFilter.h"
 #include "../filters/VigentteFilter.h"
 #include "../filters/VerticalFlipFilter.h"
+#include "../filters/FlipFilter.h"
 #include "../filters/WarmthFilter.h"
 
 struct FilterStep {
@@ -131,6 +132,31 @@ public:
         return ok;
     }
 
+    // Apply preset as a single batch operation for undo purposes
+    bool applyPresetBatch(ImageProcessor &processor, const PresetDefinition &preset) const {
+        std::vector<Filter*> filters;
+        
+        // Create all filters first
+        for (const auto &step : preset.steps) {
+            Filter* filter = createFilterFromStep(step);
+            if (filter) {
+                filters.push_back(filter);
+            } else {
+                // Clean up created filters on failure
+                for (auto* f : filters) delete f;
+                return false;
+            }
+        }
+        
+        // Apply all filters as a batch
+        processor.applyFilterBatch(filters);
+        
+        // Clean up filter objects
+        for (auto* f : filters) delete f;
+        
+        return true;
+    }
+
     void loadFromDisk() {
         presets.clear();
         std::ifstream in(storagePath);
@@ -214,6 +240,33 @@ private:
 
     static double paramOr(const FilterStep &s, size_t idx, double def) {
         return idx < s.params.size() ? s.params[idx] : def;
+    }
+
+    Filter* createFilterFromStep(const FilterStep &step) const {
+        switch (step.type) {
+            case FilterType::Grayscale: return new GrayscaleFilter();
+            case FilterType::Invert: return new InvertFilter();
+            case FilterType::BlackAndWhite: return new BlackAndWhiteFilter();
+            case FilterType::HorizontalFlip: return new HorizontalFlipFilter();
+            case FilterType::VerticalFlip: return new VerticalFlipFilter();
+            case FilterType::Retro: return new RetroFilter();
+            case FilterType::Outline: return new OutlineFilter();
+            case FilterType::Infrared: return new InfraredFilter();
+            case FilterType::Brightness: { double factor = paramOr(step, 0, 1.0); return new DarkenFilter((float)factor); }
+            case FilterType::Contrast: { double factor = paramOr(step, 0, 1.0); return new ContrastFilter(factor); }
+            case FilterType::Saturation: { double factor = paramOr(step, 0, 1.0); return new SaturationFilter(factor); }
+            case FilterType::Warmth: { double factor = paramOr(step, 0, 1.0); return new WarmthFilter(factor); }
+            case FilterType::Vignette: { double factor = paramOr(step, 0, 1.0); return new VigentteFilter(factor); }
+            case FilterType::Blur: { int kSize = (int)paramOr(step, 0, 13.0); double sigma = paramOr(step, 1, 2.0); if (kSize % 2 == 0) kSize += 1; return new BlurFilter(kSize, sigma); }
+            case FilterType::Rotate: { double deg = paramOr(step, 0, 0.0); return new RotateFilter(deg, true); }
+            case FilterType::Skew: { double deg = paramOr(step, 0, 0.0); return new SkewFilter(deg); }
+            case FilterType::Wave: { double a = paramOr(step, 0, 0.0); double w = paramOr(step, 1, 1.0); return new WaveFilter((float)a, (float)w); }
+            case FilterType::OilPainting: { int radius = (int)paramOr(step, 0, 5.0); int intensity = (int)paramOr(step, 1, 20.0); return new OilPaintingFilter(radius, intensity); }
+            case FilterType::Resize: { int w = (int)paramOr(step, 0, 0.0); int h = (int)paramOr(step, 1, 0.0); if (w <= 0 || h <= 0) return nullptr; return new ResizeFilter(w, h); }
+            case FilterType::Crop: { int x = (int)paramOr(step, 0, 0.0); int y = (int)paramOr(step, 1, 0.0); int w = (int)paramOr(step, 2, 0.0); int h = (int)paramOr(step, 3, 0.0); if (w <= 0 || h <= 0) return nullptr; return new CropFilter(x, y, w, h); }
+            case FilterType::Flip: { bool h = paramOr(step, 0, 0.0) != 0.0; bool v = paramOr(step, 1, 0.0) != 0.0; return new FlipFilter(h, v); }
+            default: return nullptr;
+        }
     }
 
     bool applyStep(ImageProcessor &processor, const FilterStep &step) const {

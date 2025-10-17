@@ -1,6 +1,21 @@
 #pragma once
 
 #include "../core/ImageProcessor.h"
+
+// Helper function to store original image for filter preview switching
+inline void storeOriginalImageForPreview(const Image& originalImage) {
+    extern Image gOriginalImageForPreview;
+    extern bool gHasOriginalImageForPreview;
+    // Always store the original image when a filter starts
+    gOriginalImageForPreview = originalImage;
+    gHasOriginalImageForPreview = true;
+}
+
+// Helper function to clear stored original image
+inline void clearStoredOriginalImage() {
+    extern bool gHasOriginalImageForPreview;
+    gHasOriginalImageForPreview = false;
+}
 #include "MemoryOperation.h"
 #include "LoadTexture.h"
 #include "PresetManager.h"
@@ -16,6 +31,7 @@
 #include "../filters/FrameFilter.h"
 #include "../filters/HorizontalFlipFilter.h"
 #include "../filters/VerticalFlipFilter.h"
+#include "../filters/FlipFilter.h"
 #include "../filters/MergeFilter.h"
 #include "../filters/RotateFilter.h"
 #include "../filters/OutlineFilter.h"
@@ -101,6 +117,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 currentItem = 0; // Reset to default value
                 init = true;
             }
@@ -174,6 +191,7 @@ public:
         if (!init) {
             ImGui::OpenPopup("Crop Overlay");
             originalImage = processor.getCurrentImage();
+            storeOriginalImageForPreview(originalImage);
             posX = 0;
             posY = 0;
             newWidth = originalImage.width;
@@ -258,10 +276,27 @@ public:
         ImGui::Dummy(ImVec2(0, 4));
         ImGui::Text("Crop Parameters");
         ImGui::Separator();
-        if (ImGui::InputInt("X", &posX)) changed = true;
-        if (ImGui::InputInt("Y", &posY)) changed = true;
-        if (ImGui::InputInt("Width", &newWidth)) changed = true;
-        if (ImGui::InputInt("Height", &newHeight)) changed = true;
+        
+        // Clamp values to image bounds
+        int imgW = originalImage.width;
+        int imgH = originalImage.height;
+        
+        if (ImGui::InputInt("X", &posX)) {
+            posX = std::max(0, std::min(posX, imgW - 1));
+            changed = true;
+        }
+        if (ImGui::InputInt("Y", &posY)) {
+            posY = std::max(0, std::min(posY, imgH - 1));
+            changed = true;
+        }
+        if (ImGui::InputInt("Width", &newWidth)) {
+            newWidth = std::max(1, std::min(newWidth, imgW - posX));
+            changed = true;
+        }
+        if (ImGui::InputInt("Height", &newHeight)) {
+            newHeight = std::max(1, std::min(newHeight, imgH - posY));
+            changed = true;
+        }
 
         if (ImGui::Button("Apply")) {
             processor.setImage(originalImage);
@@ -474,6 +509,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     if (!init) {
         ImGui::OpenPopup("Resize Overlay");
         originalImage = processor.getCurrentImage();
+        storeOriginalImageForPreview(originalImage);
         newWidth = originalImage.width;
         newHeight = originalImage.height;
         textureID = loadTexture(originalImage);
@@ -763,7 +799,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Brightness Parameters", &show)) return;
 
             if(!init){
-                originalImage = processor.getCurrentImage();
+                // Check if we have a global original image (from previous filter)
+                extern Image gOriginalImageForPreview;
+                extern bool gHasOriginalImageForPreview;
+                if (gHasOriginalImageForPreview) {
+                    originalImage = gOriginalImageForPreview;
+                    // Clear the global image so subsequent filters will store their own
+                    gHasOriginalImageForPreview = false;
+                } else {
+                    originalImage = processor.getCurrentImage();
+                    storeOriginalImageForPreview(originalImage);
+                }
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -802,6 +848,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                clearStoredOriginalImage();
                 factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
@@ -1304,6 +1351,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         if (!init) {
             ImGui::OpenPopup("Rotate Overlay");
             originalImage = processor.getCurrentImage();
+            storeOriginalImageForPreview(originalImage);
             if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             textureID = loadTexture(originalImage);
             angleDeg = 0.0f;
@@ -1524,6 +1572,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 factor = 0.0f; // Reset to default value
                 init = true;
             }
@@ -1584,7 +1633,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     }
 
     void applyWave(bool &show, bool &textureNeedsUpdate) {
-        static float amplitude = 1.0f, wavelength = 1.0f;
+        static float amplitude = 1.0f;
+        static float wavelength = 1.0f;
         static Image originalImage;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
@@ -1595,6 +1645,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 amplitude = 1.0f; // Reset to default value
                 wavelength = 1.0f; // Reset to default value
                 init = true;
@@ -1604,15 +1655,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             
             ImGui::Text("Amplitude:");
             ImGui::SameLine();
-            if(ImGui::InputFloat("##Amplitude", &amplitude, 0, 0))changed = true;
+            if(ImGui::SliderFloat("##Amplitude", &amplitude, 0.0f, 10.0f, "%.1f"))changed = true;
             
             ImGui::Text("Wavelength:");
             ImGui::SameLine();
-            if(ImGui::InputFloat("##Wavelength", &wavelength, 0, 0))changed = true;
+            if(ImGui::SliderFloat("##Wavelength", &wavelength, 0.1f, 10.0f, "%.1f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
-                float safeWavelength = (wavelength <= 0.0f) ? 1.0f : wavelength;
+                float safeWavelength = std::max(0.1f, wavelength);
                 WaveFilter filter(amplitude, safeWavelength);
                 if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
                 else processor.applyFilterNoHistory(filter);
@@ -1622,16 +1673,16 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
             
             if(ImGui::Button("Apply")){
-                float safeWavelength = (wavelength <= 0.0f) ? 1.0f : wavelength;
+                float safeWavelength = std::max(0.1f, wavelength);
                 WaveFilter filter(amplitude, safeWavelength);
                 processor.setImage(originalImage);
                 if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
                 else processor.applyFilter(filter);
-                std::cout << "Wave filter applied with Parameters: " << amplitude << " " << wavelength << std::endl;
+                std::cout << "Wave filter applied with Parameters: " << amplitude << " " << safeWavelength << std::endl;
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
-                gPresetManager.recordStep(FilterStep{FilterType::Wave, {(double)amplitude, (double)wavelength}, ""});
+                gPresetManager.recordStep(FilterStep{FilterType::Wave, {(double)amplitude, (double)safeWavelength}, ""});
             }
 
             ImGui::SameLine();
@@ -1653,7 +1704,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         
         static int currentItem = 0;
         const char* items[] = {"Low", "Medium", "High"};
-        int values[] = {10, 20, 40};
+        int intensityValues[] = {5, 15, 30};
+        int radiusValues[] = {3, 6, 10};
 
         static Image originalImage;
         static bool init = false;
@@ -1665,6 +1717,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 currentItem = 0; // Reset to default value
                 init = true;
             }
@@ -1676,7 +1729,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(changed){
                 processor.setImage(originalImage);
-                OilPaintingFilter filter(5, values[currentItem]); 
+                OilPaintingFilter filter(radiusValues[currentItem], intensityValues[currentItem]); 
                 if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
                 else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
@@ -1684,14 +1737,14 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
 
             if(ImGui::Button("Apply")){
-                OilPaintingFilter filter(5, values[currentItem]); 
+                OilPaintingFilter filter(radiusValues[currentItem], intensityValues[currentItem]); 
                 processor.setImage(originalImage);
                 if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
                 else processor.applyFilter(filter);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
-                gPresetManager.recordStep(FilterStep{FilterType::OilPainting, {5.0, (double)values[currentItem]}, ""});
+                gPresetManager.recordStep(FilterStep{FilterType::OilPainting, {(double)radiusValues[currentItem], (double)intensityValues[currentItem]}, ""});
             }
 
             ImGui::SameLine();
@@ -1718,7 +1771,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Contrast Parameters", &show)) return;
 
             if(!init){
-                originalImage = processor.getCurrentImage();
+                // Check if we have a global original image (from previous filter)
+                extern Image gOriginalImageForPreview;
+                extern bool gHasOriginalImageForPreview;
+                if (gHasOriginalImageForPreview) {
+                    originalImage = gOriginalImageForPreview;
+                    // Clear the global image so subsequent filters will store their own
+                    gHasOriginalImageForPreview = false;
+                } else {
+                    originalImage = processor.getCurrentImage();
+                    storeOriginalImageForPreview(originalImage);
+                }
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -1727,15 +1790,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
+            if(ImGui::SliderFloat("##FactorSlider", &factor, 1.0f, 3.0f, "%.2f"))changed = true;
 
             
             ImGui::SameLine();
-            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 1.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
-                float safe = std::max(0.0f, factor);
+                float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
                 if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
                 else processor.applyFilterNoHistory(filter);
@@ -1744,7 +1807,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
-                float safe = std::max(0.0f, factor);
+                float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
                 processor.setImage(originalImage);
                 if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
@@ -1759,6 +1822,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                clearStoredOriginalImage();
                 factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
@@ -1790,7 +1854,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Saturation Parameters", &show)) return;
 
             if(!init){
-                originalImage = processor.getCurrentImage();
+                // Check if we have a global original image (from previous filter)
+                extern Image gOriginalImageForPreview;
+                extern bool gHasOriginalImageForPreview;
+                if (gHasOriginalImageForPreview) {
+                    originalImage = gOriginalImageForPreview;
+                    // Clear the global image so subsequent filters will store their own
+                    gHasOriginalImageForPreview = false;
+                } else {
+                    originalImage = processor.getCurrentImage();
+                    storeOriginalImageForPreview(originalImage);
+                }
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -1853,6 +1927,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 Angle = 0.0f; // Reset to default value
                 init = true;
             }
@@ -1861,11 +1936,11 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Text("Angle:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::SliderFloat("##AngleSlider", &Angle, -90.0f, 90.0f, "%.2f"))changed = true;
+            if(ImGui::SliderFloat("##AngleSlider", &Angle, -70.0f, 70.0f, "%.2f"))changed = true;
 
             
             ImGui::SameLine();
-            if(ClampedInputFloat("##AngleInput", &Angle, -90.0f, 90.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##AngleInput", &Angle, -70.0f, 70.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1913,7 +1988,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
-                factor = 1.0f; // Reset to default value
+                storeOriginalImageForPreview(originalImage);
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 
@@ -1975,7 +2051,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Warmth Parameters", &show)) return;
 
             if(!init){
-                originalImage = processor.getCurrentImage();
+                // Check if we have a global original image (from previous filter)
+                extern Image gOriginalImageForPreview;
+                extern bool gHasOriginalImageForPreview;
+                if (gHasOriginalImageForPreview) {
+                    originalImage = gOriginalImageForPreview;
+                    // Clear the global image so subsequent filters will store their own
+                    gHasOriginalImageForPreview = false;
+                } else {
+                    originalImage = processor.getCurrentImage();
+                    storeOriginalImageForPreview(originalImage);
+                }
                 factor = 0.0f; // Reset to default value
                 init = true;
             }
@@ -2014,6 +2100,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                clearStoredOriginalImage();
                 factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;

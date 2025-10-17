@@ -3,9 +3,14 @@
 #include "FilterDefs.h"
 #include "FilterParameters.h"
 #include "PresetManager.h"
+#include "RenderGUI.h"
 // This header is included by multiple translation units. Keep definitions here either static or inline.
 // The global is actually defined in RenderGUI.h, so we only declare it here.
 extern bool gPreviewCacheNeedsUpdate;
+
+// Forward declarations
+#include "SelectionTools.h"
+extern SelectionToolMode gSelectionTool;
 
 // Render inline parameter panels by forcing inline mode for parameter windows.
 struct ParamsInlineScope {
@@ -15,6 +20,7 @@ struct ParamsInlineScope {
 
 // Track open states for panels that should close on Apply and reopen on selection
 static FilterType s_prevSelected = FilterType::None;
+static FilterType s_lastAppliedFilter = FilterType::None;
 static bool s_rotateOpen = false;
 static bool s_skewOpen = false;
 // Effect panels open-state
@@ -31,8 +37,7 @@ static bool s_warmthOpen = false;
 static bool s_grayscaleOpen = false;
 static bool s_invertOpen = false;
 static bool s_blackAndWhiteOpen = false;
-static bool s_horizontalFlipOpen = false;
-static bool s_verticalFlipOpen = false;
+static bool s_flipOpen = false;
 // Parameter-based filter panels open-state
 static bool s_brightnessOpen = false;
 static bool s_contrastOpen = false;
@@ -50,11 +55,29 @@ inline void onFilterClicked(FilterType ft) {
     if (ft == FilterType::Skew)   s_skewOpen = true;
 }
 
+inline void onFilterApplied(FilterType ft) {
+    s_lastAppliedFilter = ft;
+    // Clear stored original image when filter is applied
+    extern bool gHasOriginalImageForPreview;
+    gHasOriginalImageForPreview = false;
+}
+
 inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType selected, bool &textureNeedsUpdate)
 {
     static FilterParameters params(processor);
     ParamsInlineScope scope; // ensure inline rendering within this panel
     if (selected != s_prevSelected) {
+        // Reset preview when switching filters without applying
+        if (s_prevSelected != FilterType::None && selected != FilterType::None && selected != s_lastAppliedFilter) {
+            // Restore original image if we have one stored
+            extern Image gOriginalImageForPreview;
+            extern bool gHasOriginalImageForPreview;
+            if (gHasOriginalImageForPreview) {
+                processor.setImage(gOriginalImageForPreview);
+                // Keep the stored image for the new filter to use
+            }
+            gPreviewCacheNeedsUpdate = true;
+        }
         s_prevSelected = selected;
         // Auto-open when a filter is newly selected
         if (selected == FilterType::Rotate) s_rotateOpen = true;
@@ -72,8 +95,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         if (selected == FilterType::Grayscale) s_grayscaleOpen = true;
         if (selected == FilterType::Invert) s_invertOpen = true;
         if (selected == FilterType::BlackAndWhite) s_blackAndWhiteOpen = true;
-        if (selected == FilterType::HorizontalFlip) s_horizontalFlipOpen = true;
-        if (selected == FilterType::VerticalFlip) s_verticalFlipOpen = true;
+        if (selected == FilterType::Flip) s_flipOpen = true;
         // Parameter-based filters
         if (selected == FilterType::Brightness) s_brightnessOpen = true;
         if (selected == FilterType::Contrast) s_contrastOpen = true;
@@ -94,9 +116,19 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             gPreviewCacheNeedsUpdate = true;
             // record step for presets
             gPresetManager.recordStep(FilterStep{type, {}, ""});
+            onFilterApplied(type);
         }
     };
 
+    // Check if current filter should be disabled when selection tools are active
+    bool shouldDisableFilter = false;
+    if (selected == FilterType::Resize || selected == FilterType::Flip || selected == FilterType::Rotate || 
+        selected == FilterType::Merge || selected == FilterType::Crop || selected == FilterType::Frame) {
+        shouldDisableFilter = (gSelectionTool != SelectionToolMode::None);
+    }
+    
+    if (shouldDisableFilter) ImGui::BeginDisabled();
+    
     switch (selected) {
         case FilterType::None:
             ImGui::TextDisabled("Select a filter to edit its parameters.");
@@ -115,6 +147,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Grayscale, {}, ""});
+                    onFilterApplied(FilterType::Grayscale);
                     s_grayscaleOpen = false;
                 }
             }
@@ -134,6 +167,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Invert, {}, ""});
+                    onFilterApplied(FilterType::Invert);
                     s_invertOpen = false;
                 }
             }
@@ -158,30 +192,38 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             }
             break;
         }
-        case FilterType::HorizontalFlip: {
-            ImGui::TextUnformatted("Horizontal Flip");
-            if (!s_horizontalFlipOpen) {
-                if (ImGui::Button("Open Horizontal Flip")) s_horizontalFlipOpen = true;
+        case FilterType::Flip: {
+            ImGui::TextUnformatted("Flip");
+            static bool horizontalFlip = false;
+            static bool verticalFlip = false;
+            
+            if (!s_flipOpen) {
+                if (ImGui::Button("Open Flip")) s_flipOpen = true;
             } else {
+                ImGui::Checkbox("Horizontal Flip", &horizontalFlip);
+                ImGui::Checkbox("Vertical Flip", &verticalFlip);
+                
                 if (ImGui::Button("Apply")) {
-                    HorizontalFlipFilter f; processor.applyFilter(f);
-                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
-                    gPresetManager.recordStep(FilterStep{FilterType::HorizontalFlip, {}, ""});
-                    s_horizontalFlipOpen = false;
+                    if (horizontalFlip || verticalFlip) {
+                        FlipFilter f(horizontalFlip, verticalFlip);
+                        processor.applyFilter(f);
+                        textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
+                        gPresetManager.recordStep(FilterStep{FilterType::Flip, {(double)(horizontalFlip ? 1.0 : 0.0), (double)(verticalFlip ? 1.0 : 0.0)}, ""});
+                    onFilterApplied(FilterType::Flip);
+                    }
+                    s_flipOpen = false;
+                    horizontalFlip = false;
+                    verticalFlip = false;
                 }
-            }
-            break;
-        }
-        case FilterType::VerticalFlip: {
-            ImGui::TextUnformatted("Vertical Flip");
-            if (!s_verticalFlipOpen) {
-                if (ImGui::Button("Open Vertical Flip")) s_verticalFlipOpen = true;
-            } else {
-                if (ImGui::Button("Apply")) {
-                    VerticalFlipFilter f; processor.applyFilter(f);
-                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
-                    gPresetManager.recordStep(FilterStep{FilterType::VerticalFlip, {}, ""});
-                    s_verticalFlipOpen = false;
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel")) {
+                    s_flipOpen = false;
+                    horizontalFlip = false;
+                    verticalFlip = false;
+                    gPreviewCacheNeedsUpdate = true;
+                    // Clear stored original image when cancelling
+                    extern bool gHasOriginalImageForPreview;
+                    gHasOriginalImageForPreview = false;
                 }
             }
             break;
@@ -200,6 +242,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Retro, {}, ""});
+                    onFilterApplied(FilterType::Retro);
                     s_retroOpen = false;
                 }
             }
@@ -219,6 +262,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Infrared, {}, ""});
+                    onFilterApplied(FilterType::Infrared);
                     s_infraredOpen = false;
                 }
             }
@@ -407,6 +451,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Outline, {}, ""});
+                    onFilterApplied(FilterType::Outline);
                     s_outlineOpen = false;
                 }
             }
@@ -435,4 +480,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
     }
+    
+    if (shouldDisableFilter) ImGui::EndDisabled();
 }

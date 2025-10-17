@@ -27,6 +27,7 @@
 #include "filters/SaturationFilter.h"
 #include "filters/SkewFilter.h"
 #include "filters/VerticalFlipFilter.h"
+#include "filters/FlipFilter.h"
 #include "filters/VigentteFilter.h"
 #include "filters/WarmthFilter.h"
 #include <iostream>

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <array>
 
 // Utility function to normalize file paths for cross-platform compatibility
 static std::string normalizePath(const std::string& path) {
@@ -57,10 +58,23 @@ inline std::string openMultipleFilesDialog_Linux() {
     return "";
 }
 
+std::string openDirectoryDialog_Linux() {
+    // try kdialog first
+    std::string out = runCapture1("which kdialog >/dev/null 2>&1 && kdialog --getexistingdirectory 2>/dev/null || true");
+    if(!out.empty()) return normalizePath(out);
+    // now try zenity
+    out = runCapture1("which zenity >/dev/null 2>&1 && "
+        "zenity --file-selection --title=\"Select output directory\" --directory 2>/dev/null || true");
+    if(!out.empty()) return normalizePath(out);
+    return "";
+}
+
 #ifdef _WIN32
 #include <windows.h>
 #include <commdlg.h>
+#include <shlobj.h>
 #pragma comment(lib, "comdlg32.lib")
+#pragma comment(lib, "shell32.lib")
 
 inline std::string openFileDialog_Windows(bool save = false, bool multiple = false) {
     OPENFILENAMEA ofn;
@@ -101,4 +115,29 @@ inline std::string openFileDialog_Windows(bool save = false, bool multiple = fal
     }
     return normalizePath(std::string(ofn.lpstrFile));
 }
+
+inline std::string openDirectoryDialog_Windows() {
+    BROWSEINFOA bi = {0};
+    bi.lpszTitle = "Select output directory";
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+    LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+    if (pidl != nullptr) {
+        CHAR path[MAX_PATH];
+        if (SHGetPathFromIDListA(pidl, path)) {
+            CoTaskMemFree(pidl);
+            return normalizePath(std::string(path));
+        }
+        CoTaskMemFree(pidl);
+    }
+    return "";
+}
 #endif
+
+// Cross-platform directory selection
+inline std::string openDirectoryDialog() {
+#ifdef _WIN32
+    return openDirectoryDialog_Windows();
+#else
+    return openDirectoryDialog_Linux();
+#endif
+}

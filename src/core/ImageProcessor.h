@@ -36,7 +36,20 @@ private:
     }
 
 public:
-    ImageProcessor(int hSize = 10) : historySize(hSize) {};
+    ImageProcessor(int hSize = 20) : historySize(hSize) {};
+
+    void setHistorySize(int newSize) {
+        historySize = newSize;
+        // Trim history if new size is smaller
+        while ((int)undoHistory.size() > historySize) {
+            undoHistory.erase(undoHistory.begin());
+        }
+        while ((int)redoHistory.size() > historySize) {
+            redoHistory.erase(redoHistory.begin());
+        }
+    }
+
+    int getHistorySize() const { return historySize; }
 
     void loadImage(const std::string &filename) {
         Image newImage(filename);
@@ -131,6 +144,18 @@ public:
     // Intended for live previews; caller should manage resetting or committing.
     void applyFilterNoHistory(Filter &filter) {
         filter.apply(currentImage);
+    }
+
+    // Apply multiple filters as a batch with a single undo entry.
+    // This is used for presets to allow undoing the entire preset as one operation.
+    void applyFilterBatch(const std::vector<Filter*>& filters) {
+        pushUndo();
+        redoHistory.clear();
+        for (auto* filter : filters) {
+            if (filter) {
+                filter->apply(currentImage);
+            }
+        }
     }
 
     bool undo() {
