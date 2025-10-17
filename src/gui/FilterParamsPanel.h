@@ -3,12 +3,13 @@
 #include "FilterDefs.h"
 #include "FilterParameters.h"
 #include "PresetManager.h"
+#include "RenderGUI.h"
 // This header is included by multiple translation units. Keep definitions here either static or inline.
 // The global is actually defined in RenderGUI.h, so we only declare it here.
 extern bool gPreviewCacheNeedsUpdate;
 
 // Forward declarations
-enum class SelectionToolMode { None = 0, Rectangle, MagicWand };
+#include "SelectionTools.h"
 extern SelectionToolMode gSelectionTool;
 
 // Render inline parameter panels by forcing inline mode for parameter windows.
