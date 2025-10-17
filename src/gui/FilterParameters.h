@@ -3,11 +3,12 @@
 #include "../core/ImageProcessor.h"
 
 // Helper function to store original image for filter preview switching
+// In FilterParameters.h
 inline void storeOriginalImageForPreview(const Image& originalImage) {
     extern Image gOriginalImageForPreview;
     extern bool gHasOriginalImageForPreview;
     // Always store the original image when a filter starts
-    gOriginalImageForPreview = originalImage;
+    gOriginalImageForPreview = Image(originalImage); // This forces a deep copy
     gHasOriginalImageForPreview = true;
 }
 
@@ -790,7 +791,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
     void applyBrightness(bool &show, bool &textureNeedsUpdate) {
         static float factor = 1.0f;
-        static Image originalImage;
+        extern Image gOriginalImageForPreview;  // Use the global
+        extern bool gHasOriginalImageForPreview;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
@@ -799,17 +801,6 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Brightness Parameters", &show)) return;
 
             if(!init){
-                // Check if we have a global original image (from previous filter)
-                extern Image gOriginalImageForPreview;
-                extern bool gHasOriginalImageForPreview;
-                if (gHasOriginalImageForPreview) {
-                    originalImage = gOriginalImageForPreview;
-                    // Clear the global image so subsequent filters will store their own
-                    gHasOriginalImageForPreview = false;
-                } else {
-                    originalImage = processor.getCurrentImage();
-                    storeOriginalImageForPreview(originalImage);
-                }
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -825,7 +816,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
-                processor.setImage(originalImage);
+                processor.setImage(gOriginalImageForPreview);
                 DarkenFilter filter(factor);
                 if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
                 else processor.applyFilterNoHistory(filter);
@@ -835,7 +826,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if (ImGui::Button("Apply")) {
                 DarkenFilter filter(factor);
-                processor.setImage(originalImage);
+                processor.setImage(gOriginalImageForPreview);
                 if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
                 else processor.applyFilter(filter);
                 std::cout << "Brightness filter applied with factor: " << factor << std::endl;
@@ -843,12 +834,12 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
                 init = false;
                 textureNeedsUpdate = true;
                 gPresetManager.recordStep(FilterStep{FilterType::Brightness, {(double)factor}, ""});
+                clearStoredOriginalImage();
             }
 
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
-                processor.setImage(originalImage);
-                clearStoredOriginalImage();
+                processor.setImage(gOriginalImageForPreview);
                 factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
@@ -1762,7 +1753,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
     void applyContrast(bool &show, bool &textureNeedsUpdate) {
         static float factor = 1.0f;
-        static Image originalImage;
+        extern Image gOriginalImageForPreview;  // Use the global
+        extern bool gHasOriginalImageForPreview;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
         if (show) {
@@ -1771,17 +1763,6 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Contrast Parameters", &show)) return;
 
             if(!init){
-                // Check if we have a global original image (from previous filter)
-                extern Image gOriginalImageForPreview;
-                extern bool gHasOriginalImageForPreview;
-                if (gHasOriginalImageForPreview) {
-                    originalImage = gOriginalImageForPreview;
-                    // Clear the global image so subsequent filters will store their own
-                    gHasOriginalImageForPreview = false;
-                } else {
-                    originalImage = processor.getCurrentImage();
-                    storeOriginalImageForPreview(originalImage);
-                }
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -1797,7 +1778,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if(ClampedInputFloat("##FactorInput", &factor, 1.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
-                processor.setImage(originalImage);
+                processor.setImage(gOriginalImageForPreview);
                 float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
                 if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
@@ -1809,7 +1790,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (ImGui::Button("Apply")) {
                 float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
-                processor.setImage(originalImage);
+                processor.setImage(gOriginalImageForPreview);
                 if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
                 else processor.applyFilter(filter);
                 std::cout << "Contrast filter applied with factor: " << factor << std::endl;
@@ -1817,12 +1798,12 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
                 init = false;
                 textureNeedsUpdate = true;
                 gPresetManager.recordStep(FilterStep{FilterType::Contrast, {(double)factor}, ""});
+                clearStoredOriginalImage();
             }
 
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
-                processor.setImage(originalImage);
-                clearStoredOriginalImage();
+                processor.setImage(gOriginalImageForPreview);
                 factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
@@ -1854,17 +1835,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Saturation Parameters", &show)) return;
 
             if(!init){
-                // Check if we have a global original image (from previous filter)
-                extern Image gOriginalImageForPreview;
-                extern bool gHasOriginalImageForPreview;
-                if (gHasOriginalImageForPreview) {
-                    originalImage = gOriginalImageForPreview;
-                    // Clear the global image so subsequent filters will store their own
-                    gHasOriginalImageForPreview = false;
-                } else {
-                    originalImage = processor.getCurrentImage();
-                    storeOriginalImageForPreview(originalImage);
-                }
+                originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -2051,18 +2023,9 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Warmth Parameters", &show)) return;
 
             if(!init){
-                // Check if we have a global original image (from previous filter)
-                extern Image gOriginalImageForPreview;
-                extern bool gHasOriginalImageForPreview;
-                if (gHasOriginalImageForPreview) {
-                    originalImage = gOriginalImageForPreview;
-                    // Clear the global image so subsequent filters will store their own
-                    gHasOriginalImageForPreview = false;
-                } else {
-                    originalImage = processor.getCurrentImage();
-                    storeOriginalImageForPreview(originalImage);
-                }
-                factor = 0.0f; // Reset to default value
+                originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
+                factor = 1.0f; // Reset to default value
                 init = true;
             }
 
@@ -2100,7 +2063,6 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
-                clearStoredOriginalImage();
                 factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
