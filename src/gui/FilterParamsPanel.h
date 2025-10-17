@@ -57,6 +57,9 @@ inline void onFilterClicked(FilterType ft) {
 
 inline void onFilterApplied(FilterType ft) {
     s_lastAppliedFilter = ft;
+    // Clear stored original image when filter is applied
+    extern bool gHasOriginalImageForPreview;
+    gHasOriginalImageForPreview = false;
 }
 
 inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType selected, bool &textureNeedsUpdate)
@@ -66,6 +69,13 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
     if (selected != s_prevSelected) {
         // Reset preview when switching filters without applying
         if (s_prevSelected != FilterType::None && selected != FilterType::None && selected != s_lastAppliedFilter) {
+            // Restore original image if we have one stored
+            extern Image gOriginalImageForPreview;
+            extern bool gHasOriginalImageForPreview;
+            if (gHasOriginalImageForPreview) {
+                processor.setImage(gOriginalImageForPreview);
+                gHasOriginalImageForPreview = false; // Clear the stored image
+            }
             gPreviewCacheNeedsUpdate = true;
         }
         s_prevSelected = selected;
@@ -211,6 +221,9 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     horizontalFlip = false;
                     verticalFlip = false;
                     gPreviewCacheNeedsUpdate = true;
+                    // Clear stored original image when cancelling
+                    extern bool gHasOriginalImageForPreview;
+                    gHasOriginalImageForPreview = false;
                 }
             }
             break;

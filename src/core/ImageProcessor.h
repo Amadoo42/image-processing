@@ -38,6 +38,19 @@ private:
 public:
     ImageProcessor(int hSize = 20) : historySize(hSize) {};
 
+    void setHistorySize(int newSize) {
+        historySize = newSize;
+        // Trim history if new size is smaller
+        while ((int)undoHistory.size() > historySize) {
+            undoHistory.erase(undoHistory.begin());
+        }
+        while ((int)redoHistory.size() > historySize) {
+            redoHistory.erase(redoHistory.begin());
+        }
+    }
+
+    int getHistorySize() const { return historySize; }
+
     void loadImage(const std::string &filename) {
         Image newImage(filename);
         currentImage = newImage;

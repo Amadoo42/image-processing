@@ -36,6 +36,10 @@ static int  gMagicWandTolerance = 40;         // 0..765 (sum of abs RGB diffs)
 static bool gHasActiveRectDrag = false;
 static ImVec2 gRectDragStart = ImVec2(0,0);
 static ImVec2 gRectDragEnd = ImVec2(0,0);
+Image gOriginalImageForPreview;        // stores original image for filter previews
+bool gHasOriginalImageForPreview = false; // flag to track if we have a valid original image
+static int gUndoHistorySize = 20;      // configurable undo/redo history size
+static char gBatchOutputDirectory[256] = "output"; // configurable batch output directory
 
 // New UI state for refactored layout
 // Left panel is now dedicated filter parameter panel
@@ -948,6 +952,15 @@ void renderGUI(ImageProcessor &processor) {
                 else if (preferences_theme == 1) { setModernStyle(); is_dark_theme = true; }
                 else { ImGui::StyleColorsClassic(); is_dark_theme = false; }
             }
+            
+            ImGui::Separator();
+            ImGui::Text("Undo/Redo History");
+            ImGui::Separator();
+            ImGui::SliderInt("History Size", &gUndoHistorySize, 5, 100, "%d steps");
+            ImGui::Text("Current history size: %d steps", gUndoHistorySize);
+            if (ImGui::Button("Apply History Size")) {
+                processor.setHistorySize(gUndoHistorySize);
+            }
         }
         ImGui::End();
     }
@@ -1149,6 +1162,15 @@ void renderGUI(ImageProcessor &processor) {
             ImGui::Text("%zu selected", selectedFiles.size());
 
             ImGui::Separator();
+            ImGui::Text("Output Directory");
+            ImGui::InputText("##outputDir", gBatchOutputDirectory, IM_ARRAYSIZE(gBatchOutputDirectory));
+            ImGui::SameLine();
+            if (ImGui::Button("Browse")) {
+                // For now, just show a message - in a real implementation, this would open a folder dialog
+                statusBarMessage = "Output directory: " + std::string(gBatchOutputDirectory);
+            }
+
+            ImGui::Separator();
             ImGui::Text("Mode");
             ImGui::RadioButton(modeLabels[0], &mode, 0); ImGui::SameLine();
             ImGui::RadioButton(modeLabels[1], &mode, 1);
@@ -1176,7 +1198,7 @@ void renderGUI(ImageProcessor &processor) {
             bool disableBatch = selectedFiles.empty() || (mode == 0 && presetIdx < 0);
             if (disableBatch) ImGui::BeginDisabled();
             if (ImGui::Button("Start Batch")) {
-                PresetManager::ensureOutputFolder("output");
+                PresetManager::ensureOutputFolder(gBatchOutputDirectory);
                 total = selectedFiles.size();
                 currentIndex = 0;
                 processed = 0;
@@ -1211,7 +1233,7 @@ void renderGUI(ImageProcessor &processor) {
                             std::string filename = path;
                             size_t pos = filename.find_last_of("/\\");
                             if (pos != std::string::npos) filename = filename.substr(pos + 1);
-                            std::string outPath = std::string("output/") + filename;
+                            std::string outPath = std::string(gBatchOutputDirectory) + "/" + filename;
                             try { localProc.saveImage(outPath); } catch (...) { ok = false; }
                         }
                     }
@@ -1222,9 +1244,9 @@ void renderGUI(ImageProcessor &processor) {
                 }
                 if (currentIndex >= total) {
                     batchRunning = false;
-                    std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped. Images saved to: output/", processed, skipped);
+                    std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped. Images saved to: %s/", processed, skipped, gBatchOutputDirectory);
                     progress = 1.0f;
-                    statusBarMessage = "Batch completed - images saved to output/ folder";
+                    statusBarMessage = "Batch completed - images saved to " + std::string(gBatchOutputDirectory) + "/ folder";
                 }
             }
             if (disableBatch) ImGui::EndDisabled();

@@ -1,6 +1,20 @@
 #pragma once
 
 #include "../core/ImageProcessor.h"
+
+// Helper function to store original image for filter preview switching
+inline void storeOriginalImageForPreview(const Image& originalImage) {
+    extern Image gOriginalImageForPreview;
+    extern bool gHasOriginalImageForPreview;
+    gOriginalImageForPreview = originalImage;
+    gHasOriginalImageForPreview = true;
+}
+
+// Helper function to clear stored original image
+inline void clearStoredOriginalImage() {
+    extern bool gHasOriginalImageForPreview;
+    gHasOriginalImageForPreview = false;
+}
 #include "MemoryOperation.h"
 #include "LoadTexture.h"
 #include "PresetManager.h"
@@ -102,6 +116,7 @@ public:
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 currentItem = 0; // Reset to default value
                 init = true;
             }
@@ -175,6 +190,7 @@ public:
         if (!init) {
             ImGui::OpenPopup("Crop Overlay");
             originalImage = processor.getCurrentImage();
+            storeOriginalImageForPreview(originalImage);
             posX = 0;
             posY = 0;
             newWidth = originalImage.width;
@@ -492,6 +508,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     if (!init) {
         ImGui::OpenPopup("Resize Overlay");
         originalImage = processor.getCurrentImage();
+        storeOriginalImageForPreview(originalImage);
         newWidth = originalImage.width;
         newHeight = originalImage.height;
         textureID = loadTexture(originalImage);
@@ -782,6 +799,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -820,6 +838,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                clearStoredOriginalImage();
                 factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
@@ -1322,6 +1341,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         if (!init) {
             ImGui::OpenPopup("Rotate Overlay");
             originalImage = processor.getCurrentImage();
+            storeOriginalImageForPreview(originalImage);
             if (textureID != 0) { glDeleteTextures(1, &textureID); textureID = 0; }
             textureID = loadTexture(originalImage);
             angleDeg = 0.0f;
@@ -1542,6 +1562,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 factor = 0.0f; // Reset to default value
                 init = true;
             }
@@ -1614,6 +1635,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 amplitude = 1.0f; // Reset to default value
                 wavelength = 1.0f; // Reset to default value
                 init = true;
@@ -1685,6 +1707,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 currentItem = 0; // Reset to default value
                 init = true;
             }
@@ -1739,6 +1762,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -1779,6 +1803,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                clearStoredOriginalImage();
                 factor = 1.0f; // Reset to default value
                 show = false;
                 init = false;
@@ -1811,6 +1836,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -1873,6 +1899,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 Angle = 0.0f; // Reset to default value
                 init = true;
             }
@@ -1933,6 +1960,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 factor = 0.0f; // Reset to default value
                 init = true;
             }
@@ -1996,6 +2024,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
+                storeOriginalImageForPreview(originalImage);
                 factor = 0.0f; // Reset to default value
                 init = true;
             }
@@ -2034,6 +2063,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(originalImage);
+                clearStoredOriginalImage();
                 factor = 0.0f; // Reset to default value
                 show = false;
                 init = false;
