@@ -1,211 +1,274 @@
-# Image Processing Application
+# SR-FX Image Processing Application (GUI)
 
-A comprehensive C++ image processing application with 22+ filters and effects, featuring undo/redo functionality and an intuitive command-line interface.
+A modern, C++17 image processing application with a real-time graphical interface. SR-FX lets you load images, apply 20+ filters and adjustments, preview changes live, and save the results. It includes selection tools, presets, batch processing, and an undo/redo history.
 
-## Team Information
+### 1. Team Information
 - **Course**: CS213 - Object Oriented Programming
-- **Assignment**: A1 Part 2
+- **Assignment 1**
 - **University**: Faculty of Computers and Artificial Intelligence, Cairo University
 
-## Features
+### 2. Project Overview
 
-### Core Functionality
-- Load and save images (PNG, JPG, BMP, TGA formats)
-- Apply multiple filters sequentially
-- Undo/Redo support (up to 10 steps)
-- Interactive command-line menu
+SR-FX is a lightweight image editor built on Dear ImGui, SDL2, and OpenGL. It focuses on fast, interactive editing with live previews and simple, discoverable controls. Choose a filter from the left panel, adjust parameters using sliders and inputs, see the result instantly in the canvas, and export when satisfied.
 
-### Available Filters
+- Real-time preview for most parameterized filters
+- Selection tools (rectangle, magic wand) for targeted edits
+- Preset builder and batch processing
+- Undo/Redo with configurable history
 
-#### Basic Filters
-1. **Black & White** - Converts image to pure black and white using adaptive thresholding
-2. **Grayscale** - Converts to grayscale using luminance formula
-3. **Invert** - Inverts all color channels
-4. **Darken** - Reduces brightness by 50%
-5. **Lighten** - Increases brightness by 50%
 
-#### Artistic Filters
-6. **Purple** - Adds purple tint to the image
-7. **Infrared** - Simulates infrared photography effect
-8. **Oil Painting** - Creates oil painting artistic effect
-9. **Retro TV** - Adds vintage TV scanline effect
-10. **Outline** - Detects and draws edges using Sobel operator
+### 3. Tools and Technologies Used
 
-#### Adjustment Filters
-11. **Blur** - Gaussian blur with configurable kernel
-12. **Contrast** - Adjustable contrast enhancement
-13. **Saturation** - Color saturation control
-14. **Warmth** - Adjusts color temperature
-15. **Vignette** - Adds darkening effect around edges
+- C++17
+- CMake (>= 3.10)
+- SDL2 (windowing, input)
+- OpenGL 3.0+ (rendering), GLSL 130
+- Dear ImGui (immediate-mode GUI)
+- stb_image / stb_image_write (image I/O)
 
-#### Transformation Filters
-16. **Horizontal Flip** - Mirrors image horizontally
-17. **Vertical Flip** - Mirrors image vertically
-18. **Rotate** - Rotates by 90, 180, or 270 degrees
-19. **Resize** - Resize by dimensions or ratio (bilinear interpolation)
-20. **Crop** - Crops to specified region
-21. **Skew** - Horizontal skew transformation
-22. **Wave** - Applies sine wave distortion
 
-#### Composition Filters
-23. **Merge** - Blends two images together
-24. **Frame** - Adds decorative frame (2 built-in frames or custom)
+### 4. Setup and Execution
 
-## Project Structure
+#### Prerequisites
+- A C++17 compiler (g++ or clang++)
+- CMake 3.10+
+- SDL2 development libraries
+- OpenGL development libraries and headers
+- Make or Ninja build tools
+
+For Ubuntu/Debian-based Linux:
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake libsdl2-dev libgl1-mesa-dev xorg-dev
+```
+For macOS (Homebrew):
+```bash
+brew install cmake sdl2
+# OpenGL headers are provided by macOS; Xcode Command Line Tools recommended
+```
+For Windows:
+- Install Visual Studio with C++ tooling
+- Install SDL2 development package (e.g., via vcpkg or prebuilt binaries)
+- Let CMake generate a VS solution; ensure SDL2 include/libs are discoverable
+
+#### Installation
+```bash
+# Clone
+git clone <REPO_URL>
+cd <REPO_FOLDER>
+
+# Configure & build (Release recommended)
+mkdir -p build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . -j
+```
+
+Note: The build system copies the `assets/` folder into the build directory so fonts and frames are available at runtime (see `CMakeLists.txt`).
+
+#### Running the Program
+From the build directory:
+```bash
+./image_processor
+```
+Keyboard shortcuts:
+- Ctrl+O: Open image
+- Ctrl+S: Save image
+- Ctrl+Z: Undo
+- Ctrl+Y: Redo
+
+Supported formats (runtime):
+- Input: JPG, PNG, BMP, TGA
+- Output: JPG, PNG, BMP
+
+
+### 5. Directory Structure
 
 ```
 .
+├── CMakeLists.txt
 ├── src/
-│   ├── main.cpp                    # Entry point
-│   ├── helpers/
-│   │   ├── Image_Class.h           # Core image class using stb_image (Note: this file was provided as part of the assignment files)
-│   │   ├── stb_image.h             # stb_image class (Note: this file was provided as part of the assignment files)
-│   │   ├── stb_image_write.h       # stb_image_write class (Note: this file was provided as part of the assignment files)
-│   │   ├── ImageProcessor.h        # Manages image state and undo/redo
-│   │   └── Menu.h                  # Command-line interface
-│   └── filters/
-│       ├── Filter.h                # Base filter interface
-│       ├── BlackAndWhiteFilter.h
-│       ├── BlurFilter.h
-│       ├── ContrastFilter.h
-│       ├── CropFilter.h
-│       ├── DarkenFilter.h
-│       ├── FrameFilter.h
-│       ├── GrayscaleFilter.h
-│       ├── HorizontalFlipFilter.h
-│       ├── InfraredFilter.h
-│       ├── InvertFilter.h
-│       ├── LightenFilter.h
-│       ├── MergeFilter.h
-│       ├── OilPaintingFilter.h
-│       ├── OutlineFilter.h
-│       ├── PurpleFilter.h
-│       ├── ResizeFilter.h
-│       ├── RetroFilter.h
-│       ├── RotateFilter.h
-│       ├── SaturationFilter.h
-│       ├── SkewFilter.h
-│       ├── VigentteFilter.h
-│       ├── VerticalFlipFilter.h
-│       ├── WarmthFilter.h
-│       └── WaveFilter.h
+│   ├── main.cpp                         # App entry (SDL2 + ImGui + OpenGL setup)
+│   ├── core/
+│   │   └── ImageProcessor.h             # Image state, history, selection, apply filters
+│   ├── filters/
+│   │   ├── Filter.h                     # Base filter interface
+│   │   ├── WaveFilter.h                 # Wave effect (sine-based distortion)
+│   │   ├── ContrastFilter.h             # Contrast adjustment
+│   │   ├── SaturationFilter.h           # Saturation adjustment
+│   │   ├── VigentteFilter.h             # Vignette effect
+│   │   ├── BlackAndWhiteFilter.h        # B&W thresholding
+│   │   ├── BlurFilter.h                 # Gaussian blur
+│   │   ├── CropFilter.h                 # Crop
+│   │   ├── DarkenFilter.h               # Brightness control backend
+│   │   ├── FlipFilter.h                 # Horizontal/vertical flip
+│   │   ├── FrameFilter.h                # Overlay frame image
+│   │   ├── GrayscaleFilter.h            # Luminance grayscale
+│   │   ├── InfraredFilter.h             # Infrared stylization
+│   │   ├── InvertFilter.h               # Color invert
+│   │   ├── MergeFilter.h                # Blend two images
+│   │   ├── OilPaintingFilter.h          # Oil-painting stylization
+│   │   ├── OutlineFilter.h              # Edge outline
+│   │   ├── PurpleFilter.h               # Purple tint
+│   │   ├── ResizeFilter.h               # Resize
+│   │   ├── RetroFilter.h                # Retro/TV effect
+│   │   ├── RotateFilter.h               # Rotation
+│   │   ├── SkewFilter.h                 # Horizontal skew
+│   │   ├── WarmthFilter.h               # Color temperature
+│   │   └── ...                          # Other helpers
+│   └── gui/
+│       ├── RenderGUI.h                  # Main window layout & panels
+│       ├── FiltersMenu.h                # Left filter catalog with previews
+│       ├── FilterParameters.h           # Parameter UIs with live preview
+│       ├── FilterPreview.h              # Small preview grid
+│       ├── FilterDefs.h                 # Filter enum & names (single source of truth)
+│       ├── ui/
+│       │   ├── TopNavBar.h              # File, presets, batch, help
+│       │   ├── LeftParamsPanel.h        # Parameter panel (left)
+│       │   ├── RightPanel.h             # Sidebar (history, selection, etc.)
+│       │   ├── ImageCanvas.h            # Zoom/pan canvas & compare
+│       │   └── BottomToolbar.h          # Status bar and controls
+│       ├── LoadTexture.h                # Upload CPU image to OpenGL texture
+│       ├── CompareView.h                # Before/after comparison
+│       ├── SelectionTools.h             # Rectangle & magic wand selection
+│       └── PresetManager.h              # Preset storage & batch apply
+├── external/
+│   ├── imgui/                           # Dear ImGui (vendored)
+│   ├── stb_image.h
+│   └── stb_image_write.h
 ├── assets/
-│   └── frames/
-│       ├── normal.jpg
-│       └── fancy.jpg
-├── Submissions/
-│   ├── Image_Class.h               # Core image class using stb_image (Note: this file was provided as part of the assignment files)
-│   ├── stb_image.h                 # stb_image class (Note: this file was provided as part of the assignment files)
-│   ├── stb_image_write.h           # stb_image_write class (Note: this file was provided as part of the assignment files)
-│   ├── A1.cpp                      # Our submission for Part 1
-│   └── A2.cpp                      # Our submission for Part 2
+│   ├── fonts/                           # Inter, Font Awesome, etc.
+│   ├── frames/                          # Example frame overlays
+│   └── SampleImages/                    # Example input images
 ├── LICENSE
-├── .gitignore
 └── README.md
 ```
 
-## Building and Running
 
-### Prerequisites
-- C++17 or later compiler (g++, clang++)
-- No external dependencies required (uses stb_image header library)
+### 6. GUI User Guide
 
-### Compilation
-```bash
-g++ -std=c++17 src/main.cpp -o photoshop
-```
+- Load a new image
+  1) Use the top navigation (File → Open…) or press Ctrl+O.
+  2) Pick a JPG/PNG/BMP/TGA file. The image appears on the canvas and in the status bar.
 
-### Running
-```bash
-./photoshop
-```
+- Select and apply a filter
+  1) In the left sidebar under “Filters”, choose a category (Basic Adjustments, Transformations, Effects).
+  2) Click a filter (e.g., Contrast). Its parameter UI opens in the parameter panel.
+  3) Adjust controls (sliders, inputs, dropdowns). For filters with parameters, you will typically see a live preview.
+  4) Click “Apply” to commit. You can Undo/Redo (Ctrl+Z / Ctrl+Y).
 
-## Usage Guide
+- Preview changes in real-time
+  - For parameterized filters (e.g., Blur, Brightness, Contrast, Saturation, Wave, Vignette, Warmth, Purple, Skew, Oil Painting), changes render live while you drag sliders. The app temporarily applies the filter without writing to history until you click “Apply” (or cancel).
+  - Use the Compare view (toggle in canvas) to see before/after.
 
-### Main Menu
-```
-1. Load a New Image       - Start by loading an image
-2. Save Current Image     - Save your edited image
-3. Apply Filter           - Choose from 22+ filters
-4. Undo                   - Undo last filter
-5. Redo                   - Redo last undone filter
-0. Exit                   - Exit the application
-```
+- Save the final image
+  1) Use File → Save… or press Ctrl+S.
+  2) Choose the output filename (JPG/PNG/BMP). The result is written to disk.
 
-### Workflow Example
-1. Load an image: `input.jpg`
-2. Apply Grayscale filter
-3. Apply Blur filter
-4. If needed, use Undo to revert
-5. Save the result: `output.png`
+Advanced:
+- Selections: Use rectangle or magic wand; most filters respect active selections and can invert the affected region.
+- Presets & Batch: Save a chain as a preset and batch-apply it to many images from the Presets or Batch windows.
+- Zoom & Pan: Mouse wheel to zoom; right-drag to pan.
 
-### Filter Parameters
 
-Some filters accept customizable parameters:
-- **Blur**: Kernel size (default: 13), sigma (default: 2.0) (Not implemented yet to take user input)
-- **Contrast**: Factor (default: 2.0)
-- **Saturation**: Factor (default: 2.0)
-- **Warmth**: Factor (default: 2.5)
-- **Vignette**: Factor (default: 1.5)
-- **Resize**: By ratio or specific dimensions
-- **Rotate**: 90, 180, or 270 degrees
-- **Skew**: Angle between -89 and 89 degrees
+### 7. Filter Index
 
-## Technical Details
+From `src/gui/FilterDefs.h` (user-facing names):
+- Grayscale
+- Invert
+- Blur
+- Black & White
+- Brightness
+- Contrast
+- Saturation
+- Rotate
+- Skew
+- Flip (Horizontal / Vertical)
+- Crop
+- Resize
+- Outline
+- Purple
+- Infrared
+- Wave
+- Oil Painting
+- Retro
+- Vignette
+- Warmth
+- Frame (overlay)
+- Merge (two images)
 
-### Filter Architecture
-- Abstract base class `Filter` with virtual `apply()` method
-- Each filter implements specific image transformation
-- Filters can be chained sequentially
-- Non-destructive editing with undo/redo support
+Notes:
+- Internally, `HorizontalFlip` and `VerticalFlip` are available; the UI exposes them via a single Flip panel with checkboxes.
 
-### Key Algorithms
-- **Gaussian Blur**: Separable 1D convolution for efficiency
-- **Edge Detection**: Sobel operator for outline filter
-- **Bilinear Interpolation**: Used in resize and skew filters
-- **Adaptive Thresholding**: For black & white conversion
-- **Oil Painting**: Intensity-based region quantization
 
-## Error Handling
+### 8. Filter Implementation Documentation
 
-The application includes comprehensive error handling:
-- Bounds checking for all pixel operations
-- Input validation for filter parameters
+Below are concise algorithmic descriptions of four core filters as implemented in `src/filters/*.h` and driven by the parameter UIs in `src/gui/FilterParameters.h`.
 
-## Known Limitations
+- Wave Filter (`WaveFilter.h`)
+  - Purpose: Create a horizontal sine-wave distortion.
+  - Parameters: `amplitude` (pixels), `wavelength` (pixels).
+  - Mapping (nearest-neighbor resampling):
+    - For each output pixel at integer coordinates $(x, y)$:
+      - Compute source X: $\( x_s = x + a \cdot \sin(2\pi y / w) \)$
+      - Source Y: $\( y_s = y \)$
+      - Clamp $\( x_s \)$ to [0, width-1]; clamp $\( y_s \)$ to [0, height-1].
+      - Copy RGB from $(\(\lfloor x_s \rceil\)$, $\(\lfloor y_s \rceil\))$.
+  - Edge handling: hard clamp at image borders.
+  - UI ranges: amplitude [0, 20], wavelength [0.1, 100.0] (safe-clamped).
 
-1. **Memory Usage**: Large images may consume significant memory due to undo/redo history
-2. **Rotation**: Only supports 90-degree increments
-3. **Merge Filter**: Requires manual size adjustment if images differ
-4. **Performance**: Some filters (blur, oil painting) may be slow on large images
+- Contrast Adjustment (`ContrastFilter.h`)
+  - Purpose: Scale distances from mid-gray (128) per channel.
+  - Parameter: `factor` (>= 0; UI uses [1.0, 3.0]).
+  - Per-channel transform for 8-bit RGB:
+    - $\( v' = \mathrm{clamp}(128 + (v - 128)\cdot f, 0, 255) \)$
+  - Behavior: $f = 1$ leaves unchanged; $f > 1$ increases contrast; $0 < f < 1$ (not exposed in UI) would reduce contrast.
 
-## Future Enhancements
+- Saturation Adjustment (`SaturationFilter.h`)
+  - Purpose: Adjust colorfulness relative to luminance.
+  - Parameter: `factor` (>= 0; UI uses [0.0, 3.0]).
+  - Luminance (ITU-R BT.601): $\( Y = 0.299R + 0.587G + 0.114B \)$
+  - Per-channel transform:
+    - $\( c' = \mathrm{clamp}(Y + (c - Y)\cdot f, 0, 255) \) \forall c \in {R, G, B}$
+  - Behavior: $f = 0$ → grayscale; $f = 1$ → original; $f > 1$ → more saturated.
 
-- [ ] GUI interface option
+- Vignette Effect (`VigentteFilter.h`)
+  - Purpose: Darken toward the image corners using radial falloff.
+  - Parameter: `factor` (UI uses [0.0, 3.0], default ~1.5).
+  - Compute center: $\( (c_x, c_y) = (\lfloor W/2 \rfloor, \lfloor H/2 \rfloor) \)$
+  - Max distance: $\( d_{max} = \sqrt{c_x^2 + c_y^2} \)$
+  - For each pixel $(x, y)$:
+    - $\( d = \sqrt{(x-c_x)^2 + (y-c_y)^2} \)$
+    - Gain: $\( g = 1 - (d/d_{max}) \cdot f \)$, then clamp g to [0, 1]
+    - Apply: $\( (R',G',B') = (R,G,B)\cdot g \)$
+  - Effect strength increases with `factor`; 0 disables the effect.
 
-## References
+### 9. Known Issues
+- Compare doesn't work well with real-time preview.
+- Left click doesn't work with the search bar, only pressing "Enter" on the keyboard does.
+- Skew doesn't work well with selection tools, but we left it in for fun.
+- Some stuff doesn't work well outside linux.
 
+### 10. References:
 - [stb_image Library](https://github.com/nothings/stb)
 - [Gaussian Blur - Wikipedia](https://en.wikipedia.org/wiki/Gaussian_blur)
 - [Sobel Operator - Wikipedia](https://en.wikipedia.org/wiki/Sobel_operator)
 - [Bilinear Interpolation](https://en.wikipedia.org/wiki/Bilinear_interpolation)
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
+### 11. Acknowledgments
 - Dr. Mohamed El-Ramely - Course Instructor
 - Teaching Assistants - FCAI Cairo University
 - Original Image_Class implementation by Shehab Diab, Youssef Mohamed, and Nada Ahmed
 - Original stb_image and stb_image_write implementations provided during the assignment files
+- We believe in leveraging modern tools for maximum clarity and efficiency. The core concepts, technical implementations, and overall structure of this documentation and related materials were defined and executed by us. An **AI large language model** was utilized primarily to refine the language, enhance professional tone, and ensure the documentation's clarity and conciseness. This partnership allowed us to maintain full control over the project's details while optimizing the quality of its presentation.
 
-## Contributing
+### 12. Contributing
 
 This is an academic project. For questions or suggestions, please contact the team members.
+
 
 ---
 
 **Cairo University - Faculty of Computers and Artificial Intelligence**  
 **CS213 - Object Oriented Programming - 2025**
+
+License: MIT (see `LICENSE`).
