@@ -1,5 +1,6 @@
 #pragma once
 #include "imgui.h"
+#include "../GuiState.h"
 #include "../Icons.h"
 #include "../FilterDefs.h"
 #include "../FilterParamsPanel.h"

@@ -1,6 +1,7 @@
 #pragma once
 #include "imgui.h"
 #include "FiltersMenu.h"
+#include "GuiState.h"
 #include "Icons.h"
 #include "FilterDefs.h"
 #include "LoadTexture.h"
@@ -22,44 +23,44 @@
 #include <vector>
 #include <sstream>
 
-static bool is_dark_theme = true;
-static int preferences_theme = 1;
-static float zoom_level = 1.0f;
-static ImVec2 pan_offset = ImVec2(0, 0);
-static bool compareMode = false;
-static bool showPreferencesWindow = false;
-static bool showAboutWindow = false;
-static FilterType gSelectedFilter = FilterType::None;
-static GLuint currentTextureID = 0;
+bool is_dark_theme = true;
+int preferences_theme = 1;
+float zoom_level = 1.0f;
+ImVec2 pan_offset = ImVec2(0, 0);
+bool compareMode = false;
+bool showPreferencesWindow = false;
+bool showAboutWindow = false;
+FilterType gSelectedFilter = FilterType::None;
+GLuint currentTextureID = 0;
 bool textureNeedsUpdate = false;
-static std::string statusBarMessage = "Welcome to Image Processor!";
+std::string statusBarMessage = "Welcome to Image Processor!";
 
 // Selection state
 #include "SelectionTools.h"
 SelectionToolMode gSelectionTool = SelectionToolMode::None;
-static bool gSelectionInverseApply = false;
-static int  gMagicWandTolerance = 40;
-static bool gHasActiveRectDrag = false;
-static ImVec2 gRectDragStart = ImVec2(0,0);
-static ImVec2 gRectDragEnd = ImVec2(0,0);
+bool gSelectionInverseApply = false;
+int  gMagicWandTolerance = 40;
+bool gHasActiveRectDrag = false;
+ImVec2 gRectDragStart = ImVec2(0,0);
+ImVec2 gRectDragEnd = ImVec2(0,0);
 Image gOriginalImageForPreview;
 bool gHasOriginalImageForPreview = false;
-static int gUndoHistorySize = 20;
-static char gBatchOutputDirectory[256] = "output";
+int gUndoHistorySize = 20;
+char gBatchOutputDirectory[256] = "output";
 
 // UI state
-static char gSearchBuffer[128] = {0};
-static ImVec2 gLastCanvasAvail = ImVec2(0, 0);
-static float kLeftPanelPct = 0.26f;
-static float kRightPanelPct = 0.1f;
+char gSearchBuffer[128] = {0};
+ImVec2 gLastCanvasAvail = ImVec2(0, 0);
+float kLeftPanelPct = 0.26f;
+float kRightPanelPct = 0.1f;
 bool  gPreviewCacheNeedsUpdate = true;
-static std::string gCurrentImagePath;
+std::string gCurrentImagePath;
 // Session id increments when a new image is loaded
 int gImageSessionId = 0;
-static bool showPresetsWindow = false;
-static bool showBatchWindow = false;
-static bool showSaveCurrentPresetPopup = false;
-static bool showPresetBuilderWindow = false;
+bool showPresetsWindow = false;
+bool showBatchWindow = false;
+bool showSaveCurrentPresetPopup = false;
+bool showPresetBuilderWindow = false;
 
 inline void guiSetCurrentImagePath(const std::string &path) { gCurrentImagePath = path; }
 

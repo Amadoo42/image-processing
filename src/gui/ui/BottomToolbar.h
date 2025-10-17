@@ -1,5 +1,6 @@
 #pragma once
 #include "imgui.h"
+#include "../GuiState.h"
 
 static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
     float height = 52.0f;
