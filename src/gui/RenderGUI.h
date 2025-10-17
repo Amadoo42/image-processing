@@ -1223,7 +1223,17 @@ void renderGUI(ImageProcessor &processor) {
                 statusBarMessage = "Batch started";
                 batchRunning = true;
             }
-
+            ImGui::SameLine();
+            if (ImGui::Button("Reset")) {
+                selectedFiles.clear();
+                currentIndex = 0;
+                total = 0;
+                processed = 0;
+                skipped = 0;
+                progress = 0.0f;
+                std::snprintf(statusBuf, sizeof(statusBuf), "Ready");
+                batchRunning = false;
+            }
             if (batchRunning) {
                 if (currentIndex < total) {
                     const std::string &path = selectedFiles[currentIndex];
