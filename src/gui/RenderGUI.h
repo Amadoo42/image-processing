@@ -1,7 +1,7 @@
 #pragma once
 #include "imgui.h"
 #include "FiltersMenu.h"
-#include "GuiState.h"
+#include "gui/GuiState.h"
 #include "Icons.h"
 #include "FilterDefs.h"
 #include "LoadTexture.h"

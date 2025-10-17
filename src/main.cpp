@@ -31,6 +31,7 @@
 #include <string>
 #include <array>
 #include "gui/RenderGUI.h"
+#include "gui/GuiState.h"
 #include "gui/PresetManager.h"
 
 int main(int argc, char* argv[]) {
