@@ -3,6 +3,7 @@
 #include "../core/ImageProcessor.h"
 
 // Helper function to store original image for filter preview switching
+// In FilterParameters.h
 inline void storeOriginalImageForPreview(const Image& originalImage) {
     extern Image gOriginalImageForPreview;
     extern bool gHasOriginalImageForPreview;
