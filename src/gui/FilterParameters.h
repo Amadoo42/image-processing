@@ -1584,7 +1584,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     }
 
     void applyWave(bool &show, bool &textureNeedsUpdate) {
-        static float amplitude = 1.0f, wavelength = 1.0f;
+        static float strength = 0.0f;
         static Image originalImage;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
@@ -1595,25 +1595,24 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
-                amplitude = 1.0f; // Reset to default value
-                wavelength = 1.0f; // Reset to default value
+                strength = 0.0f; // Reset to default value
                 init = true;
             }
 
             bool changed = false;
             
-            ImGui::Text("Amplitude:");
+            ImGui::Text("Wave Strength:");
             ImGui::SameLine();
-            if(ImGui::InputFloat("##Amplitude", &amplitude, 0, 0))changed = true;
+            if(ImGui::SliderFloat("##WaveStrength", &strength, 0.0f, 10.0f, "%.1f"))changed = true;
             
-            ImGui::Text("Wavelength:");
-            ImGui::SameLine();
-            if(ImGui::InputFloat("##Wavelength", &wavelength, 0, 0))changed = true;
+            ImGui::Text("Amplitude: %.1f", strength);
+            ImGui::Text("Wavelength: %.1f", 10.0f - strength + 1.0f);
 
             if(changed){
                 processor.setImage(originalImage);
-                float safeWavelength = (wavelength <= 0.0f) ? 1.0f : wavelength;
-                WaveFilter filter(amplitude, safeWavelength);
+                float amplitude = strength;
+                float wavelength = std::max(1.0f, 10.0f - strength + 1.0f);
+                WaveFilter filter(amplitude, wavelength);
                 if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
                 else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
@@ -1622,8 +1621,9 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
             
             if(ImGui::Button("Apply")){
-                float safeWavelength = (wavelength <= 0.0f) ? 1.0f : wavelength;
-                WaveFilter filter(amplitude, safeWavelength);
+                float amplitude = strength;
+                float wavelength = std::max(1.0f, 10.0f - strength + 1.0f);
+                WaveFilter filter(amplitude, wavelength);
                 processor.setImage(originalImage);
                 if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
                 else processor.applyFilter(filter);
@@ -1631,7 +1631,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
-                gPresetManager.recordStep(FilterStep{FilterType::Wave, {(double)amplitude, (double)wavelength}, ""});
+                gPresetManager.recordStep(FilterStep{FilterType::Wave, {(double)strength}, ""});
             }
 
             ImGui::SameLine();
@@ -1653,7 +1653,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
         
         static int currentItem = 0;
         const char* items[] = {"Low", "Medium", "High"};
-        int values[] = {10, 20, 40};
+        int intensityValues[] = {5, 15, 30};
+        int radiusValues[] = {3, 6, 10};
 
         static Image originalImage;
         static bool init = false;
@@ -1676,7 +1677,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(changed){
                 processor.setImage(originalImage);
-                OilPaintingFilter filter(5, values[currentItem]); 
+                OilPaintingFilter filter(radiusValues[currentItem], intensityValues[currentItem]); 
                 if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
                 else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
@@ -1684,7 +1685,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
 
             if(ImGui::Button("Apply")){
-                OilPaintingFilter filter(5, values[currentItem]); 
+                OilPaintingFilter filter(radiusValues[currentItem], intensityValues[currentItem]); 
                 processor.setImage(originalImage);
                 if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
                 else processor.applyFilter(filter);
@@ -1727,15 +1728,15 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
+            if(ImGui::SliderFloat("##FactorSlider", &factor, 1.0f, 3.0f, "%.2f"))changed = true;
 
             
             ImGui::SameLine();
-            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 1.0f, 3.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
-                float safe = std::max(0.0f, factor);
+                float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
                 if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
                 else processor.applyFilterNoHistory(filter);
@@ -1744,7 +1745,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
 
             if (ImGui::Button("Apply")) {
-                float safe = std::max(0.0f, factor);
+                float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
                 processor.setImage(originalImage);
                 if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
@@ -1861,11 +1862,11 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Text("Angle:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::SliderFloat("##AngleSlider", &Angle, -90.0f, 90.0f, "%.2f"))changed = true;
+            if(ImGui::SliderFloat("##AngleSlider", &Angle, -70.0f, 70.0f, "%.2f"))changed = true;
 
             
             ImGui::SameLine();
-            if(ClampedInputFloat("##AngleInput", &Angle, -90.0f, 90.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##AngleInput", &Angle, -70.0f, 70.0f, "%.2f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
@@ -1913,7 +1914,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
-                factor = 1.0f; // Reset to default value
+                factor = 0.0f; // Reset to default value
                 init = true;
             }
 

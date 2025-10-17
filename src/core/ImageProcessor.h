@@ -36,7 +36,7 @@ private:
     }
 
 public:
-    ImageProcessor(int hSize = 10) : historySize(hSize) {};
+    ImageProcessor(int hSize = 20) : historySize(hSize) {};
 
     void loadImage(const std::string &filename) {
         Image newImage(filename);
