@@ -74,7 +74,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             extern bool gHasOriginalImageForPreview;
             if (gHasOriginalImageForPreview) {
                 processor.setImage(gOriginalImageForPreview);
-                gHasOriginalImageForPreview = false; // Clear the stored image
+                // Keep the stored image for the new filter to use
             }
             gPreviewCacheNeedsUpdate = true;
         }

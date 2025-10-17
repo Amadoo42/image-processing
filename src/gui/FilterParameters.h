@@ -6,6 +6,7 @@
 inline void storeOriginalImageForPreview(const Image& originalImage) {
     extern Image gOriginalImageForPreview;
     extern bool gHasOriginalImageForPreview;
+    // Always store the original image when a filter starts
     gOriginalImageForPreview = originalImage;
     gHasOriginalImageForPreview = true;
 }
@@ -798,8 +799,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Brightness Parameters", &show)) return;
 
             if(!init){
-                originalImage = processor.getCurrentImage();
-                storeOriginalImageForPreview(originalImage);
+                // Check if we have a global original image (from previous filter)
+                extern Image gOriginalImageForPreview;
+                extern bool gHasOriginalImageForPreview;
+                if (gHasOriginalImageForPreview) {
+                    originalImage = gOriginalImageForPreview;
+                    // Clear the global image so subsequent filters will store their own
+                    gHasOriginalImageForPreview = false;
+                } else {
+                    originalImage = processor.getCurrentImage();
+                    storeOriginalImageForPreview(originalImage);
+                }
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -1761,8 +1771,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Contrast Parameters", &show)) return;
 
             if(!init){
-                originalImage = processor.getCurrentImage();
-                storeOriginalImageForPreview(originalImage);
+                // Check if we have a global original image (from previous filter)
+                extern Image gOriginalImageForPreview;
+                extern bool gHasOriginalImageForPreview;
+                if (gHasOriginalImageForPreview) {
+                    originalImage = gOriginalImageForPreview;
+                    // Clear the global image so subsequent filters will store their own
+                    gHasOriginalImageForPreview = false;
+                } else {
+                    originalImage = processor.getCurrentImage();
+                    storeOriginalImageForPreview(originalImage);
+                }
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -1835,8 +1854,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Saturation Parameters", &show)) return;
 
             if(!init){
-                originalImage = processor.getCurrentImage();
-                storeOriginalImageForPreview(originalImage);
+                // Check if we have a global original image (from previous filter)
+                extern Image gOriginalImageForPreview;
+                extern bool gHasOriginalImageForPreview;
+                if (gHasOriginalImageForPreview) {
+                    originalImage = gOriginalImageForPreview;
+                    // Clear the global image so subsequent filters will store their own
+                    gHasOriginalImageForPreview = false;
+                } else {
+                    originalImage = processor.getCurrentImage();
+                    storeOriginalImageForPreview(originalImage);
+                }
                 factor = 1.0f; // Reset to default value
                 init = true;
             }
@@ -2023,8 +2051,17 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             if (!BeginParamsUI("Warmth Parameters", &show)) return;
 
             if(!init){
-                originalImage = processor.getCurrentImage();
-                storeOriginalImageForPreview(originalImage);
+                // Check if we have a global original image (from previous filter)
+                extern Image gOriginalImageForPreview;
+                extern bool gHasOriginalImageForPreview;
+                if (gHasOriginalImageForPreview) {
+                    originalImage = gOriginalImageForPreview;
+                    // Clear the global image so subsequent filters will store their own
+                    gHasOriginalImageForPreview = false;
+                } else {
+                    originalImage = processor.getCurrentImage();
+                    storeOriginalImageForPreview(originalImage);
+                }
                 factor = 0.0f; // Reset to default value
                 init = true;
             }

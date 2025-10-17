@@ -1128,7 +1128,7 @@ void renderGUI(ImageProcessor &processor) {
             static int presetIdx = -1;
             static int filterIdx = 0;
             static float progress = 0.0f;
-            static char statusBuf[256] = {0};
+            static char statusBuf[512] = {0};
             static bool batchRunning = false;
             static size_t total = 0;
             static size_t currentIndex = 0;
@@ -1166,8 +1166,12 @@ void renderGUI(ImageProcessor &processor) {
             ImGui::InputText("##outputDir", gBatchOutputDirectory, IM_ARRAYSIZE(gBatchOutputDirectory));
             ImGui::SameLine();
             if (ImGui::Button("Browse")) {
-                // For now, just show a message - in a real implementation, this would open a folder dialog
-                statusBarMessage = "Output directory: " + std::string(gBatchOutputDirectory);
+                std::string selectedDir = openDirectoryDialog();
+                if (!selectedDir.empty()) {
+                    strncpy(gBatchOutputDirectory, selectedDir.c_str(), IM_ARRAYSIZE(gBatchOutputDirectory) - 1);
+                    gBatchOutputDirectory[IM_ARRAYSIZE(gBatchOutputDirectory) - 1] = '\0';
+                    statusBarMessage = "Output directory set to: " + selectedDir;
+                }
             }
 
             ImGui::Separator();
