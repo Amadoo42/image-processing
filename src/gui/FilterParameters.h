@@ -1581,11 +1581,11 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
-            if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
+            if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f")) changed = true;
 
             
             ImGui::SameLine();
-            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
+            if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f")) changed = true;
 
             if(changed){
                 processor.setImage(originalImage);

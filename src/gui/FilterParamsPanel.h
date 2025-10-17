@@ -134,6 +134,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             ImGui::TextDisabled("Select a filter to edit its parameters.");
             break;
         case FilterType::Grayscale: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Grayscale");
             if (!s_grayscaleOpen) {
                 if (ImGui::Button("Open Grayscale")) s_grayscaleOpen = true;
@@ -154,6 +155,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Invert: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Invert");
             if (!s_invertOpen) {
                 if (ImGui::Button("Open Invert")) s_invertOpen = true;
@@ -174,6 +176,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::BlackAndWhite: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Black & White");
             if (!s_blackAndWhiteOpen) {
                 if (ImGui::Button("Open Black & White")) s_blackAndWhiteOpen = true;
@@ -193,6 +196,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Flip: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Flip");
             static bool horizontalFlip = false;
             static bool verticalFlip = false;
@@ -229,6 +233,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Retro: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Retro");
             if (!s_retroOpen) {
                 if (ImGui::Button("Open Retro")) s_retroOpen = true;
@@ -249,6 +254,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Infrared: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Infrared");
             if (!s_infraredOpen) {
                 if (ImGui::Button("Open Infrared")) s_infraredOpen = true;
@@ -269,6 +275,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Frame: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Frame");
             if (!s_frameOpen) {
                 if (ImGui::Button("Open Frame")) s_frameOpen = true;
@@ -294,6 +301,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Merge: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Merge");
             if (!s_mergeOpen) {
                 if (ImGui::Button("Open Merge")) s_mergeOpen = true;
@@ -325,6 +333,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         }
 
         case FilterType::Blur: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Blur");
             if (!s_blurOpen) {
                 if (ImGui::Button("Open Blur")) s_blurOpen = true;
@@ -336,6 +345,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Brightness: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Brightness");
             if (!s_brightnessOpen) {
                 if (ImGui::Button("Open Brightness")) s_brightnessOpen = true;
@@ -347,6 +357,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Contrast: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Contrast");
             if (!s_contrastOpen) {
                 if (ImGui::Button("Open Contrast")) s_contrastOpen = true;
@@ -358,6 +369,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Saturation: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Saturation");
             if (!s_saturationOpen) {
                 if (ImGui::Button("Open Saturation")) s_saturationOpen = true;
@@ -369,6 +381,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::OilPainting: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Oil Painting");
             if (!s_oilPaintingOpen) {
                 if (ImGui::Button("Open Oil Painting")) s_oilPaintingOpen = true;
@@ -380,6 +393,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Rotate: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Rotate");
             if (!s_rotateOpen) {
                 if (ImGui::Button("Open Rotate")) s_rotateOpen = true;
@@ -391,6 +405,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Wave: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Wave");
             if (!s_waveOpen) { if (ImGui::Button("Open Wave")) s_waveOpen = true; }
             else {
@@ -400,6 +415,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Purple: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Purple");
             if (!s_purpleOpen) { if (ImGui::Button("Open Purple")) s_purpleOpen = true; }
             else {
@@ -409,6 +425,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Skew: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Skew");
             if (!s_skewOpen) {
                 if (ImGui::Button("Open Skew")) s_skewOpen = true;
@@ -420,6 +437,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Vignette: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Vignette");
             if (!s_vignetteOpen) { if (ImGui::Button("Open Vignette")) s_vignetteOpen = true; }
             else {
@@ -429,6 +447,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Warmth: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Warmth");
             if (!s_warmthOpen) { if (ImGui::Button("Open Warmth")) s_warmthOpen = true; }
             else {
@@ -438,6 +457,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Outline: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Outline");
             if (!s_outlineOpen) {
                 if (ImGui::Button("Open Outline")) s_outlineOpen = true;
@@ -458,6 +478,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Resize: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Resize (overlay)");
             if (!s_resizeOpen) {
                 if (ImGui::Button("Open Resize")) s_resizeOpen = true;
@@ -469,6 +490,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Crop: {
+            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Crop (overlay)");
             if (!s_cropOpen) {
                 if (ImGui::Button("Open Crop")) s_cropOpen = true;
