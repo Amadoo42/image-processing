@@ -1637,11 +1637,11 @@ public:
             
             ImGui::Text("Amplitude:");
             ImGui::SameLine();
-            if(ImGui::SliderFloat("##Amplitude", &amplitude, 0.0f, 10.0f, "%.1f"))changed = true;
+            if(ImGui::SliderFloat("##Amplitude", &amplitude, 0.0f, 20.0f, "%.1f"))changed = true;
             
             ImGui::Text("Wavelength:");
             ImGui::SameLine();
-            if(ImGui::SliderFloat("##Wavelength", &wavelength, 0.1f, 10.0f, "%.1f"))changed = true;
+            if(ImGui::SliderFloat("##Wavelength", &wavelength, 0.1f, 100.0f, "%.1f"))changed = true;
 
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
