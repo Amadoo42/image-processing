@@ -4,11 +4,9 @@
 #include "FilterParameters.h"
 #include "PresetManager.h"
 #include "RenderGUI.h"
-// This header is included by multiple translation units. Keep definitions here either static or inline.
-// The global is actually defined in RenderGUI.h, so we only declare it here.
-extern bool gPreviewCacheNeedsUpdate;
 
 // Forward declarations
+extern bool gPreviewCacheNeedsUpdate;
 #include "SelectionTools.h"
 extern SelectionToolMode gSelectionTool;
 
@@ -50,11 +48,6 @@ static bool s_mergeOpen = false;
 static bool s_resizeOpen = false;
 static bool s_cropOpen = false;
 
-inline void onFilterClicked(FilterType ft) {
-    if (ft == FilterType::Rotate) s_rotateOpen = true;
-    if (ft == FilterType::Skew)   s_skewOpen = true;
-}
-
 inline void onFilterApplied(FilterType ft) {
     s_lastAppliedFilter = ft;
     // Clear stored original image when filter is applied
@@ -62,63 +55,115 @@ inline void onFilterApplied(FilterType ft) {
     gHasOriginalImageForPreview = false;
 }
 
+// Helper: Check if the previous filter had a panel open with live preview
+inline bool wasPreviousFilterPanelOpen() {
+    switch (s_prevSelected) {
+        case FilterType::Blur: return s_blurOpen;
+        case FilterType::Brightness: return s_brightnessOpen;
+        case FilterType::Contrast: return s_contrastOpen;
+        case FilterType::Saturation: return s_saturationOpen;
+        case FilterType::OilPainting: return s_oilPaintingOpen;
+        case FilterType::Wave: return s_waveOpen;
+        case FilterType::Purple: return s_purpleOpen;
+        case FilterType::Skew: return s_skewOpen;
+        case FilterType::Vignette: return s_vignetteOpen;
+        case FilterType::Warmth: return s_warmthOpen;
+        default: return false;
+    }
+}
+
+// Helper: Close all filter panels
+inline void closeAllFilterPanels() {
+    s_blurOpen = false;
+    s_brightnessOpen = false;
+    s_contrastOpen = false;
+    s_saturationOpen = false;
+    s_oilPaintingOpen = false;
+    s_waveOpen = false;
+    s_purpleOpen = false;
+    s_skewOpen = false;
+    s_vignetteOpen = false;
+    s_warmthOpen = false;
+    s_rotateOpen = false;
+    s_outlineOpen = false;
+    s_infraredOpen = false;
+    s_retroOpen = false;
+    s_grayscaleOpen = false;
+    s_invertOpen = false;
+    s_blackAndWhiteOpen = false;
+    s_flipOpen = false;
+    s_frameOpen = false;
+    s_mergeOpen = false;
+    s_resizeOpen = false;
+    s_cropOpen = false;
+}
+
+// Helper: Open the panel for the selected filter
+inline void openFilterPanel(FilterType selected) {
+    switch (selected) {
+        case FilterType::Rotate: s_rotateOpen = true; break;
+        case FilterType::Skew: s_skewOpen = true; break;
+        case FilterType::Blur: s_blurOpen = true; break;
+        case FilterType::Outline: s_outlineOpen = true; break;
+        case FilterType::Purple: s_purpleOpen = true; break;
+        case FilterType::Infrared: s_infraredOpen = true; break;
+        case FilterType::Wave: s_waveOpen = true; break;
+        case FilterType::OilPainting: s_oilPaintingOpen = true; break;
+        case FilterType::Retro: s_retroOpen = true; break;
+        case FilterType::Vignette: s_vignetteOpen = true; break;
+        case FilterType::Warmth: s_warmthOpen = true; break;
+        case FilterType::Grayscale: s_grayscaleOpen = true; break;
+        case FilterType::Invert: s_invertOpen = true; break;
+        case FilterType::BlackAndWhite: s_blackAndWhiteOpen = true; break;
+        case FilterType::Flip: s_flipOpen = true; break;
+        case FilterType::Brightness: s_brightnessOpen = true; break;
+        case FilterType::Contrast: s_contrastOpen = true; break;
+        case FilterType::Saturation: s_saturationOpen = true; break;
+        case FilterType::Frame: s_frameOpen = true; break;
+        case FilterType::Merge: s_mergeOpen = true; break;
+        case FilterType::Resize: s_resizeOpen = true; break;
+        case FilterType::Crop: s_cropOpen = true; break;
+        default: break;
+    }
+}
+
 inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType selected, bool &textureNeedsUpdate)
 {
     static FilterParameters params(processor);
     ParamsInlineScope scope; // ensure inline rendering within this panel
-    if (selected != s_prevSelected) {
-        // Reset preview when switching filters without applying
-        if (s_prevSelected != FilterType::None && selected != FilterType::None && selected != s_lastAppliedFilter) {
-            // Restore original image if we have one stored
+    if(selected != s_prevSelected) {
+        if(wasPreviousFilterPanelOpen()) {
             extern Image gOriginalImageForPreview;
             extern bool gHasOriginalImageForPreview;
-            if (gHasOriginalImageForPreview) {
-                processor.setImage(gOriginalImageForPreview);
-                // Keep the stored image for the new filter to use
-            }
-            gPreviewCacheNeedsUpdate = true;
+            if(gHasOriginalImageForPreview) processor.setImage(gOriginalImageForPreview);
         }
-        s_prevSelected = selected;
-        // Auto-open when a filter is newly selected
-        if (selected == FilterType::Rotate) s_rotateOpen = true;
-        if (selected == FilterType::Skew) s_skewOpen = true;
-        if (selected == FilterType::Blur) s_blurOpen = true;
-        if (selected == FilterType::Outline) s_outlineOpen = true;
-        if (selected == FilterType::Purple) s_purpleOpen = true;
-        if (selected == FilterType::Infrared) s_infraredOpen = true;
-        if (selected == FilterType::Wave) s_waveOpen = true;
-        if (selected == FilterType::OilPainting) s_oilOpen = true;
-        if (selected == FilterType::Retro) s_retroOpen = true;
-        if (selected == FilterType::Vignette) s_vignetteOpen = true;
-        if (selected == FilterType::Warmth) s_warmthOpen = true;
-        // Simple filters
-        if (selected == FilterType::Grayscale) s_grayscaleOpen = true;
-        if (selected == FilterType::Invert) s_invertOpen = true;
-        if (selected == FilterType::BlackAndWhite) s_blackAndWhiteOpen = true;
-        if (selected == FilterType::Flip) s_flipOpen = true;
-        // Parameter-based filters
-        if (selected == FilterType::Brightness) s_brightnessOpen = true;
-        if (selected == FilterType::Contrast) s_contrastOpen = true;
-        if (selected == FilterType::Saturation) s_saturationOpen = true;
-        // File dialog filters
-        if (selected == FilterType::Frame) s_frameOpen = true;
-        if (selected == FilterType::Merge) s_mergeOpen = true;
-        // Overlay filters
-        if (selected == FilterType::Resize) s_resizeOpen = true;
-        if (selected == FilterType::Crop) s_cropOpen = true;
-    }
+    
+        textureNeedsUpdate = true;
 
-    auto applySimple = [&](FilterType type, auto makeFilter) {
-        if (ImGui::Button("Apply")) {
-            auto f = makeFilter();
-            processor.applyFilter(f);
-            textureNeedsUpdate = true;
-            gPreviewCacheNeedsUpdate = true;
-            // record step for presets
-            gPresetManager.recordStep(FilterStep{type, {}, ""});
-            onFilterApplied(type);
+        closeAllFilterPanels();
+        clearStoredOriginalImage();
+
+        s_prevSelected = selected;
+        openFilterPanel(selected);
+        switch (selected) {
+            case FilterType::Blur:
+            case FilterType::Brightness:
+            case FilterType::Contrast:
+            case FilterType::Saturation:
+            case FilterType::OilPainting:
+            case FilterType::Wave:
+            case FilterType::Purple:
+            case FilterType::Skew:
+            case FilterType::Vignette:
+            case FilterType::Warmth:
+                storeOriginalImageForPreview(processor.getCurrentImage());
+                break;
+            default:
+                // This filter doesn't have a live preview panel, so do nothing.
+                break;
         }
-    };
+        gPreviewCacheNeedsUpdate = true;
+    }
 
     // Check if current filter should be disabled when selection tools are active
     bool shouldDisableFilter = false;
@@ -134,7 +179,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             ImGui::TextDisabled("Select a filter to edit its parameters.");
             break;
         case FilterType::Grayscale: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Grayscale");
             if (!s_grayscaleOpen) {
                 if (ImGui::Button("Open Grayscale")) s_grayscaleOpen = true;
@@ -155,7 +199,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Invert: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Invert");
             if (!s_invertOpen) {
                 if (ImGui::Button("Open Invert")) s_invertOpen = true;
@@ -176,7 +219,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::BlackAndWhite: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Black & White");
             if (!s_blackAndWhiteOpen) {
                 if (ImGui::Button("Open Black & White")) s_blackAndWhiteOpen = true;
@@ -190,13 +232,13 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::BlackAndWhite, {}, ""});
+                    onFilterApplied(FilterType::BlackAndWhite);
                     s_blackAndWhiteOpen = false;
                 }
             }
             break;
         }
         case FilterType::Flip: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Flip");
             static bool horizontalFlip = false;
             static bool verticalFlip = false;
@@ -213,7 +255,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                         processor.applyFilter(f);
                         textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                         gPresetManager.recordStep(FilterStep{FilterType::Flip, {(double)(horizontalFlip ? 1.0 : 0.0), (double)(verticalFlip ? 1.0 : 0.0)}, ""});
-                    onFilterApplied(FilterType::Flip);
+                        onFilterApplied(FilterType::Flip);
                     }
                     s_flipOpen = false;
                     horizontalFlip = false;
@@ -225,15 +267,11 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     horizontalFlip = false;
                     verticalFlip = false;
                     gPreviewCacheNeedsUpdate = true;
-                    // Clear stored original image when cancelling
-                    extern bool gHasOriginalImageForPreview;
-                    gHasOriginalImageForPreview = false;
                 }
             }
             break;
         }
         case FilterType::Retro: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Retro");
             if (!s_retroOpen) {
                 if (ImGui::Button("Open Retro")) s_retroOpen = true;
@@ -254,7 +292,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Infrared: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Infrared");
             if (!s_infraredOpen) {
                 if (ImGui::Button("Open Infrared")) s_infraredOpen = true;
@@ -274,8 +311,30 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             }
             break;
         }
+
+        case FilterType::Outline: {
+            ImGui::TextUnformatted("Outline");
+            if (!s_outlineOpen) {
+                if (ImGui::Button("Open Outline")) s_outlineOpen = true;
+            } else {
+                if (ImGui::Button("Apply")) {
+                    OutlineFilter f;
+                    if (processor.hasSelection()) {
+                        processor.applyFilterSelective(f, processor.getSelectionInvertApply());
+                    } else {
+                        processor.applyFilter(f);
+                    }
+                    textureNeedsUpdate = true;
+                    gPreviewCacheNeedsUpdate = true;
+                    gPresetManager.recordStep(FilterStep{FilterType::Outline, {}, ""});
+                    onFilterApplied(FilterType::Outline);
+                    s_outlineOpen = false;
+                }
+            }
+            break;
+        }
+
         case FilterType::Frame: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Frame");
             if (!s_frameOpen) {
                 if (ImGui::Button("Open Frame")) s_frameOpen = true;
@@ -293,7 +352,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                         processor.applyFilter(filter);
                         textureNeedsUpdate = true;
                         gPreviewCacheNeedsUpdate = true;
-                    // Do not record Frame/Merge/Crop/Resize per requirement
                         s_frameOpen = false;
                     }
                 }
@@ -301,7 +359,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Merge: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Merge");
             if (!s_mergeOpen) {
                 if (ImGui::Button("Open Merge")) s_mergeOpen = true;
@@ -333,7 +390,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         }
 
         case FilterType::Blur: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Blur");
             if (!s_blurOpen) {
                 if (ImGui::Button("Open Blur")) s_blurOpen = true;
@@ -345,7 +401,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Brightness: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Brightness");
             if (!s_brightnessOpen) {
                 if (ImGui::Button("Open Brightness")) s_brightnessOpen = true;
@@ -357,7 +412,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Contrast: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Contrast");
             if (!s_contrastOpen) {
                 if (ImGui::Button("Open Contrast")) s_contrastOpen = true;
@@ -369,7 +423,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Saturation: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Saturation");
             if (!s_saturationOpen) {
                 if (ImGui::Button("Open Saturation")) s_saturationOpen = true;
@@ -381,7 +434,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::OilPainting: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Oil Painting");
             if (!s_oilPaintingOpen) {
                 if (ImGui::Button("Open Oil Painting")) s_oilPaintingOpen = true;
@@ -393,7 +445,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Rotate: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Rotate");
             if (!s_rotateOpen) {
                 if (ImGui::Button("Open Rotate")) s_rotateOpen = true;
@@ -405,7 +456,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Wave: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Wave");
             if (!s_waveOpen) { if (ImGui::Button("Open Wave")) s_waveOpen = true; }
             else {
@@ -415,7 +465,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Purple: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Purple");
             if (!s_purpleOpen) { if (ImGui::Button("Open Purple")) s_purpleOpen = true; }
             else {
@@ -425,7 +474,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Skew: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Skew");
             if (!s_skewOpen) {
                 if (ImGui::Button("Open Skew")) s_skewOpen = true;
@@ -437,7 +485,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Vignette: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Vignette");
             if (!s_vignetteOpen) { if (ImGui::Button("Open Vignette")) s_vignetteOpen = true; }
             else {
@@ -447,7 +494,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Warmth: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Warmth");
             if (!s_warmthOpen) { if (ImGui::Button("Open Warmth")) s_warmthOpen = true; }
             else {
@@ -456,29 +502,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             }
             break;
         }
-        case FilterType::Outline: {
-            textureNeedsUpdate = true;
-            ImGui::TextUnformatted("Outline");
-            if (!s_outlineOpen) {
-                if (ImGui::Button("Open Outline")) s_outlineOpen = true;
-            } else {
-                if (ImGui::Button("Apply")) {
-                    OutlineFilter f;
-                    if (processor.hasSelection()) {
-                        processor.applyFilterSelective(f, processor.getSelectionInvertApply());
-                    } else {
-                        processor.applyFilter(f);
-                    }
-                    textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
-                    gPresetManager.recordStep(FilterStep{FilterType::Outline, {}, ""});
-                    onFilterApplied(FilterType::Outline);
-                    s_outlineOpen = false;
-                }
-            }
-            break;
-        }
         case FilterType::Resize: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Resize (overlay)");
             if (!s_resizeOpen) {
                 if (ImGui::Button("Open Resize")) s_resizeOpen = true;
@@ -490,7 +514,6 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             break;
         }
         case FilterType::Crop: {
-            textureNeedsUpdate = true;
             ImGui::TextUnformatted("Crop (overlay)");
             if (!s_cropOpen) {
                 if (ImGui::Button("Open Crop")) s_cropOpen = true;
