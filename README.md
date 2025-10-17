@@ -259,7 +259,7 @@ Below are concise algorithmic descriptions of four core filters as implemented i
 - Teaching Assistants - FCAI Cairo University
 - Original Image_Class implementation by Shehab Diab, Youssef Mohamed, and Nada Ahmed
 - Original stb_image and stb_image_write implementations provided during the assignment files
-- We believe in leveraging modern tools for maximum clarity and efficiency. The core concepts, technical implementations, and overall structure of this documentation and related materials were defined and executed by us. An AI large language model was utilized primarily to refine the language, enhance professional tone, and ensure the documentation's clarity and conciseness. This partnership allowed us to maintain full control over the project's details while optimizing the quality of its presentation.
+- We believe in leveraging modern tools for maximum clarity and efficiency. The core concepts, technical implementations, and overall structure of this documentation and related materials were defined and executed by us. An **AI large language model** was utilized primarily to refine the language, enhance professional tone, and ensure the documentation's clarity and conciseness. This partnership allowed us to maintain full control over the project's details while optimizing the quality of its presentation.
 
 ### 12. Contributing
 
