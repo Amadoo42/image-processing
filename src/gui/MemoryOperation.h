@@ -5,10 +5,9 @@
 #include <algorithm>
 #include <array>
 
-// Utility function to normalize file paths for cross-platform compatibility
+// Normalize file paths for cross-platform compatibility
 static std::string normalizePath(const std::string& path) {
     std::string normalized = path;
-    // Convert backslashes to forward slashes for consistency
     std::replace(normalized.begin(), normalized.end(), '\\', '/');
     return normalized;
 }
@@ -24,10 +23,8 @@ static std::string runCapture1(const char* cmd) {
 }
 
 std::string openFileDialog_Linux() {
-    // try kdialog first
     std::string out = runCapture1("which kdialog >/dev/null 2>&1 && kdialog --getopenfilename 2>/dev/null || true");
     if(!out.empty()) return normalizePath(out);
-    // now try zenity cuz kdialog failed for some reason
     out = runCapture1("which zenity >/dev/null 2>&1 && "
         "zenity --file-selection --title=\"Select an image\" --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.gif' 2>/dev/null || true");
     if(!out.empty()) return normalizePath(out);
@@ -35,10 +32,8 @@ std::string openFileDialog_Linux() {
 }
 
 std::string saveFileDialog_Linux() {
-    // try kdialog first
     std::string out = runCapture1("which kdialog >/dev/null 2>&1 && kdialog --getsavefilename 2>/dev/null || true");
     if(!out.empty()) return normalizePath(out);
-    // now try zenity cuz kdialog failed for some reason
     out = runCapture1("which zenity >/dev/null 2>&1 && "
         "zenity --file-selection --save --title=\"Save an image\" --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.gif' 2>/dev/null || true");
     if(!out.empty()) return normalizePath(out);
@@ -48,21 +43,17 @@ std::string saveFileDialog_Linux() {
 // Returns a newline-separated list of selected file paths.
 // Caller should split on '\n' and ignore empty lines.
 inline std::string openMultipleFilesDialog_Linux() {
-    // Try kdialog first
     std::string out = runCapture1("which zenity >/dev/null 2>&1 && "
                                   "zenity --file-selection --title=\"Select images\" --file-filter='Images | *.png *.jpg *.jpeg *.bmp *.gif' --multiple --separator='\n' 2>/dev/null || "
                                   "(which kdialog >/dev/null 2>&1 && kdialog --getopenfilename --multiple --separate-output 2>/dev/null) || true");
     if(!out.empty()) return normalizePath(out);
-    // last resort
     if(!out.empty()) return normalizePath(out);
     return "";
 }
 
 std::string openDirectoryDialog_Linux() {
-    // try kdialog first
     std::string out = runCapture1("which kdialog >/dev/null 2>&1 && kdialog --getexistingdirectory 2>/dev/null || true");
     if(!out.empty()) return normalizePath(out);
-    // now try zenity
     out = runCapture1("which zenity >/dev/null 2>&1 && "
         "zenity --file-selection --title=\"Select output directory\" --directory 2>/dev/null || true");
     if(!out.empty()) return normalizePath(out);

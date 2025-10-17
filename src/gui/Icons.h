@@ -1,7 +1,6 @@
 #pragma once
 
-// Minimal icon helpers. Intended to be used with a Font Awesome compatible font.
-// If the icon font is not loaded, labels will still render text portion.
+// Minimal icon helpers for Font Awesome compatible fonts
 
 #ifndef ICON_FA_FOLDER_OPEN
 #define ICON_FA_FOLDER_OPEN u8"\uf07c"

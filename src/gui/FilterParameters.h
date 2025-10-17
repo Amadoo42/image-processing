@@ -27,10 +27,7 @@ inline void clearStoredOriginalImage() {
 #include "../filters/CropFilter.h"
 #include "../filters/ResizeFilter.h"
 #include "../filters/DarkenFilter.h"
-#include "../filters/LightenFilter.h"
 #include "../filters/FrameFilter.h"
-#include "../filters/HorizontalFlipFilter.h"
-#include "../filters/VerticalFlipFilter.h"
 #include "../filters/FlipFilter.h"
 #include "../filters/MergeFilter.h"
 #include "../filters/RotateFilter.h"
@@ -878,10 +875,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
     void applyHorizontalFlip(bool &show, bool &textureNeedsUpdate) {
         if(show){
-            HorizontalFlipFilter filter;
+            FlipFilter filter(true, false);
             processor.applyFilter(filter);
-            std::cout << "Applied Horizontal Flip Filter\n";
-            
             show = false;
             textureNeedsUpdate = true;
         }
@@ -889,10 +884,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
     void applyVerticalFlip(bool &show, bool &textureNeedsUpdate) {
         if(show){
-            VerticalFlipFilter filter;
+            FlipFilter filter(false, true);
             processor.applyFilter(filter);
-            std::cout << "Applied Vertical Flip Filter\n";
-            
             show = false;
             textureNeedsUpdate = true;
         }

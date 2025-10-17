@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <vector>
 
+// Gaussian blur with separable kernel
 class BlurFilter : public Filter {
 private:
     int kernelSize;
     double sigma;
 
-    // Reference: https://en.wikipedia.org/wiki/Gaussian_blur, https://www.geeksforgeeks.org/machine-learning/gaussian-kernel/
     std::vector <double> generateGaussianKernel() {
         std::vector <double> kernel(kernelSize);
         int half = kernelSize / 2;

@@ -21,7 +21,6 @@ void filtersMenu(ImageProcessor &processor, bool &textureNeedsUpdate, FilterType
         if (ImGui::CollapsingHeader("Basic Adjustments", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Indent(20.0f);
             count = 0;
-            // Grid with image previews
             std::vector<FilterType> basics = {
                 FilterType::Grayscale,
                 FilterType::Invert,
@@ -30,7 +29,6 @@ void filtersMenu(ImageProcessor &processor, bool &textureNeedsUpdate, FilterType
                 FilterType::Contrast,
                 FilterType::Saturation
             };
-            // Only invalidate cache when a new image is loaded/applied, not every frame.
             bool invalidate = textureNeedsUpdate;
             renderFilterPreviewGrid(previewCache, processor, basics, selectedFilter, invalidate, "basic", 3, ImVec2(96, 72));
             ImGui::Unindent(20.0f);
@@ -42,8 +40,7 @@ void filtersMenu(ImageProcessor &processor, bool &textureNeedsUpdate, FilterType
             count = 0;
             addButton("Crop",             FilterType::Crop);
             addButton("Resize",           FilterType::Resize);
-            addButton("Horizontal Flip",  FilterType::HorizontalFlip);
-            addButton("Vertical Flip",    FilterType::VerticalFlip);
+            addButton("Flip",             FilterType::Flip);
             addButton("Rotate",           FilterType::Rotate);
             addButton("Skew",             FilterType::Skew);
             addButton("Merge",            FilterType::Merge);
@@ -67,7 +64,6 @@ void filtersMenu(ImageProcessor &processor, bool &textureNeedsUpdate, FilterType
             };
             bool invalidate = textureNeedsUpdate;
             renderFilterPreviewGrid(previewCache, processor, effects, selectedFilter, invalidate, "effects", 3, ImVec2(96, 72));
-            // Non-previewable 'Frame' is kept as simple button
             addButton("Frame",           FilterType::Frame);
             ImGui::Unindent(20.0f);
             ImGui::NewLine();
