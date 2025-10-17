@@ -284,13 +284,22 @@ static void drawTopNavBar(ImageProcessor &processor) {
         if (!__hasImage) ImGui::BeginDisabled();
         ImGui::TextUnformatted("Selection:"); ImGui::SameLine();
         bool selNone = (gSelectionTool == SelectionToolMode::None);
-        if (ImGui::RadioButton("None", selNone)) gSelectionTool = SelectionToolMode::None;
+        if (ImGui::RadioButton("None", selNone)) {
+            processor.clearSelection();
+            gSelectionTool = SelectionToolMode::None;
+        }
         ImGui::SameLine();
         bool selRect = (gSelectionTool == SelectionToolMode::Rectangle);
-        if (ImGui::RadioButton("Rectangle", selRect)) gSelectionTool = SelectionToolMode::Rectangle;
+        if (ImGui::RadioButton("Rectangle", selRect)) {
+            processor.clearSelection();
+            gSelectionTool = SelectionToolMode::Rectangle;
+        }
         ImGui::SameLine();
         bool selWand = (gSelectionTool == SelectionToolMode::MagicWand);
-        if (ImGui::RadioButton("Magic Wand", selWand)) gSelectionTool = SelectionToolMode::MagicWand;
+        if (ImGui::RadioButton("Magic Wand", selWand)) {
+            processor.clearSelection();
+            gSelectionTool = SelectionToolMode::MagicWand;
+        }
         
         // Move to next line for better layout
         ImGui::SameLine();
@@ -347,6 +356,7 @@ static void drawTopNavBar(ImageProcessor &processor) {
             } else if (q.find("fit") != std::string::npos) {
                 const Image& img = processor.getCurrentImage();
                 if (img.width > 0 && img.height > 0 && gLastCanvasAvail.x > 0.0f && gLastCanvasAvail.y > 0.0f) {
+                    zoom_level = 1.0f; pan_offset = ImVec2(0,0);
                     float zx = gLastCanvasAvail.x / img.width; float zy = gLastCanvasAvail.y / img.height; zoom_level = std::max(0.1f, std::min(zx, zy));
                 }
             } else if (q.find("compare") != std::string::npos) {
@@ -869,6 +879,7 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         }
         ImGui::SameLine();
         if (ImGui::Button("Fit")) {
+            zoom_level = 1.0f; pan_offset = ImVec2(0, 0);
             const Image& img = processor.getCurrentImage();
             if (img.width > 0 && img.height > 0 && gLastCanvasAvail.x > 0.0f && gLastCanvasAvail.y > 0.0f) {
                 float zx = gLastCanvasAvail.x / img.width;
