@@ -260,6 +260,56 @@ static void drawTopNavBar(ImageProcessor &processor) {
             ImGui::EndMenu();
         }
 
+        float totalWidth = ImGui::GetWindowWidth();
+        float menuBarHeight = ImGui::GetFrameHeight();
+        float currentX = ImGui::GetCursorPosX();
+        
+        float estRightWidth = 350.0f; 
+
+        float availableCenterWidth = totalWidth - currentX - estRightWidth;
+        float selectionToolsWidthEstimate = 500.0f;
+        float padding = std::max(0.0f, (availableCenterWidth / 2.0f) - (selectionToolsWidthEstimate / 2.0f));
+
+        if (padding > 0) {
+            ImGui::SameLine(currentX + padding);
+        } else {
+            ImGui::SameLine();
+        }
+
+        ImGui::TableNextColumn();
+        if (!__hasImage) ImGui::BeginDisabled();
+        ImGui::TextUnformatted("Selection:"); ImGui::SameLine();
+        bool selNone = (gSelectionTool == SelectionToolMode::None);
+        if (ImGui::RadioButton("None", selNone)) gSelectionTool = SelectionToolMode::None;
+        ImGui::SameLine();
+        bool selRect = (gSelectionTool == SelectionToolMode::Rectangle);
+        if (ImGui::RadioButton("Rectangle", selRect)) gSelectionTool = SelectionToolMode::Rectangle;
+        ImGui::SameLine();
+        bool selWand = (gSelectionTool == SelectionToolMode::MagicWand);
+        if (ImGui::RadioButton("Magic Wand", selWand)) gSelectionTool = SelectionToolMode::MagicWand;
+        
+        // Move to next line for better layout
+        ImGui::SameLine();
+        ImGui::Checkbox("Apply to outside", &gSelectionInverseApply);
+        // propagate to processor so parameter panels can query invert flag
+        processor.setSelectionInvertApply(gSelectionInverseApply);
+        ImGui::SameLine();
+        if (ImGui::Button("Clear Selection")) {
+            processor.clearSelection();
+            statusBarMessage = "Selection cleared";
+        }
+        
+        // Tolerance slider on its own line when magic wand is selected
+        if (gSelectionTool == SelectionToolMode::MagicWand) {
+            ImGui::SameLine();
+            ImGui::Text("Tolerance:");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(200.0f);
+            ImGui::SliderInt("##wand_tol", &gMagicWandTolerance, 0, 200, "%d");
+        }
+
+        if (!__hasImage) ImGui::EndDisabled();
+
         // Right-aligned search field (functional + sticky suggestions)
         auto executeQuickCommand = [&](const std::string &qraw){
             std::string q = qraw; for (auto &c : q) c = (char)tolower(c);
@@ -748,10 +798,16 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
 
 // --- Bottom Toolbar ---------------------------------------------------------
 static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
-    float height = 52.0f; // taller to host selection tools + status/details
+    float height = 52.0f;
     ImGui::BeginChild("BottomToolbar", ImVec2(0, height), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-    // Layout the bottom toolbar into 3 columns: Left (global), Center (selection tools), Right (status + info)
-    if (ImGui::BeginTable("BottomToolbarTable", 3, ImGuiTableFlags_SizingStretchSame)) {
+    
+    // Use a 2-column layout: Left (controls) and Right (status/info)
+    if (ImGui::BeginTable("BottomToolbarTable", 2, ImGuiTableFlags_None)) {
+        // Set up columns: first takes minimum needed, second stretches
+        ImGui::TableSetupColumn("Left", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Right", ImGuiTableColumnFlags_WidthStretch);
+        
+        ImGui::TableNextRow();
         ImGui::TableNextColumn();
 
         // LEFT: Undo/Redo/Reset + Zoom controls
@@ -763,8 +819,8 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
             if (processor.undo()) {
                 textureNeedsUpdate = true;
                 gPreviewCacheNeedsUpdate = true;
-                gSelectedFilter = FilterType::None; // Reset filter selection
-                gPresetManager.clearSession(); // Clear preset session
+                gSelectedFilter = FilterType::None;
+                gPresetManager.clearSession();
                 statusBarMessage = "Undo successful.";
             } else {
                 statusBarMessage = "Nothing to undo.";
@@ -777,8 +833,8 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
             if (processor.redo()) {
                 textureNeedsUpdate = true;
                 gPreviewCacheNeedsUpdate = true;
-                gSelectedFilter = FilterType::None; // Reset filter selection
-                gPresetManager.clearSession(); // Clear preset session
+                gSelectedFilter = FilterType::None;
+                gPresetManager.clearSession();
                 statusBarMessage = "Redo successful.";
             } else {
                 statusBarMessage = "Nothing to redo.";
@@ -818,41 +874,9 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         }
         if (!__hasImageToolbar) ImGui::EndDisabled();
 
-        // CENTER: Selection tools
+        // RIGHT: Status text and image details (right-aligned)
         ImGui::TableNextColumn();
-        if (!__hasImageToolbar) ImGui::BeginDisabled();
-        ImGui::TextUnformatted("Selection:"); ImGui::SameLine();
-        bool selNone = (gSelectionTool == SelectionToolMode::None);
-        if (ImGui::RadioButton("None", selNone)) gSelectionTool = SelectionToolMode::None;
-        ImGui::SameLine();
-        bool selRect = (gSelectionTool == SelectionToolMode::Rectangle);
-        if (ImGui::RadioButton("Rectangle", selRect)) gSelectionTool = SelectionToolMode::Rectangle;
-        ImGui::SameLine();
-        bool selWand = (gSelectionTool == SelectionToolMode::MagicWand);
-        if (ImGui::RadioButton("Magic Wand", selWand)) gSelectionTool = SelectionToolMode::MagicWand;
         
-        // Move to next line for better layout
-        ImGui::SameLine();
-        ImGui::Checkbox("Apply to outside", &gSelectionInverseApply);
-        // propagate to processor so parameter panels can query invert flag
-        processor.setSelectionInvertApply(gSelectionInverseApply);
-        ImGui::SameLine();
-        if (ImGui::Button("Clear Selection")) {
-            processor.clearSelection();
-            statusBarMessage = "Selection cleared";
-        }
-        
-        // Tolerance slider on its own line when magic wand is selected
-        if (gSelectionTool == SelectionToolMode::MagicWand) {
-            ImGui::Text("Tolerance:");
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(200.0f);
-            ImGui::SliderInt("##wand_tol", &gMagicWandTolerance, 0, 200, "%d");
-        }
-        if (!__hasImageToolbar) ImGui::EndDisabled();
-
-        // RIGHT: Status text (top line) and image details (second line, right-aligned)
-        ImGui::TableNextColumn();
         const Image& img = processor.getCurrentImage();
         auto gcd = [](int a, int b){ while(b){ int t=a%b; a=b; b=t;} return std::max(1, a); };
         int g = (img.width>0 && img.height>0) ? gcd(img.width, img.height) : 1;
@@ -862,6 +886,7 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         size_t pos = fname.find_last_of("/\\");
         if (pos != std::string::npos) fname = fname.substr(pos + 1);
         if (fname.empty()) fname = "Untitled";
+        
         char infoBuf[256];
         if (img.width > 0 && img.height > 0)
             std::snprintf(infoBuf, sizeof(infoBuf), "%s | %dx%d | %d:%d | %.0f%%",
@@ -869,25 +894,22 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         else
             std::snprintf(infoBuf, sizeof(infoBuf), "%s", fname.c_str());
 
-        // Lay out: Status bar glued to right and ending at left of the image info
-        float infoWidth = ImGui::CalcTextSize(infoBuf).x;
+        // Calculate widths and positions for right-alignment
         float statusWidth = ImGui::CalcTextSize(statusBarMessage.c_str()).x;
+        float infoWidth = ImGui::CalcTextSize(infoBuf).x;
+        float gap = 12.0f;
+        float compositeWidth = statusWidth + gap + infoWidth;
         float avail = ImGui::GetContentRegionAvail().x;
-
-        // Compute right-aligned positions
-        float rightPad = 8.0f;
-        float infoX = ImGui::GetCursorPosX() + std::max(0.0f, avail - infoWidth - rightPad);
-        float statusX = infoX - statusWidth - 12.0f; // Small gap between status and info
-
-        // Render statusBarMessage at the calculated position
-        if (statusWidth > 0.0f) {
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), statusX));
-            ImGui::TextUnformatted(statusBarMessage.c_str());
-        }
-
-        ImGui::SameLine();
-        // Render infoBuf right-glued
-        ImGui::SetCursorPosX(infoX);
+        
+        // Right-align by setting cursor position
+        float startX = ImGui::GetCursorPosX() + std::max(0.0f, avail - compositeWidth);
+        
+        // Render status message
+        ImGui::SetCursorPosX(startX);
+        ImGui::TextUnformatted(statusBarMessage.c_str());
+        
+        // Render info text
+        ImGui::SameLine(0.0f, gap);
         ImGui::TextUnformatted(infoBuf);
 
         ImGui::EndTable();
@@ -895,6 +917,7 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
 
     ImGui::EndChild();
 }
+
 
 void renderGUI(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();
