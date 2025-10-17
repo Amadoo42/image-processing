@@ -133,6 +133,18 @@ public:
         filter.apply(currentImage);
     }
 
+    // Apply multiple filters as a batch with a single undo entry.
+    // This is used for presets to allow undoing the entire preset as one operation.
+    void applyFilterBatch(const std::vector<Filter*>& filters) {
+        pushUndo();
+        redoHistory.clear();
+        for (auto* filter : filters) {
+            if (filter) {
+                filter->apply(currentImage);
+            }
+        }
+    }
+
     bool undo() {
         if(undoHistory.empty()) return false;
         pushRedo();

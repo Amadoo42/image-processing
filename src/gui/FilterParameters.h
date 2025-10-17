@@ -1637,8 +1637,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
-                amplitude = 1.0f; // Reset to default value
-                wavelength = 1.0f; // Reset to default value
+                strength = 0.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1692,7 +1691,7 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
-                gPresetManager.recordStep(FilterStep{FilterType::OilPainting, {5.0, (double)values[currentItem]}, ""});
+                gPresetManager.recordStep(FilterStep{FilterType::OilPainting, {(double)radiusValues[currentItem], (double)intensityValues[currentItem]}, ""});
             }
 
             ImGui::SameLine();

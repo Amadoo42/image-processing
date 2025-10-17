@@ -1036,7 +1036,7 @@ void renderGUI(ImageProcessor &processor) {
             }
             if (applyIdx < 0) ImGui::BeginDisabled();
             if (ImGui::Button("Apply Now")) {
-                if (applyIdx >= 0) { gPresetManager.applyPreset(processor, presets[applyIdx]); textureNeedsUpdate = true; }
+                if (applyIdx >= 0) { gPresetManager.applyPresetBatch(processor, presets[applyIdx]); textureNeedsUpdate = true; }
             }
             if (applyIdx < 0) ImGui::EndDisabled();
         }
@@ -1159,12 +1159,12 @@ void renderGUI(ImageProcessor &processor) {
                         ImageProcessor localProc;
                         localProc.setImage(img);
                         if (mode == 0) {
-                            if (presetIdx >= 0) gPresetManager.applyPreset(localProc, presets[presetIdx]);
+                            if (presetIdx >= 0) gPresetManager.applyPresetBatch(localProc, presets[presetIdx]);
                         } else {
                             if (!batchFilterTypes.empty() && filterIdx >= 0 && filterIdx < (int)batchFilterTypes.size()) {
                                 FilterStep step{ batchFilterTypes[filterIdx], {}, "" };
                                 PresetDefinition single{ "__single__", { step } };
-                                gPresetManager.applyPreset(localProc, single);
+                                gPresetManager.applyPresetBatch(localProc, single);
                             } else {
                                 ok = false;
                             }
@@ -1184,9 +1184,9 @@ void renderGUI(ImageProcessor &processor) {
                 }
                 if (currentIndex >= total) {
                     batchRunning = false;
-                    std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped.", processed, skipped);
+                    std::snprintf(statusBuf, sizeof(statusBuf), "Completed. %zu processed, %d skipped. Images saved to: output/", processed, skipped);
                     progress = 1.0f;
-                    statusBarMessage = "Batch completed";
+                    statusBarMessage = "Batch completed - images saved to output/ folder";
                 }
             }
             if (disableBatch) ImGui::EndDisabled();
