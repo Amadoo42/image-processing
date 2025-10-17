@@ -21,7 +21,6 @@
 #include "../filters/CropFilter.h"
 #include "../filters/DarkenFilter.h" // used for Brightness
 #include "../filters/FrameFilter.h"
-#include "../filters/HorizontalFlipFilter.h"
 #include "../filters/InfraredFilter.h"
 #include "../filters/WaveFilter.h"
 #include "../filters/MergeFilter.h"
@@ -34,7 +33,6 @@
 #include "../filters/SaturationFilter.h"
 #include "../filters/SkewFilter.h"
 #include "../filters/VigentteFilter.h"
-#include "../filters/VerticalFlipFilter.h"
 #include "../filters/FlipFilter.h"
 #include "../filters/WarmthFilter.h"
 
@@ -247,8 +245,8 @@ private:
             case FilterType::Grayscale: return new GrayscaleFilter();
             case FilterType::Invert: return new InvertFilter();
             case FilterType::BlackAndWhite: return new BlackAndWhiteFilter();
-            case FilterType::HorizontalFlip: return new HorizontalFlipFilter();
-            case FilterType::VerticalFlip: return new VerticalFlipFilter();
+            case FilterType::HorizontalFlip: return new FlipFilter(true, false);
+            case FilterType::VerticalFlip: return new FlipFilter(false, true);
             case FilterType::Retro: return new RetroFilter();
             case FilterType::Outline: return new OutlineFilter();
             case FilterType::Infrared: return new InfraredFilter();
@@ -274,8 +272,8 @@ private:
             case FilterType::Grayscale: { GrayscaleFilter f; processor.applyFilter(f); return true; }
             case FilterType::Invert: { InvertFilter f; processor.applyFilter(f); return true; }
             case FilterType::BlackAndWhite: { BlackAndWhiteFilter f; processor.applyFilter(f); return true; }
-            case FilterType::HorizontalFlip: { HorizontalFlipFilter f; processor.applyFilter(f); return true; }
-            case FilterType::VerticalFlip: { VerticalFlipFilter f; processor.applyFilter(f); return true; }
+            case FilterType::HorizontalFlip: { FlipFilter f(true, false); processor.applyFilter(f); return true; }
+            case FilterType::VerticalFlip: { FlipFilter f(false, true); processor.applyFilter(f); return true; }
             case FilterType::Retro: { RetroFilter f; processor.applyFilter(f); return true; }
             case FilterType::Outline: { OutlineFilter f; processor.applyFilter(f); return true; }
             case FilterType::Infrared: { InfraredFilter f; processor.applyFilter(f); return true; }

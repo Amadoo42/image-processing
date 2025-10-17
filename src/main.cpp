@@ -14,9 +14,7 @@
 #include "filters/CropFilter.h"
 #include "filters/DarkenFilter.h"
 #include "filters/FrameFilter.h"
-#include "filters/HorizontalFlipFilter.h"
 #include "filters/InfraredFilter.h"
-#include "filters/LightenFilter.h"
 #include "filters/MergeFilter.h"
 #include "filters/OilPaintingFilter.h"
 #include "filters/OutlineFilter.h"
@@ -26,7 +24,6 @@
 #include "filters/RotateFilter.h"
 #include "filters/SaturationFilter.h"
 #include "filters/SkewFilter.h"
-#include "filters/VerticalFlipFilter.h"
 #include "filters/FlipFilter.h"
 #include "filters/VigentteFilter.h"
 #include "filters/WarmthFilter.h"
@@ -34,6 +31,7 @@
 #include <string>
 #include <array>
 #include "gui/RenderGUI.h"
+#include "gui/GuiState.h"
 #include "gui/PresetManager.h"
 
 int main(int argc, char* argv[]) {

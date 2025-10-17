@@ -5,6 +5,7 @@
 #include "PresetManager.h"
 #include "RenderGUI.h"
 
+// Forward declarations
 extern bool gPreviewCacheNeedsUpdate;
 #include "SelectionTools.h"
 extern SelectionToolMode gSelectionTool;
@@ -124,50 +125,40 @@ inline void openFilterPanel(FilterType selected) {
 inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType selected, bool &textureNeedsUpdate)
 {
     static FilterParameters params(processor);
-    ParamsInlineScope scope;
-    
-    // Handle filter switching
-    if (selected != s_prevSelected) {
-    // 1. If the previous filter had a live preview, restore the original image.
-    if (wasPreviousFilterPanelOpen()) {
-        extern Image gOriginalImageForPreview;
-        extern bool gHasOriginalImageForPreview;
-        if (gHasOriginalImageForPreview) {
-            processor.setImage(gOriginalImageForPreview);
+    ParamsInlineScope scope; // ensure inline rendering within this panel
+    if(selected != s_prevSelected) {
+        if(wasPreviousFilterPanelOpen()) {
+            extern Image gOriginalImageForPreview;
+            extern bool gHasOriginalImageForPreview;
+            if(gHasOriginalImageForPreview) processor.setImage(gOriginalImageForPreview);
         }
-    }
-
-    // 2. ALWAYS flag the texture for a visual update on any filter switch.
-    textureNeedsUpdate = true;
     
-    // 3. Close all old panels and clear the preview flag.
-    closeAllFilterPanels();
-    clearStoredOriginalImage(); // Use the helper to set gHasOriginalImageForPreview to false
+        textureNeedsUpdate = true;
 
-    // 4. Update which filter is selected.
-    s_prevSelected = selected;
-    openFilterPanel(selected);
+        closeAllFilterPanels();
+        clearStoredOriginalImage();
 
-    // 5. If the NEW filter needs a live preview, store the current image state NOW.
-    switch (selected) {
-        case FilterType::Blur:
-        case FilterType::Brightness:
-        case FilterType::Contrast:
-        case FilterType::Saturation:
-        case FilterType::OilPainting:
-        case FilterType::Wave:
-        case FilterType::Purple:
-        case FilterType::Skew:
-        case FilterType::Vignette:
-        case FilterType::Warmth:
-            storeOriginalImageForPreview(processor.getCurrentImage());
-            break;
-        default:
-            // This filter doesn't have a live preview panel, so do nothing.
-            break;
+        s_prevSelected = selected;
+        openFilterPanel(selected);
+        switch (selected) {
+            case FilterType::Blur:
+            case FilterType::Brightness:
+            case FilterType::Contrast:
+            case FilterType::Saturation:
+            case FilterType::OilPainting:
+            case FilterType::Wave:
+            case FilterType::Purple:
+            case FilterType::Skew:
+            case FilterType::Vignette:
+            case FilterType::Warmth:
+                storeOriginalImageForPreview(processor.getCurrentImage());
+                break;
+            default:
+                // This filter doesn't have a live preview panel, so do nothing.
+                break;
+        }
+        gPreviewCacheNeedsUpdate = true;
     }
-    gPreviewCacheNeedsUpdate = true;
-}
 
     // Check if current filter should be disabled when selection tools are active
     bool shouldDisableFilter = false;
@@ -327,7 +318,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             }
             break;
         }
-        
+
         case FilterType::Outline: {
             ImGui::TextUnformatted("Outline");
             if (!s_outlineOpen) {
@@ -349,7 +340,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
             }
             break;
         }
-        
+
         case FilterType::Frame: {
             ImGui::TextUnformatted("Frame");
             if (!s_frameOpen) {
@@ -542,19 +533,13 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
         
         case FilterType::Warmth: {
             ImGui::TextUnformatted("Warmth");
-            if (!s_warmthOpen) {
-                if (ImGui::Button("Open Warmth")) s_warmthOpen = true;
-            } else {
-                bool show = s_warmthOpen;
-                params.applyWarmth(show, textureNeedsUpdate);
-                if (!show) {
-                    s_warmthOpen = false;
-                    gPreviewCacheNeedsUpdate = true;
-                }
+            if (!s_warmthOpen) { if (ImGui::Button("Open Warmth")) s_warmthOpen = true; }
+            else {
+                bool show = s_warmthOpen; params.applyWarmth(show, textureNeedsUpdate);
+                if (!show) { s_warmthOpen = false; gPreviewCacheNeedsUpdate = true; }
             }
             break;
         }
-        
         case FilterType::Resize: {
             ImGui::TextUnformatted("Resize (overlay)");
             if (!s_resizeOpen) {

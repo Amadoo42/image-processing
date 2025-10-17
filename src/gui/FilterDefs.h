@@ -2,6 +2,7 @@
 
 #include <string>
 
+// Enumerates available filters and operations
 enum class FilterType {
     None = 0,
     Grayscale,

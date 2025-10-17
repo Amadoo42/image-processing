@@ -29,14 +29,13 @@
 #include "../filters/WarmthFilter.h"
 #include "../filters/ResizeFilter.h"
 
-// Small cache that builds thumbnail previews for supported visual filters.
-// Generation is synchronous and only runs when invalidated.
+// Builds and caches thumbnail previews for supported visual filters.
 class FilterPreviewCache {
 public:
     FilterPreviewCache() = default;
     ~FilterPreviewCache() { releaseTextures(); }
 
-    // Filters we will preview (exclude non-visual/editing tools like Resize/Crop/Merge/Skew/Frame)
+    // Filters that can be previewed; excludes geometry or external-resource operations
     static bool isPreviewable(FilterType t) {
         switch (t) {
             case FilterType::Resize:
@@ -75,7 +74,7 @@ public:
         }
     }
 
-    // Lazily upload GL texture for a filter preview when needed
+    // Lazily build and upload a texture for a filter preview
     GLuint getTexture(FilterType t) {
         auto it = previews.find(t);
         if (it == previews.end()) return 0;
@@ -110,8 +109,7 @@ private:
     size_t lastSignature = 0;
 
     static size_t signature(const Image &img) {
-        // Cheap content-sensitive signature: width/height plus a hash of a few hundred bytes
-        // sampled from the buffer so in-place edits are detected.
+        // Content-sensitive signature based on size and sampled buffer bytes
         size_t h = (static_cast<size_t>(img.width) << 32) ^ static_cast<size_t>(img.height);
         const unsigned char* data = img.imageData;
         if (!data || img.width <= 0 || img.height <= 0) return h;

@@ -1,4 +1,3 @@
-// This will basically manage the current image and provide undo/redo functionality
 #pragma once
 
 #include <GL/gl.h>
@@ -20,10 +19,10 @@ private:
     std::vector <Image> redoHistory;
     int historySize;
 
-    // Selection state (mask same size as current image; 1 = selected, 0 = not selected)
+    // Selection mask with same dimensions as current image (1 selected, 0 not)
     std::vector<uint8_t> selectionMask;
     bool selectionActive = false;
-    bool selectionInvertApply = false; // when true, apply to outside of selection
+    bool selectionInvertApply = false;
 
     void pushUndo() {
         if((int)undoHistory.size() >= historySize) undoHistory.erase(undoHistory.begin());
@@ -40,7 +39,7 @@ public:
 
     void setHistorySize(int newSize) {
         historySize = newSize;
-        // Trim history if new size is smaller
+        // Trim history when reducing size
         while ((int)undoHistory.size() > historySize) {
             undoHistory.erase(undoHistory.begin());
         }
@@ -69,8 +68,7 @@ public:
         //textureNeedsUpdate = true;
     } 
 
-    // Apply a filter only on the current selection mask. If invert=true,
-    // the filter is applied outside the selection instead.
+    // Apply a filter only on the selection mask; invert applies to outside
     void applyFilterSelective(Filter &filter, bool invert) {
         if (currentImage.width <= 0 || currentImage.height <= 0) return;
         if (!selectionActive || selectionMask.size() != (size_t)(currentImage.width * currentImage.height)) {
@@ -82,9 +80,9 @@ public:
         pushUndo();
         redoHistory.clear();
 
-        Image original = currentImage;       // snapshot
-        Image filtered = currentImage;       // working copy
-        filter.apply(filtered);              // run filter on whole image
+        Image original = currentImage;
+        Image filtered = currentImage;
+        filter.apply(filtered);
 
         // Blend based on selection
         const int w = currentImage.width;
@@ -95,12 +93,10 @@ public:
                 bool sel = selectionMask[idx] != 0;
                 if (invert) sel = !sel;
                 if (sel) {
-                    // copy filtered pixel
                     for (int c = 0; c < 3; ++c) {
                         currentImage.setPixel(x, y, c, filtered.getPixel(x, y, c));
                     }
                 } else {
-                    // copy original pixel (already is, but be explicit)
                     for (int c = 0; c < 3; ++c) {
                         currentImage.setPixel(x, y, c, original.getPixel(x, y, c));
                     }
@@ -140,14 +136,12 @@ public:
         }
     }
 
-    // Apply a filter without affecting undo/redo history.
-    // Intended for live previews; caller should manage resetting or committing.
+    // Apply a filter without affecting history (for live previews)
     void applyFilterNoHistory(Filter &filter) {
         filter.apply(currentImage);
     }
 
-    // Apply multiple filters as a batch with a single undo entry.
-    // This is used for presets to allow undoing the entire preset as one operation.
+    // Apply multiple filters as a batch with a single undo entry
     void applyFilterBatch(const std::vector<Filter*>& filters) {
         pushUndo();
         redoHistory.clear();
@@ -179,11 +173,11 @@ public:
 
     const GLuint& getTextureID() const { return currentTextureID; }
 
-    // Expose read-only accessors for GUI visual history rendering
+    // Read-only accessors for GUI history rendering
     const std::vector<Image>& getUndoHistory() const { return undoHistory; }
     const std::vector<Image>& getRedoHistory() const { return redoHistory; }
 
-    // --- Selection API ------------------------------------------------------
+    // Selection API
     void clearSelection() {
         selectionMask.clear();
         selectionActive = false;
@@ -225,7 +219,7 @@ public:
         selectionMask.assign((size_t)imgW * (size_t)imgH, 0);
 
         const unsigned char* data = currentImage.imageData;
-        const int channels = currentImage.channels; // expected 3
+        const int channels = currentImage.channels;
         auto idxOf = [&](int X, int Y){ return ((size_t)Y * (size_t)imgW + (size_t)X); };
         auto pixOf = [&](int X, int Y){ return ((size_t)Y * (size_t)imgW + (size_t)X) * (size_t)channels; };
 
@@ -240,7 +234,7 @@ public:
 
         auto withinTol = [&](int r, int g, int b){
             int d = std::abs(r - r0) + std::abs(g - g0) + std::abs(b - b0);
-            return d <= tolerance; // tolerance in [0..765] typical 30..60 works well
+            return d <= tolerance;
         };
 
         const int dir4[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
