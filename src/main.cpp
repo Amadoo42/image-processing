@@ -14,9 +14,7 @@
 #include "filters/CropFilter.h"
 #include "filters/DarkenFilter.h"
 #include "filters/FrameFilter.h"
-#include "filters/HorizontalFlipFilter.h"
 #include "filters/InfraredFilter.h"
-#include "filters/LightenFilter.h"
 #include "filters/MergeFilter.h"
 #include "filters/OilPaintingFilter.h"
 #include "filters/OutlineFilter.h"
@@ -26,13 +24,15 @@
 #include "filters/RotateFilter.h"
 #include "filters/SaturationFilter.h"
 #include "filters/SkewFilter.h"
-#include "filters/VerticalFlipFilter.h"
+#include "filters/FlipFilter.h"
 #include "filters/VigentteFilter.h"
 #include "filters/WarmthFilter.h"
 #include <iostream>
 #include <string>
 #include <array>
 #include "gui/RenderGUI.h"
+#include "gui/GuiState.h"
+#include "gui/PresetManager.h"
 
 int main(int argc, char* argv[]) {
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
@@ -71,6 +71,8 @@ int main(int argc, char* argv[]) {
     }
 
     setModernStyle();
+    // Load presets on startup
+    gPresetManager.loadFromDisk();
 
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
@@ -88,30 +90,50 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_KEYDOWN) {
                 if (io.KeyCtrl) {
                     if (event.key.keysym.sym == SDLK_o) {
-                        std::string selected = openFileDialog_Linux();
+                        std::string selected =
+#ifdef _WIN32
+                            openFileDialog_Windows(false, false);
+#else
+                            openFileDialog_Linux();
+#endif
                         if(!selected.empty()) {
                             imageProcessor.loadImage(selected);
                             textureNeedsUpdate = true;
                             statusBarMessage = "Image loaded successfully!";
                             guiSetCurrentImagePath(selected);
+                            gPreviewCacheNeedsUpdate = true;
+                            extern int gImageSessionId; gImageSessionId++;
+                            extern FilterType gSelectedFilter; gSelectedFilter = FilterType::None;
+                            gPresetManager.clearSession();
                         } else {
                             statusBarMessage = "Failed to load image.";
                         }
                     }
                     if (event.key.keysym.sym == SDLK_s) {
-                        std::string selected = saveFileDialog_Linux();
-                        if (!selected.empty()) {
-                            if (imageProcessor.saveImage(selected)) {
-                                statusBarMessage = "Image saved to " + selected;
-                                guiSetCurrentImagePath(selected);
-                            } else {
-                                statusBarMessage = "Failed to save image.";
+                        const Image &img = imageProcessor.getCurrentImage();
+                        if (img.width <= 0 || img.height <= 0) {
+                            statusBarMessage = "No image loaded.";
+                        } else {
+                            std::string selected =
+#ifdef _WIN32
+                                openFileDialog_Windows(true, false);
+#else
+                                saveFileDialog_Linux();
+#endif
+                            if (!selected.empty()) {
+                                if (imageProcessor.saveImage(selected)) {
+                                    statusBarMessage = "Image saved to " + selected;
+                                    guiSetCurrentImagePath(selected);
+                                } else {
+                                    statusBarMessage = "Failed to save image.";
+                                }
                             }
                         }
                     }
                     if (event.key.keysym.sym == SDLK_z) {
                         if(imageProcessor.undo()) {
                             textureNeedsUpdate = true;
+                            gPreviewCacheNeedsUpdate = true;
                             statusBarMessage = "Undo successful.";
                         } else {
                             statusBarMessage = "Nothing to undo.";
@@ -120,6 +142,7 @@ int main(int argc, char* argv[]) {
                     if (event.key.keysym.sym == SDLK_y) {
                         if(imageProcessor.redo()) {
                             textureNeedsUpdate = true;
+                            gPreviewCacheNeedsUpdate = true;
                             statusBarMessage = "Redo successful.";
                         } else {
                             statusBarMessage = "Nothing to redo.";

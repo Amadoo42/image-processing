@@ -23,6 +23,8 @@ private:
 
 public:    
     SkewFilter(double deg) {
+        // Clamp angle to prevent infinity issues
+        deg = std::clamp(deg, -70.0, 70.0);
         k = tan(deg * M_PI / 180.0);
     }
 

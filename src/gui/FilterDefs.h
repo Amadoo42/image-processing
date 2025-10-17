@@ -2,6 +2,7 @@
 
 #include <string>
 
+// Enumerates available filters and operations
 enum class FilterType {
     None = 0,
     Grayscale,
@@ -14,6 +15,7 @@ enum class FilterType {
     Frame,
     HorizontalFlip,
     VerticalFlip,
+    Flip,
     Merge,
     Rotate,
     Outline,
@@ -42,6 +44,7 @@ inline const char* filterTypeName(FilterType t) {
         case FilterType::Frame: return "Frame";
         case FilterType::HorizontalFlip: return "Horizontal Flip";
         case FilterType::VerticalFlip: return "Vertical Flip";
+        case FilterType::Flip: return "Flip";
         case FilterType::Merge: return "Merge";
         case FilterType::Rotate: return "Rotate";
         case FilterType::Outline: return "Outline";
