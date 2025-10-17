@@ -32,7 +32,6 @@
 
 #include <iostream>
 #include <exception>
-#include <fstream>
 
 
 /**
@@ -55,17 +54,6 @@ private:
         }
 
         return true;
-    }
-
-    /**
-     * @brief Checks if a file exists and is accessible.
-     *
-     * @param filename The filename to check.
-     * @return True if the file exists and is accessible, false otherwise.
-     */
-    bool fileExists(const std::string& filename) {
-        std::ifstream file(filename);
-        return file.good();
     }
 
     /**
@@ -196,32 +184,15 @@ public:
             std::cerr << "Unsupported File Format" << '\n';
             throw std::invalid_argument("File Extension is not supported, Only .JPG, JPEG, .BMP, .PNG, .TGA are supported");
         }
-
-        // Check if file exists before attempting to load
-        if (!fileExists(filename)) {
-            std::cerr << "File does not exist: " << filename << std::endl;
-            throw std::invalid_argument("File does not exist or is not accessible");
-        }
         if (imageData != nullptr) {
             stbi_image_free(imageData);
         }
 
-        // Load preserving original channels; allow alpha if present
-        imageData = stbi_load(filename.c_str(), &width, &height, &channels, 0);
-        if (channels != 3 && channels != 4) {
-            // Fallback: convert to 3 channels if unknown format
-            unsigned char* data3 = stbi_load(filename.c_str(), &width, &height, &channels, STBI_rgb);
-            if (data3) {
-                if (imageData) stbi_image_free(imageData);
-                imageData = data3;
-                channels = 3;
-            }
-        }
+        imageData = stbi_load(filename.c_str(), &width, &height, &channels, STBI_rgb);
 
         if (imageData == nullptr) {
-            std::cerr << "Failed to load image: " << filename << std::endl;
-            std::cerr << "STB Error: " << stbi_failure_reason() << std::endl;
-            throw std::invalid_argument("Invalid filename, File Does not Exist or cannot be loaded");
+            std::cerr << "File Doesn't Exist" << '\n';
+            throw std::invalid_argument("Invalid filename, File Does not Exist");
         }
 
         return true;
@@ -250,38 +221,16 @@ public:
         }
 
         if (extensionType == PNG_TYPE) {
-            int comp = (channels == 4) ? 4 : 3;
-            stbi_write_png(outputFilename.c_str(), width, height, comp, imageData, width * comp);
+            stbi_write_png(outputFilename.c_str(), width, height, STBI_rgb, imageData, width * 3);
         }
         else if (extensionType == BMP_TYPE) {
-            int comp = (channels == 4) ? 4 : 3;
-            stbi_write_bmp(outputFilename.c_str(), width, height, comp, imageData);
+            stbi_write_bmp(outputFilename.c_str(), width, height, STBI_rgb, imageData);
         }
         else if (extensionType == TGA_TYPE) {
-            int comp = (channels == 4) ? 4 : 3;
-            stbi_write_tga(outputFilename.c_str(), width, height, comp, imageData);
+            stbi_write_tga(outputFilename.c_str(), width, height, STBI_rgb, imageData);
         }
         else if (extensionType == JPG_TYPE) {
-            // JPEG has no alpha; drop alpha if present
-            int comp = 3;
-            if (channels == 4) {
-                // naive drop alpha into a temporary 3-channel buffer
-                size_t total = static_cast<size_t>(width) * static_cast<size_t>(height);
-                unsigned char* rgb = (unsigned char*)malloc(total * 3);
-                if (rgb) {
-                    for (size_t i = 0; i < total; ++i) {
-                        rgb[i*3+0] = imageData[i*4+0];
-                        rgb[i*3+1] = imageData[i*4+1];
-                        rgb[i*3+2] = imageData[i*4+2];
-                    }
-                    stbi_write_jpg(outputFilename.c_str(), width, height, comp, rgb, 90);
-                    free(rgb);
-                } else {
-                    stbi_write_jpg(outputFilename.c_str(), width, height, comp, imageData, 90);
-                }
-            } else {
-                stbi_write_jpg(outputFilename.c_str(), width, height, comp, imageData, 90);
-            }
+            stbi_write_jpg(outputFilename.c_str(), width, height, STBI_rgb, imageData, 90);
         }
 
         return true;
