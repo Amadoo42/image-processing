@@ -2,8 +2,12 @@
 
 A modern, C++17 image processing application with a real-time graphical interface. SR-FX lets you load images, apply 20+ filters and adjustments, preview changes live, and save the results. It includes selection tools, presets, batch processing, and an undo/redo history.
 
+### 1. Team Information
+- **Course**: CS213 - Object Oriented Programming
+- **Assignment 1**
+- **University**: Faculty of Computers and Artificial Intelligence, Cairo University
 
-### 1. Project Overview
+### 2. Project Overview
 
 SR-FX is a lightweight image editor built on Dear ImGui, SDL2, and OpenGL. It focuses on fast, interactive editing with live previews and simple, discoverable controls. Choose a filter from the left panel, adjust parameters using sliders and inputs, see the result instantly in the canvas, and export when satisfied.
 
@@ -13,7 +17,7 @@ SR-FX is a lightweight image editor built on Dear ImGui, SDL2, and OpenGL. It fo
 - Undo/Redo with configurable history
 
 
-### 2. Tools and Technologies Used
+### 3. Tools and Technologies Used
 
 - C++17
 - CMake (>= 3.10)
@@ -23,7 +27,7 @@ SR-FX is a lightweight image editor built on Dear ImGui, SDL2, and OpenGL. It fo
 - stb_image / stb_image_write (image I/O)
 
 
-### 3. Setup and Execution
+### 4. Setup and Execution
 
 #### Prerequisites
 - A C++17 compiler (g++ or clang++)
@@ -77,7 +81,7 @@ Supported formats (runtime):
 - Output: JPG, PNG, BMP
 
 
-### 4. Directory Structure
+### 5. Directory Structure
 
 ```
 .
@@ -140,7 +144,7 @@ Supported formats (runtime):
 ```
 
 
-### 5. GUI User Guide
+### 6. GUI User Guide
 
 - Load a new image
   1) Use the top navigation (File → Open…) or press Ctrl+O.
@@ -166,7 +170,7 @@ Advanced:
 - Zoom & Pan: Mouse wheel to zoom; right-drag to pan.
 
 
-### 6. Filter Index
+### 7. Filter Index
 
 From `src/gui/FilterDefs.h` (user-facing names):
 - Grayscale
@@ -196,7 +200,7 @@ Notes:
 - Internally, `HorizontalFlip` and `VerticalFlip` are available; the UI exposes them via a single Flip panel with checkboxes.
 
 
-### 7. Filter Implementation Documentation
+### 8. Filter Implementation Documentation
 
 Below are concise algorithmic descriptions of four core filters as implemented in `src/filters/*.h` and driven by the parameter UIs in `src/gui/FilterParameters.h`.
 
@@ -204,11 +208,11 @@ Below are concise algorithmic descriptions of four core filters as implemented i
   - Purpose: Create a horizontal sine-wave distortion.
   - Parameters: `amplitude` (pixels), `wavelength` (pixels).
   - Mapping (nearest-neighbor resampling):
-    - For each output pixel at integer coordinates (x, y):
-      - Compute source X: \( x_s = x + a \cdot \sin(2\pi y / w) \)
-      - Source Y: \( y_s = y \)
-      - Clamp \( x_s \) to [0, width-1]; clamp \( y_s \) to [0, height-1].
-      - Copy RGB from (\(\lfloor x_s \rceil\), \(\lfloor y_s \rceil\)).
+    - For each output pixel at integer coordinates $(x, y)$:
+      - Compute source X: $\( x_s = x + a \cdot \sin(2\pi y / w) \)$
+      - Source Y: $\( y_s = y \)$
+      - Clamp $\( x_s \)$ to [0, width-1]; clamp $\( y_s \)$ to [0, height-1].
+      - Copy RGB from $(\(\lfloor x_s \rceil\)$, $\(\lfloor y_s \rceil\))$.
   - Edge handling: hard clamp at image borders.
   - UI ranges: amplitude [0, 20], wavelength [0.1, 100.0] (safe-clamped).
 
@@ -216,33 +220,55 @@ Below are concise algorithmic descriptions of four core filters as implemented i
   - Purpose: Scale distances from mid-gray (128) per channel.
   - Parameter: `factor` (>= 0; UI uses [1.0, 3.0]).
   - Per-channel transform for 8-bit RGB:
-    - \( v' = \mathrm{clamp}(128 + (v - 128)\cdot f, 0, 255) \)
-  - Behavior: f = 1 leaves unchanged; f > 1 increases contrast; 0 < f < 1 (not exposed in UI) would reduce contrast.
+    - $\( v' = \mathrm{clamp}(128 + (v - 128)\cdot f, 0, 255) \)$
+  - Behavior: $f = 1$ leaves unchanged; $f > 1$ increases contrast; $0 < f < 1$ (not exposed in UI) would reduce contrast.
 
 - Saturation Adjustment (`SaturationFilter.h`)
   - Purpose: Adjust colorfulness relative to luminance.
   - Parameter: `factor` (>= 0; UI uses [0.0, 3.0]).
-  - Luminance (ITU-R BT.601): \( Y = 0.299R + 0.587G + 0.114B \)
+  - Luminance (ITU-R BT.601): $\( Y = 0.299R + 0.587G + 0.114B \)$
   - Per-channel transform:
-    - \( c' = \mathrm{clamp}(Y + (c - Y)\cdot f, 0, 255) \) for c ∈ {R, G, B}
-  - Behavior: f = 0 → grayscale; f = 1 → original; f > 1 → more saturated.
+    - $\( c' = \mathrm{clamp}(Y + (c - Y)\cdot f, 0, 255) \) \forall c \in {R, G, B}$
+  - Behavior: $f = 0$ → grayscale; $f = 1$ → original; $f > 1$ → more saturated.
 
 - Vignette Effect (`VigentteFilter.h`)
   - Purpose: Darken toward the image corners using radial falloff.
   - Parameter: `factor` (UI uses [0.0, 3.0], default ~1.5).
-  - Compute center: \( (c_x, c_y) = (\lfloor W/2 \rfloor, \lfloor H/2 \rfloor) \)
-  - Max distance: \( d_{max} = \sqrt{c_x^2 + c_y^2} \)
-  - For each pixel (x, y):
-    - \( d = \sqrt{(x-c_x)^2 + (y-c_y)^2} \)
-    - Gain: \( g = 1 - (d/d_{max}) \cdot f \), then clamp g to [0, 1]
-    - Apply: \( (R',G',B') = (R,G,B)\cdot g \)
+  - Compute center: $\( (c_x, c_y) = (\lfloor W/2 \rfloor, \lfloor H/2 \rfloor) \)$
+  - Max distance: $\( d_{max} = \sqrt{c_x^2 + c_y^2} \)$
+  - For each pixel $(x, y)$:
+    - $\( d = \sqrt{(x-c_x)^2 + (y-c_y)^2} \)$
+    - Gain: $\( g = 1 - (d/d_{max}) \cdot f \)$, then clamp g to [0, 1]
+    - Apply: $\( (R',G',B') = (R,G,B)\cdot g \)$
   - Effect strength increases with `factor`; 0 disables the effect.
 
-Implementation details:
-- Live previews use no-history application; clicking Apply writes to history for undo/redo.
-- Selection-aware application blends filtered and original pixels using a per-pixel selection mask (see `ImageProcessor::applyFilterSelective*`).
+### 9. Known Issues
+- Compare doesn't work well with real-time preview.
+- Left click doesn't work with the search bar, only pressing "Enter" on the keyboard does.
+- Skew doesn't work well with selection tools, but we left it in for fun.
+- Some stuff doesn't work well outside linux.
+
+### 10. References:
+- [stb_image Library](https://github.com/nothings/stb)
+- [Gaussian Blur - Wikipedia](https://en.wikipedia.org/wiki/Gaussian_blur)
+- [Sobel Operator - Wikipedia](https://en.wikipedia.org/wiki/Sobel_operator)
+- [Bilinear Interpolation](https://en.wikipedia.org/wiki/Bilinear_interpolation)
+
+### 11. Acknowledgments
+- Dr. Mohamed El-Ramely - Course Instructor
+- Teaching Assistants - FCAI Cairo University
+- Original Image_Class implementation by Shehab Diab, Youssef Mohamed, and Nada Ahmed
+- Original stb_image and stb_image_write implementations provided during the assignment files
+- We believe in leveraging modern tools for maximum clarity and efficiency. The core concepts, technical implementations, and overall structure of this documentation and related materials were defined and executed by us. An AI large language model was utilized primarily to refine the language, enhance professional tone, and ensure the documentation's clarity and conciseness. This partnership allowed us to maintain full control over the project's details while optimizing the quality of its presentation.
+
+### 12. Contributing
+
+This is an academic project. For questions or suggestions, please contact the team members.
 
 
 ---
+
+**Cairo University - Faculty of Computers and Artificial Intelligence**  
+**CS213 - Object Oriented Programming - 2025**
 
 License: MIT (see `LICENSE`).
