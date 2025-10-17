@@ -259,10 +259,27 @@ public:
         ImGui::Dummy(ImVec2(0, 4));
         ImGui::Text("Crop Parameters");
         ImGui::Separator();
-        if (ImGui::InputInt("X", &posX)) changed = true;
-        if (ImGui::InputInt("Y", &posY)) changed = true;
-        if (ImGui::InputInt("Width", &newWidth)) changed = true;
-        if (ImGui::InputInt("Height", &newHeight)) changed = true;
+        
+        // Clamp values to image bounds
+        int imgW = originalImage.width;
+        int imgH = originalImage.height;
+        
+        if (ImGui::InputInt("X", &posX)) {
+            posX = std::max(0, std::min(posX, imgW - 1));
+            changed = true;
+        }
+        if (ImGui::InputInt("Y", &posY)) {
+            posY = std::max(0, std::min(posY, imgH - 1));
+            changed = true;
+        }
+        if (ImGui::InputInt("Width", &newWidth)) {
+            newWidth = std::max(1, std::min(newWidth, imgW - posX));
+            changed = true;
+        }
+        if (ImGui::InputInt("Height", &newHeight)) {
+            newHeight = std::max(1, std::min(newHeight, imgH - posY));
+            changed = true;
+        }
 
         if (ImGui::Button("Apply")) {
             processor.setImage(originalImage);
@@ -1585,7 +1602,8 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
     }
 
     void applyWave(bool &show, bool &textureNeedsUpdate) {
-        static float strength = 0.0f;
+        static float amplitude = 1.0f;
+        static float wavelength = 1.0f;
         static Image originalImage;
         static bool init = false;
         extern int gImageSessionId; static int lastSessionId = -1;
@@ -1596,24 +1614,25 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
 
             if(!init){
                 originalImage = processor.getCurrentImage();
-                strength = 0.0f; // Reset to default value
+                amplitude = 1.0f; // Reset to default value
+                wavelength = 1.0f; // Reset to default value
                 init = true;
             }
 
             bool changed = false;
             
-            ImGui::Text("Wave Strength:");
+            ImGui::Text("Amplitude:");
             ImGui::SameLine();
-            if(ImGui::SliderFloat("##WaveStrength", &strength, 0.0f, 10.0f, "%.1f"))changed = true;
+            if(ImGui::SliderFloat("##Amplitude", &amplitude, 0.0f, 10.0f, "%.1f"))changed = true;
             
-            ImGui::Text("Amplitude: %.1f", strength);
-            ImGui::Text("Wavelength: %.1f", 10.0f - strength + 1.0f);
+            ImGui::Text("Wavelength:");
+            ImGui::SameLine();
+            if(ImGui::SliderFloat("##Wavelength", &wavelength, 0.1f, 10.0f, "%.1f"))changed = true;
 
             if(changed){
                 processor.setImage(originalImage);
-                float amplitude = strength;
-                float wavelength = std::max(1.0f, 10.0f - strength + 1.0f);
-                WaveFilter filter(amplitude, wavelength);
+                float safeWavelength = std::max(0.1f, wavelength);
+                WaveFilter filter(amplitude, safeWavelength);
                 if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
                 else processor.applyFilterNoHistory(filter);
                 textureNeedsUpdate = true;
@@ -1622,23 +1641,23 @@ void applyResize(bool &show, bool &textureNeedsUpdate) {
             ImGui::Separator();
             
             if(ImGui::Button("Apply")){
-                float amplitude = strength;
-                float wavelength = std::max(1.0f, 10.0f - strength + 1.0f);
-                WaveFilter filter(amplitude, wavelength);
+                float safeWavelength = std::max(0.1f, wavelength);
+                WaveFilter filter(amplitude, safeWavelength);
                 processor.setImage(originalImage);
                 if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
                 else processor.applyFilter(filter);
-                std::cout << "Wave filter applied with Parameters: " << amplitude << " " << wavelength << std::endl;
+                std::cout << "Wave filter applied with Parameters: " << amplitude << " " << safeWavelength << std::endl;
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
-                gPresetManager.recordStep(FilterStep{FilterType::Wave, {(double)strength}, ""});
+                gPresetManager.recordStep(FilterStep{FilterType::Wave, {(double)amplitude, (double)safeWavelength}, ""});
             }
 
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(originalImage);
-                strength = 0.0f; // Reset to default value
+                amplitude = 1.0f; // Reset to default value
+                wavelength = 1.0f; // Reset to default value
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;

@@ -210,6 +210,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     s_flipOpen = false;
                     horizontalFlip = false;
                     verticalFlip = false;
+                    gPreviewCacheNeedsUpdate = true;
                 }
             }
             break;
@@ -228,6 +229,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Retro, {}, ""});
+                    onFilterApplied(FilterType::Retro);
                     s_retroOpen = false;
                 }
             }
@@ -247,6 +249,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Infrared, {}, ""});
+                    onFilterApplied(FilterType::Infrared);
                     s_infraredOpen = false;
                 }
             }
@@ -435,6 +438,7 @@ inline void renderFilterParamsPanel(ImageProcessor &processor, FilterType select
                     }
                     textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true;
                     gPresetManager.recordStep(FilterStep{FilterType::Outline, {}, ""});
+                    onFilterApplied(FilterType::Outline);
                     s_outlineOpen = false;
                 }
             }

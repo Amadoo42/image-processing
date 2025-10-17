@@ -176,11 +176,23 @@ static void drawTopNavBar(ImageProcessor &processor) {
         }
         if (ImGui::BeginMenu("Edit")) {
             if (ImGui::MenuItem(iconLabel(ICON_FA_ROTATE_LEFT, "Undo").c_str(), "Ctrl+Z")) {
-                if(processor.undo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Undo successful."; }
+                if(processor.undo()) { 
+                    textureNeedsUpdate = true; 
+                    gPreviewCacheNeedsUpdate = true; 
+                    gSelectedFilter = FilterType::None; // Reset filter selection
+                    gPresetManager.clearSession(); // Clear preset session
+                    statusBarMessage = "Undo successful."; 
+                }
                 else { statusBarMessage = "Nothing to undo."; }
             }
             if (ImGui::MenuItem(iconLabel(ICON_FA_ROTATE_RIGHT, "Redo").c_str(), "Ctrl+Y")) {
-                if(processor.redo()) { textureNeedsUpdate = true; gPreviewCacheNeedsUpdate = true; statusBarMessage = "Redo successful."; }
+                if(processor.redo()) { 
+                    textureNeedsUpdate = true; 
+                    gPreviewCacheNeedsUpdate = true; 
+                    gSelectedFilter = FilterType::None; // Reset filter selection
+                    gPresetManager.clearSession(); // Clear preset session
+                    statusBarMessage = "Redo successful."; 
+                }
                 else { statusBarMessage = "Nothing to redo."; }
             }
             ImGui::Separator();
@@ -243,9 +255,6 @@ static void drawTopNavBar(ImageProcessor &processor) {
         }
         if(ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem(iconLabel(ICON_FA_QUESTION_CIRCLE, "About").c_str())) {
-                showAboutWindow = true;
-            }
-            if (ImGui::MenuItem(iconLabel(ICON_FA_BOOK, "Documentation").c_str())) {
                 showAboutWindow = true;
             }
             ImGui::EndMenu();
@@ -754,6 +763,8 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
             if (processor.undo()) {
                 textureNeedsUpdate = true;
                 gPreviewCacheNeedsUpdate = true;
+                gSelectedFilter = FilterType::None; // Reset filter selection
+                gPresetManager.clearSession(); // Clear preset session
                 statusBarMessage = "Undo successful.";
             } else {
                 statusBarMessage = "Nothing to undo.";
@@ -766,6 +777,8 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
             if (processor.redo()) {
                 textureNeedsUpdate = true;
                 gPreviewCacheNeedsUpdate = true;
+                gSelectedFilter = FilterType::None; // Reset filter selection
+                gPresetManager.clearSession(); // Clear preset session
                 statusBarMessage = "Redo successful.";
             } else {
                 statusBarMessage = "Nothing to redo.";
@@ -817,14 +830,8 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         ImGui::SameLine();
         bool selWand = (gSelectionTool == SelectionToolMode::MagicWand);
         if (ImGui::RadioButton("Magic Wand", selWand)) gSelectionTool = SelectionToolMode::MagicWand;
-        // Tolerance slider visible in wand mode
-        if (gSelectionTool == SelectionToolMode::MagicWand) {
-            ImGui::SameLine();
-            ImGui::TextUnformatted("Tol:");
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(120.0f);
-            ImGui::SliderInt("##wand_tol", &gMagicWandTolerance, 0, 200, "%d");
-        }
+        
+        // Move to next line for better layout
         ImGui::SameLine();
         ImGui::Checkbox("Apply to outside", &gSelectionInverseApply);
         // propagate to processor so parameter panels can query invert flag
@@ -833,6 +840,14 @@ static void drawBottomToolbar(ImageProcessor &processor, float fullWidth) {
         if (ImGui::Button("Clear Selection")) {
             processor.clearSelection();
             statusBarMessage = "Selection cleared";
+        }
+        
+        // Tolerance slider on its own line when magic wand is selected
+        if (gSelectionTool == SelectionToolMode::MagicWand) {
+            ImGui::Text("Tolerance:");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(200.0f);
+            ImGui::SliderInt("##wand_tol", &gMagicWandTolerance, 0, 200, "%d");
         }
         if (!__hasImageToolbar) ImGui::EndDisabled();
 
