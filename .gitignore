@@ -1,6 +1,3 @@
-src/main
 .vscode/
-*.o
-Submissions/main
 build/
 /assets/SampleImages
