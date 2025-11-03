@@ -3,3 +3,4 @@ src/main
 *.o
 Submissions/main
 build/
+/assets/SampleImages
