@@ -3,24 +3,17 @@
 
 class PurpleFilter : public Filter {
 private:
-float percent;
+    float purpleFactor;
+
 public:
-    PurpleFilter(float p): percent(p) {}    
+    PurpleFilter(float factor): purpleFactor(factor) {}
     void apply(Image &image) override {
+        // We simply increase the red and blue channels while decreasing the green channel
         for(int i = 0; i < image.width; i++){
             for(int j = 0; j < image.height; j++){                
-                int newR = image(i, j, 0) + 40 * percent;
-                int newG = image(i, j, 1) - 40 * percent;
-                int newB = image(i, j, 2) + 40 * percent;
-
-                if(newR < 0) newR = 0;
-                if(newR > 255) newR = 255;
-                
-                if(newG < 0) newG = 0;
-                if(newG > 255) newG = 255;
-                
-                if(newB < 0) newB = 0;
-                if(newB > 255) newB = 255;
+                int newR = std::clamp(image(i, j, 0) + 40 * purpleFactor, 0.0f, 255.0f);
+                int newG = std::clamp(image(i, j, 1) - 40 * purpleFactor, 0.0f, 255.0f);
+                int newB = std::clamp(image(i, j, 2) + 40 * purpleFactor, 0.0f, 255.0f);
                 
                 image(i, j, 0) = newR;
                 image(i, j, 1) = newG;

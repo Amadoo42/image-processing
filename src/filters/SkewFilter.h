@@ -24,28 +24,41 @@ private:
 public:    
     SkewFilter(double deg) {
         // Clamp angle to prevent infinity issues
+        // It is clamped to -70 to 70 degrees to avoid extreme skewing
         deg = std::clamp(deg, -70.0, 70.0);
+        // Convert degrees to radians then compute tangent (skew factor)
         k = tan(deg * M_PI / 180.0);
     }
 
     void apply(Image &image) override {
         int W = image.width;
         int H = image.height;
+
+        // Extra horizontal pixels needed to accommodate the skew
         int extra = fabs(k) * H;
         int newWidth = W + extra;
         int newHeight = H;
         Image newImage(newWidth, newHeight);
 
+        // If skew is negative, the top of the image shifts left, so we offset
+        // the source horizontally to keep content within positive coordinates.
         int xOffset = (k < 0) ? extra : 0;
 
+        // Initialize new image to black so uncovered areas are black
         for(int i = 0; i < newWidth; ++i) {
             for(int j = 0; j < newHeight; ++j) {
                 for(int c = 0; c < 3; ++c) newImage(i, j, c) = 0; 
             }
         }
 
+        // Here we will use inverse mapping: for each destination pixel (x, y) compute the source
+        // coordinate (srcX, srcY) that maps to it, then sample the source image.
+        // The transform used is a horizontal shear (skew) that shifts X by -k*(H - y).
         for(int x = 0; x < newWidth; ++x) {
             for(int y = 0; y < newHeight; ++y) {
+                // Map destination coordinate back to source coordinate.
+                // We subtract xOffset (if applied) and compute how much the row
+                // has been shifted by the skew based on vertical position.
                 double srcX = (x - xOffset) - k * (H - y);
                 double srcY = y;
 

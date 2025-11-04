@@ -15,6 +15,7 @@ public:
             }
         }
 
+        // Calculate the average brightness to use as threshold
         int threshold = sum / (image.width * image.height);
 
         for(int i = 0; i < image.width; i++){

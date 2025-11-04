@@ -4,6 +4,7 @@
 class GrayscaleFilter : public Filter {
 public:
     void apply(Image &image) override {
+        // Here we simply convert each pixel to grayscale using luminosity method
         for(int i = 0; i < image.width; i++) {
             for(int j = 0; j < image.height; j++) {
                 int gray = 0.2126 * image(i, j, 0) + 0.7152 * image(i, j, 1) + 0.0722 * image(i, j, 2);

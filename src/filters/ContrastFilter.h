@@ -6,11 +6,12 @@ private:
     double contrastFactor;
 
 public:
-    ContrastFilter(double factor = 1.0) : contrastFactor(factor < 0.0 ? 0.0 : factor) {}
+    ContrastFilter(double factor = 1.0f) : contrastFactor(factor) {}
+    // Contrast basically stretches the difference from the midpoint (128)
 
     void apply(Image &image) override {
-        // Clamp at runtime for safety
-        if (contrastFactor < 0.0) contrastFactor = 0.0;
+        // Just to make sure we don't invert colors
+        contrastFactor = std::max(contrastFactor, 0.0);
         for(int x = 0; x < image.width; ++x) {
             for(int y = 0; y < image.height; ++y) {
                 image(x, y, 0) = std::clamp((int)(128 + (image(x, y, 0) - 128) * contrastFactor), 0, 255);

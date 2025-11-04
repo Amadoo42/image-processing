@@ -11,7 +11,6 @@ private:
 
     // References: https://en.wikipedia.org/wiki/Bilinear_interpolation
     double sampleBilinear(const Image &image, int dstX, int dstY, int dstW, int dstH, int c) const {
-        // Map destination pixel center to source space using inclusive mapping
         const int srcW = std::max(1, image.width);
         const int srcH = std::max(1, image.height);
 
@@ -56,7 +55,6 @@ public:
         newWidth = std::max(1, newWidth);
         newHeight = std::max(1, newHeight);
 
-        // Early out if size unchanged
         if (newWidth == image.width && newHeight == image.height) {
             return;
         }
@@ -68,9 +66,9 @@ public:
                 const double g = sampleBilinear(image, x, y, newWidth, newHeight, 1);
                 const double b = sampleBilinear(image, x, y, newWidth, newHeight, 2);
 
-                newImage(x, y, 0) = static_cast<unsigned char>(std::clamp(static_cast<int>(std::round(r)), 0, 255));
-                newImage(x, y, 1) = static_cast<unsigned char>(std::clamp(static_cast<int>(std::round(g)), 0, 255));
-                newImage(x, y, 2) = static_cast<unsigned char>(std::clamp(static_cast<int>(std::round(b)), 0, 255));
+                newImage(x, y, 0) = std::clamp(r, 0.0, 255.0);
+                newImage(x, y, 1) = std::clamp(g, 0.0, 255.0);
+                newImage(x, y, 2) = std::clamp(b, 0.0, 255.0);
             }
         }
         image = newImage;
