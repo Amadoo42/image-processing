@@ -94,11 +94,8 @@ public:
     FilterParameters(ImageProcessor &processor) : processor(processor) {};
 
     void applyBlur(bool &show, bool &textureNeedsUpdate) {
-        static int currentItem = 0;
-        const char* items[] = {"Low", "Medium", "High"};
-        int values1[] = {3, 7, 15};
-        double values2[] = {0.8, 1.6, 3.0};
-
+        static int sigma = 1;
+        static int kernal = 7;
         extern Image gOriginalImageForPreview;
         extern bool gHasOriginalImageForPreview;
         static bool init = false;
@@ -110,38 +107,32 @@ public:
             if (!BeginParamsUI("Blur Parameters", &show)) return; //if the UI is not rendered, close
 
             if(!init){
-                currentItem = 0; 
+                sigma = 1;
+                kernal = 6 * sigma + 1;
                 init = true;
             }
 
             ImGui::Text("Intenisty:");
             ImGui::SameLine();
-            bool changed = false;
-            if(ImGui::Combo("##Intenisty", &currentItem, items, IM_ARRAYSIZE(items))) changed = true;
+            ImGui::SliderInt("##IntenistySlider", &sigma, 1, 50);
 
-            if(changed){
-                processor.setImage(gOriginalImageForPreview);
-                BlurFilter filter(values1[currentItem], values2[currentItem]); 
-                selectivityCheck(processor, filter, false);
-                textureNeedsUpdate = true;
-            }
             ImGui::Separator();
 
             if(ImGui::Button("Apply")){
-                BlurFilter filter(values1[currentItem], values2[currentItem]); 
+                kernal = 6 * sigma + 1;
+                BlurFilter filter(kernal, sigma); 
                 processor.setImage(gOriginalImageForPreview);
                 selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
-                gPresetManager.recordStep(FilterStep{FilterType::Blur, { (double)values1[currentItem], values2[currentItem] }, ""});
+                gPresetManager.recordStep(FilterStep{FilterType::Blur, { kernal, sigma }, ""});
                 clearStoredOriginalImage();
             }
 
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(gOriginalImageForPreview);
-                currentItem = 0; 
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
