@@ -72,9 +72,15 @@ inline void EndParamsUI()
     if (!g_params_inline_mode) ImGui::End();
 }
 
-inline void selectivityCheck(ImageProcessor& processor, Filter& filter){
-    if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-    else processor.applyFilterNoHistory(filter);
+inline void selectivityCheck(ImageProcessor& processor, Filter& filter, bool history){
+    if(!history){
+        if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+        else processor.applyFilterNoHistory(filter);
+    }
+    else{
+        if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+        else processor.applyFilter(filter);
+    }
 }
 
 class FilterParameters {
@@ -110,7 +116,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 BlurFilter filter(values1[currentItem], values2[currentItem]); 
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -118,7 +124,7 @@ public:
             if(ImGui::Button("Apply")){
                 BlurFilter filter(values1[currentItem], values2[currentItem]); 
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -792,7 +798,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 DarkenFilter filter(factor);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -800,7 +806,7 @@ public:
             if (ImGui::Button("Apply")) {
                 DarkenFilter filter(factor);
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -818,7 +824,7 @@ public:
             }
 
             EndParamsUI();
-        }
+        }else init = false;
     }
 
     void applyMerge(bool &show, bool &textureNeedsUpdate) {
@@ -1505,7 +1511,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 PurpleFilter filter(factor);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1513,7 +1519,7 @@ public:
             if (ImGui::Button("Apply")) {
                 PurpleFilter filter(factor);
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1567,7 +1573,7 @@ public:
                 processor.setImage(gOriginalImageForPreview);
                 float safeWavelength = std::max(0.1f, wavelength);
                 WaveFilter filter(amplitude, safeWavelength);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             
@@ -1577,7 +1583,7 @@ public:
                 float safeWavelength = std::max(0.1f, wavelength);
                 WaveFilter filter(amplitude, safeWavelength);
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1629,7 +1635,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 OilPaintingFilter filter(radiusValues[currentItem], intensityValues[currentItem]); 
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1637,7 +1643,7 @@ public:
             if(ImGui::Button("Apply")){
                 OilPaintingFilter filter(radiusValues[currentItem], intensityValues[currentItem]); 
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1687,7 +1693,7 @@ public:
                 processor.setImage(gOriginalImageForPreview);
                 float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1696,7 +1702,7 @@ public:
                 float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1746,7 +1752,7 @@ public:
                 processor.setImage(gOriginalImageForPreview);
                 float safe = std::max(0.0f, factor);
                 SaturationFilter filter(safe);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1755,7 +1761,7 @@ public:
                 float safe = std::max(0.0f, factor);
                 SaturationFilter filter(safe);
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1804,7 +1810,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 SkewFilter filter(Angle);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1812,7 +1818,7 @@ public:
             if (ImGui::Button("Apply")) {
                 SkewFilter filter(Angle);
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1862,7 +1868,7 @@ public:
                 processor.setImage(gOriginalImageForPreview);
                 float safe = std::max(0.0f, factor);
                 VigentteFilter filter(safe);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1871,7 +1877,7 @@ public:
                 float safe = std::max(0.0f, factor);
                 VigentteFilter filter(safe);
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1920,7 +1926,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 WarmthFilter filter(factor);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1928,7 +1934,7 @@ public:
             if (ImGui::Button("Apply")) {
                 WarmthFilter filter(factor);
                 processor.setImage(gOriginalImageForPreview);
-                selectivityCheck(processor, filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
