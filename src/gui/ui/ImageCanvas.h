@@ -1,3 +1,9 @@
+/*
+ Here we manage zoom and pan, handle input for Rectangle and 
+ Magic Wand selection tools, and call renderCompareView when in compare mode.
+ It is responsible for displaying the currentTextureID.
+*/
+
 #pragma once
 #include "imgui.h"
 #include "../GuiState.h"
@@ -99,16 +105,14 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
                     std::vector<ImVec2> outlinePoints;
                     for (int y = 0; y < h; ++y) {
                         for (int x = 0; x < w; ++x) {
-                            size_t idx = (size_t)y * (size_t)w + (size_t)x;
-                            if (mask[idx]) {
+                            if (mask[y][x]) {
                                 bool isEdge = false;
                                 for (int dy = -1; dy <= 1; ++dy) {
                                     for (int dx = -1; dx <= 1; ++dx) {
                                         int nx = x + dx;
                                         int ny = y + dy;
                                         if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
-                                            size_t nidx = (size_t)ny * (size_t)w + (size_t)nx;
-                                            if (!mask[nidx]) { isEdge = true; break; }
+                                            if (!mask[ny][nx]) { isEdge = true; break; }
                                         } else { isEdge = true; break; }
                                     }
                                     if (isEdge) break;
@@ -126,9 +130,8 @@ static void drawImageCanvas(ImageProcessor &processor, float width) {
                 } else {
                     int minx = w, miny = h, maxx = -1, maxy = -1;
                     for (int y = 0; y < h; ++y) {
-                        size_t row = (size_t)y * (size_t)w;
                         for (int x = 0; x < w; ++x) {
-                            if (mask[row + (size_t)x]) {
+                            if (mask[y][x]) {
                                 if (x < minx) minx = x;
                                 if (y < miny) miny = y;
                                 if (x > maxx) maxx = x;

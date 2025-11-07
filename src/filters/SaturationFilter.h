@@ -6,10 +6,12 @@ private:
     double saturationFactor;
 
 public:
-    SaturationFilter(double factor = 1.0) : saturationFactor(factor < 0.0 ? 0.0 : factor) {}
+    SaturationFilter(double factor = 1.0) : saturationFactor(factor) {}
 
     void apply(Image &image) override {
-        if (saturationFactor < 0.0) saturationFactor = 0.0; // safety clamp
+        // Basically for each pixel, we scale the difference between each color channel and the grayscale value
+        // We increase the saturation by moving the color channels further away from the gray value
+        saturationFactor = std::max(0.0, saturationFactor);
         for(int x = 0; x < image.width; ++x) {
             for(int y = 0; y < image.height; ++y) {
                 double gray = 0.299 * image(x, y, 0) + 0.587 * image(x, y, 1) + 0.114 * image(x, y, 2);

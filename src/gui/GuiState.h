@@ -1,3 +1,9 @@
+/*
+  Declares all globally accessible variables that manage the UI's runtime state,
+  such as zoom_level, pan_offset, gSelectedFilter, textureNeedsUpdate,
+  and the current selection mode (gSelectionTool).
+*/
+
 #pragma once
 
 #include "imgui.h"

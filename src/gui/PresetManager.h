@@ -1,3 +1,9 @@
+/*
+ Contains PresetManager (exposed globally as gPresetManager). 
+ This class manages saving/loading filter chains (FilterStep structs) to presets.dat,
+ recording a user's filter history for saving, and applying them in batch.
+*/
+
 #pragma once
 
 #include <string>

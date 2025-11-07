@@ -9,6 +9,7 @@ public:
     WarmthFilter(double factor = 2.5) : warmthFactor(factor) {}
 
     void apply(Image &image) override {
+        // We basically increase the red and green channels while decreasing the blue channel
         for(int x = 0; x < image.width; ++x) {
             for(int y = 0; y < image.height; ++y) {
                 double rMul = 1.0 + warmthFactor * 0.18;

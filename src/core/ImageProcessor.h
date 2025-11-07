@@ -4,12 +4,8 @@
 #include "../../external/Image_Class.h"
 #include "../filters/Filter.h"
 #include <vector>
-#include <string>
 #include <queue>
-#include <cstdint>
 #include <algorithm>
-#include <cstdlib>
-
 
 class ImageProcessor {
 private:
@@ -19,19 +15,27 @@ private:
     std::vector <Image> redoHistory;
     int historySize;
 
-    // Selection mask with same dimensions as current image (1 selected, 0 not)
-    std::vector<uint8_t> selectionMask;
+    // Selection mask will store whether each pixel is selected (true) or not (false)
+    std::vector<std::vector<bool>> selectionMask;
     bool selectionActive = false;
     bool selectionInvertApply = false;
 
-    void pushUndo() {
-        if((int)undoHistory.size() >= historySize) undoHistory.erase(undoHistory.begin());
-        undoHistory.push_back(currentImage);
+    void pushToHistory(std::vector<Image> &history) {
+        // If I exceed history size, remove oldest
+        if ((int)history.size() >= historySize) {
+            history.erase(history.begin());
+        }
+        history.push_back(currentImage);
     }
 
+    // Pushes the current image to the undo history, maintaining the history size limit
+    void pushUndo() {
+        pushToHistory(undoHistory);
+    }
+
+    // Pushes the current image to the redo history, maintaining the history size limit
     void pushRedo() {
-        if((int)redoHistory.size() >= historySize) redoHistory.erase(redoHistory.begin());
-        redoHistory.push_back(currentImage);
+        pushToHistory(redoHistory);
     }
 
 public:
@@ -53,6 +57,7 @@ public:
     void loadImage(const std::string &filename) {
         Image newImage(filename);
         currentImage = newImage;
+        // When I load a new image, clear history
         undoHistory.clear();
         redoHistory.clear();
     }
@@ -62,78 +67,49 @@ public:
     }
 
     void applyFilter(Filter &filter) {
+        // When I apply a filter, push current state to undo history and clear redo history
         pushUndo();
         redoHistory.clear();
         filter.apply(currentImage);
-        //textureNeedsUpdate = true;
     } 
 
     // Apply a filter only on the selection mask; invert applies to outside
-    void applyFilterSelective(Filter &filter, bool invert) {
-        if (currentImage.width <= 0 || currentImage.height <= 0) return;
-        if (!selectionActive || selectionMask.size() != (size_t)(currentImage.width * currentImage.height)) {
+    void applyFilterSelective(Filter &filter, bool invert, bool useHistory = true) {
+        if (!hasSelection()) {
             // Fallback to normal apply when no valid selection exists
             applyFilter(filter);
             return;
         }
 
-        pushUndo();
-        redoHistory.clear();
+        if (useHistory) {
+            // When I apply a filter, push current state to undo history and clear redo history
+            pushUndo();
+            redoHistory.clear();
+        }
 
-        Image original = currentImage;
         Image filtered = currentImage;
         filter.apply(filtered);
 
         // Blend based on selection
-        const int w = currentImage.width;
-        const int h = currentImage.height;
-        for (int y = 0; y < h; ++y) {
-            for (int x = 0; x < w; ++x) {
-                size_t idx = (size_t)y * (size_t)w + (size_t)x;
-                bool sel = selectionMask[idx] != 0;
-                if (invert) sel = !sel;
-                if (sel) {
+        const int imgW = currentImage.width;
+        const int imgH = currentImage.height;
+        for (int y = 0; y < imgH; ++y) {
+            for (int x = 0; x < imgW; ++x) {
+                bool selected = selectionMask[y][x];
+                if (invert) selected = !selected;
+                if (selected) {
                     for (int c = 0; c < 3; ++c) {
+                        // If selected, take pixel from filtered image
                         currentImage.setPixel(x, y, c, filtered.getPixel(x, y, c));
-                    }
-                } else {
-                    for (int c = 0; c < 3; ++c) {
-                        currentImage.setPixel(x, y, c, original.getPixel(x, y, c));
                     }
                 }
             }
         }
     }
 
-    // No-history version of selective application for live previews
+    // Apply selective filter without affecting history (for live previews)
     void applyFilterSelectiveNoHistory(Filter &filter, bool invert) {
-        if (currentImage.width <= 0 || currentImage.height <= 0) return;
-        if (!selectionActive || selectionMask.size() != (size_t)(currentImage.width * currentImage.height)) {
-            // Fallback to normal no-history apply
-            filter.apply(currentImage);
-            return;
-        }
-        Image original = currentImage;
-        Image filtered = currentImage;
-        filter.apply(filtered);
-        const int w = currentImage.width;
-        const int h = currentImage.height;
-        for (int y = 0; y < h; ++y) {
-            for (int x = 0; x < w; ++x) {
-                size_t idx = (size_t)y * (size_t)w + (size_t)x;
-                bool sel = selectionMask[idx] != 0;
-                if (invert) sel = !sel;
-                if (sel) {
-                    for (int c = 0; c < 3; ++c) {
-                        currentImage.setPixel(x, y, c, filtered.getPixel(x, y, c));
-                    }
-                } else {
-                    for (int c = 0; c < 3; ++c) {
-                        currentImage.setPixel(x, y, c, original.getPixel(x, y, c));
-                    }
-                }
-            }
-        }
+        applyFilterSelective(filter, invert, false);
     }
 
     // Apply a filter without affecting history (for live previews)
@@ -153,7 +129,9 @@ public:
     }
 
     bool undo() {
+        // Return false if no undo available
         if(undoHistory.empty()) return false;
+        // If undo is possible, push current state to redo and pop from undo
         pushRedo();
         currentImage = undoHistory.back();
         undoHistory.pop_back();
@@ -161,13 +139,16 @@ public:
     }
 
     bool redo() {
+        // Return false if no redo available
         if(redoHistory.empty()) return false;
+        // If redo is possible, push current state to undo and pop from redo
         pushUndo();
         currentImage = redoHistory.back();
         redoHistory.pop_back();
         return true;
     }
 
+    // Any access from GUI should be read-only for getCurrentImage
     const Image& getCurrentImage() const { return currentImage; }
     void setImage(Image &newImage) { currentImage = newImage; }
 
@@ -177,85 +158,109 @@ public:
     const std::vector<Image>& getUndoHistory() const { return undoHistory; }
     const std::vector<Image>& getRedoHistory() const { return redoHistory; }
 
-    // Selection API
     void clearSelection() {
         selectionMask.clear();
         selectionActive = false;
     }
 
     bool hasSelection() const {
-        return selectionActive && selectionMask.size() == (size_t)(currentImage.width * currentImage.height);
+        if (!selectionActive) return false;
+        if (currentImage.width <= 0 || currentImage.height <= 0) return false;
+        if ((int)selectionMask.size() != currentImage.height) return false;
+        for (const auto &row : selectionMask) {
+            if ((int)row.size() != currentImage.width) return false;
+        }
+        return true;
     }
 
-    const std::vector<uint8_t>& getSelectionMask() const { return selectionMask; }
+    const std::vector<std::vector<bool>>& getSelectionMask() const { return selectionMask; }
     bool getSelectionInvertApply() const { return selectionInvertApply; }
     void setSelectionInvertApply(bool invert) { selectionInvertApply = invert; }
 
     void setRectSelection(int x, int y, int w, int h) {
-        if (currentImage.width <= 0 || currentImage.height <= 0) { clearSelection(); return; }
-        int imgW = currentImage.width;
-        int imgH = currentImage.height;
-        int rx = std::max(0, std::min(x, imgW - 1));
-        int ry = std::max(0, std::min(y, imgH - 1));
-        int rw = std::max(1, w);
-        int rh = std::max(1, h);
-        if (rx + rw > imgW) rw = imgW - rx;
-        if (ry + rh > imgH) rh = imgH - ry;
-        selectionMask.assign((size_t)imgW * (size_t)imgH, 0);
-        for (int yy = ry; yy < ry + rh; ++yy) {
-            size_t row = (size_t)yy * (size_t)imgW;
-            for (int xx = rx; xx < rx + rw; ++xx) {
-                selectionMask[row + (size_t)xx] = 1;
+        if (currentImage.width <= 0 || currentImage.height <= 0) { 
+            clearSelection(); 
+            return;
+        }
+
+        const int imgW = currentImage.width;
+        const int imgH = currentImage.height;
+
+        if (x >= imgW || y >= imgH || x + w <= 0 || y + h <= 0) {
+            clearSelection();
+            return;
+        }
+        
+        int nx = std::clamp(x, 0, imgW - 1);
+        int ny = std::clamp(y, 0, imgH - 1);
+        int nw = std::clamp(w, 1, imgW - nx);
+        int nh = std::clamp(h, 1, imgH - ny);
+
+        selectionMask.assign(imgH, std::vector<bool>(imgW, false));
+
+        for (int yy = ny; yy < ny + nh; ++yy) {
+            for (int xx = nx; xx < nx + nw; ++xx) {
+                selectionMask[yy][xx] = true;
             }
         }
+
         selectionActive = true;
     }
 
     void setMagicWandSelection(int seedX, int seedY, int tolerance) {
-        if (currentImage.width <= 0 || currentImage.height <= 0) { clearSelection(); return; }
-        int imgW = currentImage.width;
-        int imgH = currentImage.height;
-        if (seedX < 0 || seedX >= imgW || seedY < 0 || seedY >= imgH) { clearSelection(); return; }
-        selectionMask.assign((size_t)imgW * (size_t)imgH, 0);
+        if (currentImage.width <= 0 || currentImage.height <= 0) { 
+            clearSelection(); 
+            return;
+        }
 
-        const unsigned char* data = currentImage.imageData;
-        const int channels = currentImage.channels;
-        auto idxOf = [&](int X, int Y){ return ((size_t)Y * (size_t)imgW + (size_t)X); };
-        auto pixOf = [&](int X, int Y){ return ((size_t)Y * (size_t)imgW + (size_t)X) * (size_t)channels; };
+        const int imgW = currentImage.width;
+        const int imgH = currentImage.height;
 
-        size_t seedPi = pixOf(seedX, seedY);
-        int r0 = data[seedPi + 0];
-        int g0 = data[seedPi + 1];
-        int b0 = data[seedPi + 2];
+        if (seedX < 0 || seedX >= imgW || seedY < 0 || seedY >= imgH) { 
+            clearSelection(); 
+            return; 
+        }
 
-        std::queue<std::pair<int,int>> q;
+        selectionMask.assign(imgH, std::vector<bool>(imgW, false));
+
+        int r0 = currentImage.getPixel(seedX, seedY, 0);
+        int g0 = currentImage.getPixel(seedX, seedY, 1);
+        int b0 = currentImage.getPixel(seedX, seedY, 2);
+
+        std::queue <std::pair<int, int>> q;
         q.push({seedX, seedY});
-        selectionMask[idxOf(seedX, seedY)] = 1;
+        selectionMask[seedY][seedX] = true;
 
-        auto withinTol = [&](int r, int g, int b){
-            int d = std::abs(r - r0) + std::abs(g - g0) + std::abs(b - b0);
-            return d <= tolerance;
+        auto withinTol = [&](int r, int g, int b) {
+            int dist = std::abs(r - r0) + std::abs(g - g0) + std::abs(b - b0);
+            return dist <= tolerance;
         };
 
-        const int dir4[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
-        while(!q.empty()) {
+        // 4-directional flood fill: right, left, up, down
+        const int dir[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        // We'll be using BFS here, the idea is to explore neighbors from the current
+        // pixel and add them to the queue if they are within tolerance and not yet selected
+        // The visualization is like a seed spreading outwards
+        while (!q.empty()) {
             auto [cx, cy] = q.front(); q.pop();
-            for (auto &dxy : dir4) {
+            for (auto &dxy : dir) {
                 int nx = cx + dxy[0];
                 int ny = cy + dxy[1];
-                if (nx < 0 || ny < 0 || nx >= imgW || ny >= imgH) continue;
-                size_t i = idxOf(nx, ny);
-                if (selectionMask[i]) continue;
-                size_t p = pixOf(nx, ny);
-                int r = data[p + 0];
-                int g = data[p + 1];
-                int b = data[p + 2];
+
+                if (nx < 0 || ny < 0 || nx >= imgW || ny >= imgH || selectionMask[ny][nx]) {
+                    continue;
+                }
+
+                int r = currentImage.getPixel(nx, ny, 0);
+                int g = currentImage.getPixel(nx, ny, 1);
+                int b = currentImage.getPixel(nx, ny, 2);
                 if (withinTol(r, g, b)) {
-                    selectionMask[i] = 1;
+                    selectionMask[ny][nx] = true;
                     q.push({nx, ny});
                 }
             }
         }
+
         selectionActive = true;
     }
 };

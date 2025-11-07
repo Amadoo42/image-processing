@@ -3,19 +3,18 @@
 #include <cmath>
 #include <algorithm>
 
-// Arbitrary-angle rotation using bilinear interpolation.
-// By default expands the canvas to fit the rotated image.
 class RotateFilter : public Filter {
 private:
     double angleDegrees;
     bool expandCanvas;
 
-    static inline unsigned char samplePixelSafe(const Image &src, int x, int y, int c) {
+    unsigned char getPixel(const Image &src, int x, int y, int c) {
         if (x < 0 || x >= src.width || y < 0 || y >= src.height) return 0;
         return src(x, y, c);
     }
 
-    static inline double sampleBilinearZero(const Image &src, double x, double y, int c) {
+    // References: https://en.wikipedia.org/wiki/Bilinear_interpolation
+    double sampleBilinear(const Image &src, double x, double y, int c) {
         // Bilinear sample with zero-padding outside image bounds
         int x1 = static_cast<int>(std::floor(x));
         int y1 = static_cast<int>(std::floor(y));
@@ -25,10 +24,10 @@ private:
         double fx = x - x1;
         double fy = y - y1;
 
-        double p11 = samplePixelSafe(src, x1, y1, c);
-        double p21 = samplePixelSafe(src, x2, y1, c);
-        double p12 = samplePixelSafe(src, x1, y2, c);
-        double p22 = samplePixelSafe(src, x2, y2, c);
+        double p11 = getPixel(src, x1, y1, c);
+        double p21 = getPixel(src, x2, y1, c);
+        double p12 = getPixel(src, x1, y2, c);
+        double p22 = getPixel(src, x2, y2, c);
 
         double w11 = (1.0 - fx) * (1.0 - fy);
         double w21 = fx * (1.0 - fy);
@@ -79,9 +78,9 @@ public:
                 const double sx = sxRel + cxS;
                 const double sy = syRel + cyS;
 
-                // Bilinear sample with zero padding outside
+                // Bilinear sample with zero padding outside image bounds
                 for (int ch = 0; ch < 3; ++ch) {
-                    const double v = sampleBilinearZero(image, sx, sy, ch);
+                    const double v = sampleBilinear(image, sx, sy, ch);
                     output(x, y, ch) = static_cast<unsigned char>(std::clamp(static_cast<int>(std::lround(v)), 0, 255));
                 }
             }

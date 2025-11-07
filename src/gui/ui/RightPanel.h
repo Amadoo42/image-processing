@@ -1,3 +1,8 @@
+/*
+Draws the filter Preview Grid (renderFilterPreviewGrid), Quick Save button, and Presets management controls. 
+It organizes filters into Basic, Transform, and Effects categories.
+*/
+
 #pragma once
 #include "imgui.h"
 #include "../GuiState.h"

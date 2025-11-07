@@ -1,3 +1,7 @@
+/*
+Defines the central enum class FilterType (e.g., Grayscale, Contrast, Rotate) and a helper function filterTypeName.
+*/
+
 #pragma once
 
 #include <string>

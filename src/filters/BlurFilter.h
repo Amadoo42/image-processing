@@ -26,6 +26,9 @@ private:
 
 public:
     BlurFilter(int kSize = 13, double sig = 2.0) : kernelSize(kSize), sigma(sig) {}
+    // We will blur using Gaussian Blur with the separable kernel method for optimizing
+    // Kernel size determines how many neighboring pixels around the central pixel are included in the blur calculation
+    // Sigma determines the spread or width of the Gaussian kernel, which weights neighboring pixels around a central pixel
 
     void apply(Image &image) override {
         int W = image.width, H = image.height;

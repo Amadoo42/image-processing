@@ -1,3 +1,7 @@
+/*
+Draws the top menu bar (File, Edit, View, Help) and the Selection Tool radio buttons and tolerance slider.
+*/
+
 #pragma once
 #include "imgui.h"
 #include "../GuiState.h"

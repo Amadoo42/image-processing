@@ -1,6 +1,14 @@
+/*
+    This file is basically responsible for the top-level rendering for the application.
+    We define the main renderGUI() function as well as the top-level UI state 
+    (theme, zoom, selection state, preset/batch UI flags)
+
+    Here we handle the top navigation, left / center / right panels and bottom toolnar
+    We also apply the main theme here setModernStyle()
+*/
+
 #pragma once
 #include "imgui.h"
-#include "FiltersMenu.h"
 #include "gui/GuiState.h"
 #include "Icons.h"
 #include "FilterDefs.h"
@@ -24,7 +32,7 @@
 #include <sstream>
 
 bool is_dark_theme = true;
-int preferences_theme = 1;
+int preferences_theme = 1; // 0=light, 1=dark(modern), 2=classic
 float zoom_level = 1.0f;
 ImVec2 pan_offset = ImVec2(0, 0);
 bool compareMode = false;
@@ -112,10 +120,6 @@ void setModernStyle() {
     style.Colors[ImGuiCol_TabActive] = ImLerp(style.Colors[ImGuiCol_HeaderActive], style.Colors[ImGuiCol_TitleBgActive], 0.60f);
     style.Colors[ImGuiCol_TabUnfocused] = ImLerp(style.Colors[ImGuiCol_Tab], style.Colors[ImGuiCol_TitleBg], 0.80f);
     style.Colors[ImGuiCol_TabUnfocusedActive] = ImLerp(style.Colors[ImGuiCol_TabActive], style.Colors[ImGuiCol_TitleBg], 0.40f);
-    style.Colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
-    style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-    style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-    style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
     style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
     style.Colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
     style.Colors[ImGuiCol_NavCursor] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
@@ -123,19 +127,6 @@ void setModernStyle() {
     style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
     style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 }
-
-// moved to ui/TopNavBar.h
-
-// moved to ui/LeftParamsPanel.h
-
-// (Removed unused Histogram placeholder)
-
-// moved to ui/RightPanel.h
-
-// moved to ui/ImageCanvas.h
-
-// moved to ui/BottomToolbar.h
-
 
 void renderGUI(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();

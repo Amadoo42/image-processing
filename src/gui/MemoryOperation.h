@@ -1,3 +1,8 @@
+/*
+ Provides platform-specific functions (e.g., openFileDialog_Linux, openDirectoryDialog_Windows)
+ for selecting files and directories, acting as an OS interface for File I/O outside of the ImageProcessor.
+*/
+
 #pragma once
 #include <memory>
 #include <string>

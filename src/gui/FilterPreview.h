@@ -1,3 +1,8 @@
+/*
+Contains the FilterPreviewCache class to generate and manage small, 
+low-resolution previews of filters to display in the right panel grid.
+*/
+
 #pragma once
 
 #include "imgui.h"
