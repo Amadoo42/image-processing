@@ -114,9 +114,21 @@ public:
 
             ImGui::Text("Intenisty:");
             ImGui::SameLine();
-            ImGui::SliderInt("##IntenistySlider", &sigma, 1, 50);
 
+            bool changed = false;
+            if(ImGui::SliderInt("##IntenistySlider", &sigma, 1, 10))changed = true;
+
+            // changed = false;
+            
             ImGui::Separator();
+
+            if(changed){
+                kernal = 6 * sigma + 1;
+                BlurFilter filter(kernal, sigma); 
+                processor.setImage(gOriginalImageForPreview);
+                selectivityCheck(processor, filter, false);
+                textureNeedsUpdate = true;
+            }
 
             if(ImGui::Button("Apply")){
                 kernal = 6 * sigma + 1;
