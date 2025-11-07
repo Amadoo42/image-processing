@@ -1,3 +1,9 @@
+/*
+Contains the large FilterParameters class, which holds all the state and UI logic for the individual 
+filter control panels (e.g., sliders, inputs). Crucially, this is where filters are applied without history 
+(applyFilterNoHistory) to enable live preview while adjusting parameters.
+*/
+
 #pragma once
 
 #include "../core/ImageProcessor.h"
