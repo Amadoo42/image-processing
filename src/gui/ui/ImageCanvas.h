@@ -1,3 +1,9 @@
+/*
+ Here we manage zoom and pan, handle input for Rectangle and 
+ Magic Wand selection tools, and call renderCompareView when in compare mode.
+ It is responsible for displaying the currentTextureID.
+*/
+
 #pragma once
 #include "imgui.h"
 #include "../GuiState.h"

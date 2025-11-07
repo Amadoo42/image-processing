@@ -1,3 +1,12 @@
+/*
+    This file is basically responsible for the top-level rendering for the application.
+    We define the main renderGUI() function as well as the top-level UI state 
+    (theme, zoom, selection state, preset/batch UI flags)
+
+    Here we handle the top navigation, left / center / right panels and bottom toolnar
+    We also apply the main theme here setModernStyle()
+*/
+
 #pragma once
 #include "imgui.h"
 #include "FiltersMenu.h"
@@ -24,7 +33,7 @@
 #include <sstream>
 
 bool is_dark_theme = true;
-int preferences_theme = 1;
+int preferences_theme = 1; // 0=light, 1=dark(modern), 2=classic
 float zoom_level = 1.0f;
 ImVec2 pan_offset = ImVec2(0, 0);
 bool compareMode = false;
@@ -123,19 +132,6 @@ void setModernStyle() {
     style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
     style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 }
-
-// moved to ui/TopNavBar.h
-
-// moved to ui/LeftParamsPanel.h
-
-// (Removed unused Histogram placeholder)
-
-// moved to ui/RightPanel.h
-
-// moved to ui/ImageCanvas.h
-
-// moved to ui/BottomToolbar.h
-
 
 void renderGUI(ImageProcessor &processor) {
     ImGuiIO& io = ImGui::GetIO();

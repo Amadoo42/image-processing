@@ -1,3 +1,8 @@
+/*
+Acts as the switchboard that checks the value of gSelectedFilter and calls the appropriate parameter 
+rendering function from FilterParameters.h.
+*/
+
 #pragma once
 
 #include "FilterDefs.h"

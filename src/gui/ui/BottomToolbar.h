@@ -1,3 +1,9 @@
+/*
+ Draws the bottom toolbar with the visual zoom slider, Undo/Redo buttons, 
+ and displays the image's dimensions,
+ aspect ratio, and the statusBarMessage.
+*/
+
 #pragma once
 #include "imgui.h"
 #include "../GuiState.h"

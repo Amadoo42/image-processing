@@ -1,3 +1,8 @@
+/*
+Draws the Filter Parameters panel (by delegating to renderFilterParamsPanel) and a visual Undo History viewer, 
+showing cached thumbnails of previous image states.
+*/
+
 #pragma once
 #include "imgui.h"
 #include "../GuiState.h"

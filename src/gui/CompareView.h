@@ -1,3 +1,8 @@
+/*
+Defines renderCompareView, which displays the current image and the 
+image from the previous history step side-by-side using a draggable divider.
+*/
+
 #pragma once
 #include "imgui.h"
 #include "LoadTexture.h"

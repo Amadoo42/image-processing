@@ -1,3 +1,8 @@
+/*
+Contains the loadTexture function, which converts the raw data from the 
+custom Image class into an OpenGL texture ID (GLuint) for efficient display by ImGui.
+*/
+
 #pragma once
 #include <GL/gl.h>
 #include "../../external/Image_Class.h"
