@@ -33,11 +33,65 @@ public:
 
     void apply(Image &image) override {
         int ogW = image.width, ogH = image.height;
+        long long totalPixels = (long long)ogW * ogH;
+
+        const long long MIN_PIXELS = 1000000;
+        const long long MAX_PIXELS = 8000000;
+        const double MIN_DOWNSAMPLE_FACTOR = 1.0;
+        const double MAX_DOWNSAMPLE_FACTOR = 4.0;
+
+        double downsampleFactor = MIN_DOWNSAMPLE_FACTOR;
+
+        if(totalPixels > MIN_PIXELS) {
+            if(totalPixels >= MAX_PIXELS) downsampleFactor = MAX_DOWNSAMPLE_FACTOR;
+            else {
+                double t = (double)(totalPixels - MIN_PIXELS) / (MAX_PIXELS - MIN_PIXELS);
+                downsampleFactor = MIN_DOWNSAMPLE_FACTOR + t * (MAX_DOWNSAMPLE_FACTOR - MIN_DOWNSAMPLE_FACTOR);
+            }
+        }
+
+        int newW = std::max(1, (int)round(ogW / downsampleFactor));
+        int newH = std::max(1, (int)round(ogH / downsampleFactor));
+
+        if(newW == ogW || newH == ogH) {
+            int W = image.width, H = image.height;
+            std::vector <double> kernel = generateGaussianKernel();
+
+            Image temp(W, H);
+            int half = kernelSize / 2;
+
+            for(int x = 0; x < W; ++x) {
+                for(int y = 0; y < H; ++y) {
+                    for(int c = 0; c < 3; ++c) {
+                        double weightedSum = 0.0;
+                        for(int k = -half; k <= half; ++k) {
+                            int nx = std::clamp(x + k, 0, W - 1);
+                            weightedSum += image(nx, y, c) * kernel[k + half];
+                        }
+                        temp(x, y, c) = round(weightedSum);
+                    }
+                }
+            }
+
+            for(int x = 0; x < W; ++x) {
+                for(int y = 0; y < H; ++y) {
+                    for(int c = 0; c < 3; ++c) {
+                        double weightedSum = 0.0;
+                        for(int k = -half; k <= half; ++k) {
+                            int ny = std::clamp(y + k, 0, H - 1);
+                            weightedSum += temp(x, ny, c) * kernel[k + half];
+                        }
+                        image(x, y, c) = round(weightedSum);
+                    }
+                }
+            }
+            return;
+        }
 
         // We've changed this to make it a little faster, where we first downsample the image to 25% of the resolution
         // Then blur it then upsample it again. This significantly improves speed while not losing too much accuracy.
         Image downsampledImage = image;
-        ResizeFilter downsample(ogW / 4, ogH / 4);
+        ResizeFilter downsample(newW, newH);
         downsample.apply(downsampledImage);
         
         int W = downsampledImage.width, H = downsampledImage.height;
