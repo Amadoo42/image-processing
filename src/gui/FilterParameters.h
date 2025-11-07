@@ -1,22 +1,6 @@
 #pragma once
 
 #include "../core/ImageProcessor.h"
-
-// Helper function to store original image for filter preview switching
-// In FilterParameters.h
-inline void storeOriginalImageForPreview(const Image& originalImage) {
-    extern Image gOriginalImageForPreview;
-    extern bool gHasOriginalImageForPreview;
-    // Always store the original image when a filter starts
-    gOriginalImageForPreview = Image(originalImage);
-    gHasOriginalImageForPreview = true;
-}
-
-// Helper function to clear stored original image
-inline void clearStoredOriginalImage() {
-    extern bool gHasOriginalImageForPreview;
-    gHasOriginalImageForPreview = false;
-}
 #include "MemoryOperation.h"
 #include "LoadTexture.h"
 #include "PresetManager.h"
@@ -44,6 +28,20 @@ inline void clearStoredOriginalImage() {
 #include "../filters/VigentteFilter.h"
 #include "../filters/WarmthFilter.h"
 
+inline void storeOriginalImageForPreview(const Image& originalImage) {// function to save an original image for realtime preview
+    extern Image gOriginalImageForPreview;
+    extern bool gHasOriginalImageForPreview;
+
+    gOriginalImageForPreview = Image(originalImage);
+    gHasOriginalImageForPreview = true;
+}
+
+inline void clearStoredOriginalImage() {//clearing stored original image
+    extern bool gHasOriginalImageForPreview;
+    gHasOriginalImageForPreview = false;
+}
+
+//functions for vector manpiulation
 inline ImVec2 operator+(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x + b.x, a.y + b.y); }
 inline ImVec2 operator-(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x - b.x, a.y - b.y); }
 inline ImVec2 operator*(const ImVec2& a, float b) { return ImVec2(a.x * b, a.y * b); }
@@ -55,8 +53,8 @@ inline bool ClampedInputFloat(const char* label, float* v, float min_val, float 
     }
     return changed;
 }
-// Inline rendering flag for parameter UIs. When true, parameter widgets
-// are rendered inline without opening separate windows.
+
+//rendering parameters widget, inline without opening a new window
 static bool g_params_inline_mode = false;
 
 inline bool BeginParamsUI(const char* title, bool* p_open)
@@ -74,31 +72,20 @@ inline void EndParamsUI()
     if (!g_params_inline_mode) ImGui::End();
 }
 
+inline void selectivityCheck(ImageProcessor& processor, Filter& filter, bool history){
+    if(!history){
+        if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
+        else processor.applyFilterNoHistory(filter);
+    }
+    else{
+        if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
+        else processor.applyFilter(filter);
+    }
+}
+
 class FilterParameters {
 public:
     FilterParameters(ImageProcessor &processor) : processor(processor) {};
-
-    void applyGrayscale(bool &show, bool &textureNeedsUpdate) {
-        if(show){
-            GrayscaleFilter filter;
-            processor.applyFilter(filter);
-            std::cout << "Applied Grayscale Filter\n";
-            
-            show = false;
-            textureNeedsUpdate = true;
-        }
-    }
-    
-    void applyInvert(bool &show, bool &textureNeedsUpdate) {
-        if(show){
-            InvertFilter filter;
-            processor.applyFilter(filter);
-            std::cout << "Applied Invert Filter\n";
-            
-            show = false;
-            textureNeedsUpdate = true;       
-        }
-    }
 
     void applyBlur(bool &show, bool &textureNeedsUpdate) {
         static int currentItem = 0;
@@ -113,10 +100,11 @@ public:
         if(show){
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
-            if (!BeginParamsUI("Blur Parameters", &show)) return;
+
+            if (!BeginParamsUI("Blur Parameters", &show)) return; //if the UI is not rendered, close
 
             if(!init){
-                currentItem = 0; // Reset to default value
+                currentItem = 0; 
                 init = true;
             }
 
@@ -128,8 +116,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 BlurFilter filter(values1[currentItem], values2[currentItem]); 
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -137,8 +124,7 @@ public:
             if(ImGui::Button("Apply")){
                 BlurFilter filter(values1[currentItem], values2[currentItem]); 
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -149,34 +135,23 @@ public:
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(gOriginalImageForPreview);
-                currentItem = 0; // Reset to default value
+                currentItem = 0; 
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
             }
 
             EndParamsUI();
-        }else init = false;
-    }
-
-    void applyBlackAndWhite(bool &show, bool &textureNeedsUpdate) {
-        if(show){
-            BlackAndWhiteFilter filter;
-            processor.applyFilter(filter);
-            std::cout << "Applied Black and White Filter\n";
-            
-            show = false;
-            textureNeedsUpdate = true;
         }
     }
 
     void applyCrop(bool &show, bool &textureNeedsUpdate) {
-        static int posX = 50, posY = 50, newWidth = 200, newHeight = 200;
+        static int posX, posY, newWidth, newHeight;
         static Image originalImage;
         static bool init = false;
         static GLuint textureID = 0;
 
-        if (!show) { 
+        if (!show) {//reset textures
             if (textureID != 0) {
                 glDeleteTextures(1, &textureID);
                 textureID = 0;
@@ -195,7 +170,6 @@ public:
             posY = 0;
             newWidth = originalImage.width;
             newHeight = originalImage.height;
-
             textureID = loadTexture(originalImage);
             init = true;
         }
@@ -224,37 +198,43 @@ public:
         float displayedWidth = (float)originalImage.width;
         float displayedHeight = (float)originalImage.height;
 
+        //ensuring image is smaller than window
         float scale = 1.0f;
         if (displayedWidth > io.DisplaySize.x) scale = io.DisplaySize.x / displayedWidth;
         if (displayedHeight * scale > io.DisplaySize.y) scale = io.DisplaySize.y / displayedHeight;
         displayedWidth *= scale;
         displayedHeight *= scale;
 
+        //geting top left (X,Y) to start drawing from
         ImVec2 imagePos(
             (io.DisplaySize.x - displayedWidth) * 0.5f,
             (io.DisplaySize.y - displayedHeight) * 0.5f
         );
 
+        //getting bottom right (X,Y) to end drawing from
         ImVec2 imageMax(imagePos.x + displayedWidth, imagePos.y + displayedHeight);
 
+        //drawing image
         draw->AddImage((void*)(intptr_t)textureID, imagePos, imageMax, ImVec2(0, 0), ImVec2(1, 1));
 
+        //calculating scale in order to change from displayed space to real space
         float scaleX = displayedWidth / (float)originalImage.width;
         float scaleY = displayedHeight / (float)originalImage.height;
 
+        //calculating top left and bottom right cornors of crop rectangle
         ImVec2 cropMin(imagePos.x + posX * scaleX, imagePos.y + posY * scaleY);
         ImVec2 cropMax(cropMin.x + newWidth * scaleX, cropMin.y + newHeight * scaleY);
 
+        //drawing the rectangle
         draw->AddRectFilled(imagePos, ImVec2(imageMax.x, cropMin.y), IM_COL32(0, 0, 0, 160));
         draw->AddRectFilled(ImVec2(imagePos.x, cropMax.y), imageMax, IM_COL32(0, 0, 0, 160));
         draw->AddRectFilled(ImVec2(imagePos.x, cropMin.y), ImVec2(cropMin.x, cropMax.y), IM_COL32(0, 0, 0, 160));
         draw->AddRectFilled(ImVec2(cropMax.x, cropMin.y), ImVec2(imageMax.x, cropMax.y), IM_COL32(0, 0, 0, 160));
         draw->AddRect(cropMin, cropMax, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
 
-        // Movable & resizable mini window (top-left aligned)
+        // initalizing the parameters panel
         static ImVec2 panelPos = ImVec2(0, 0);
         static ImVec2 panelSize = ImVec2(360, 220);
-        // Ensure resize state exists before child so in-child grip can use it
         static bool panelResizing = false;
         static ImVec2 panelResizeStart;
         ImVec2 winPos = ImGui::GetWindowPos();
@@ -306,9 +286,9 @@ public:
             ImGui::CloseCurrentPopup();
             show = false;
             init = false;
-            // Do not record Crop in presets
         }
         ImGui::SameLine();
+
         if (ImGui::Button("Cancel")) {
             processor.setImage(originalImage);
             textureNeedsUpdate = true;
@@ -317,7 +297,7 @@ public:
             show = false;
             init = false;
         }
-        // In-child resize grip to ensure clickability above child window
+        //  in child resize grip to ensure clickability above child window
         {
             const float grip = 28.0f;
             ImVec2 childTL = winPos + childPos;
@@ -369,6 +349,7 @@ public:
         }
         if (!ImGui::IsMouseDown(0)) panelResizing = false;
 
+
         static bool dragging = false;
         static bool resizing = false;
         static int resizeCorner = -1;
@@ -385,11 +366,13 @@ public:
             ImVec2(cropMin.x, cropMax.y)            
         };
 
+        //drawing the four corners
         for (int i = 0; i < 4; i++) {
             draw->AddCircleFilled(corners[i], 6.0f, IM_COL32(255, 255, 255, 255));
             draw->AddCircle(corners[i], 6.0f, IM_COL32(0, 0, 0, 255), 0, 2.0f);
         }
 
+        // bools to define the state of crop overlay (dragging/resizing)
         bool insideCrop = mouse.x >= cropMin.x && mouse.x <= cropMax.x && mouse.y >= cropMin.y && mouse.y <= cropMax.y;
         bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
         bool overCorner = false;
@@ -424,6 +407,7 @@ public:
             startY = posY;
         }
 
+        //resize logic for each corner
         if (resizing && ImGui::IsMouseDown(0)) {
             ImVec2 delta = ImVec2(mouse.x - dragStart.x, mouse.y - dragStart.y);
             int dx = (int)(delta.x / scaleX);
@@ -551,7 +535,7 @@ public:
         static bool keepAspect = true;
         float aspect = (float)originalImage.width / std::max(1, originalImage.height);
 
-        // Movable/resizable control panel (top-left by default)
+        // panel initialization
         static ImVec2 panelPos = ImVec2(0, 0);
         static ImVec2 panelSize = ImVec2(300, 200);
         static bool panelResizing = false;
@@ -563,7 +547,7 @@ public:
 
         const float headerH = 28.0f;
 
-        // ===== DRAW IMAGE AND HANDLES FIRST (BEHIND PANEL) =====
+        //drawing image
         float previewScaleX = (float)newWidth / originalImage.width;
         float previewScaleY = (float)newHeight / originalImage.height;
         float previewW = displayedWidth * previewScaleX;
@@ -613,12 +597,11 @@ public:
             }
         }
 
-        // ===== NOW DRAW PANEL ON TOP =====
-        // Panel background and border - FULLY OPAQUE
+        // drawing panel
         draw->AddRectFilled(panelTL, panelBR, IM_COL32(30, 30, 30, 255), 6.0f);
         draw->AddRect(panelTL, panelBR, IM_COL32(255, 255, 255, 64), 6.0f, 0, 1.5f);
 
-        // Header for moving (draw before child so it's behind)
+        // drawing header
         ImVec2 headerBR2 = ImVec2(panelBR.x, panelTL.y + headerH);
         draw->AddRectFilled(panelTL, headerBR2, IM_COL32(45, 45, 45, 255), 6.0f);
         draw->AddText(ImVec2(panelTL.x + 8, panelTL.y + 6), IM_COL32(255,255,255,255), "Resize Controls");
@@ -663,7 +646,7 @@ public:
             init = false;
         }
 
-        // In-child resize grip to ensure clickability
+        // in child resize grip to ensure clickability
         {
             const float grip = 28.0f;
             ImVec2 childTL = winPos + childPos;
@@ -684,7 +667,7 @@ public:
         ImGui::EndChild();
         ImGui::PopStyleVar(1);
 
-        // Header move button (after child so it captures input)
+        // Header move button
         ImGui::SetCursorScreenPos(panelTL);
         ImGui::InvisibleButton("##resize_panel_move", ImVec2(panelSize.x, headerH));
         static bool panelDragging = false;
@@ -698,7 +681,7 @@ public:
         }
         if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
-        // Size grip bottom-right (after child for input priority)
+        // grip handle
         const float grip = 28.0f;
         ImVec2 gripTL2 = ImVec2(panelBR.x - grip, panelBR.y - grip);
         ImGui::SetCursorScreenPos(gripTL2);
@@ -715,7 +698,7 @@ public:
         }
         if (!ImGui::IsMouseDown(0)) panelResizing = false;
 
-        // ===== HANDLE RESIZING LOGIC =====
+        // resize logic
         ImVec2 mouse = io.MousePos;
         int hoveredCorner = -1;
         bool overPanelArea = mouse.x >= panelTL.x && mouse.x <= panelBR.x && mouse.y >= panelTL.y && mouse.y <= panelBR.y;
@@ -796,19 +779,18 @@ public:
         if (show) {
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
+
             if (!BeginParamsUI("Brightness Parameters", &show)) return;
 
             if(!init) {
-                factor = 1.0f; // Reset to default value
+                factor = 1.0f;
                 init = true;
             }
-
 
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
             if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
-
             
             ImGui::SameLine();
             if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
@@ -816,8 +798,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 DarkenFilter filter(factor);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -825,9 +806,7 @@ public:
             if (ImGui::Button("Apply")) {
                 DarkenFilter filter(factor);
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
-                std::cout << "Brightness filter applied with factor: " << factor << std::endl;
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -838,7 +817,7 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(gOriginalImageForPreview);
-                factor = 1.0f; // Reset to default value
+                factor = 1.0f;
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -846,41 +825,6 @@ public:
 
             EndParamsUI();
         }else init = false;
-    }
-
-    void applyFrame(bool &show, bool &textureNeedsUpdate) {
-        if(show){
-            Image frame_image(
-#ifdef _WIN32
-                openFileDialog_Windows(false, false)
-#else
-                openFileDialog_Linux()
-#endif
-            );
-            FrameFilter filter(frame_image);
-            processor.applyFilter(filter);
-            std::cout << "Applied Frame Filter\n";
-            show = false;
-            textureNeedsUpdate = true;
-        }
-    }
-
-    void applyHorizontalFlip(bool &show, bool &textureNeedsUpdate) {
-        if(show){
-            FlipFilter filter(true, false);
-            processor.applyFilter(filter);
-            show = false;
-            textureNeedsUpdate = true;
-        }
-    }
-
-    void applyVerticalFlip(bool &show, bool &textureNeedsUpdate) {
-        if(show){
-            FlipFilter filter(false, true);
-            processor.applyFilter(filter);
-            show = false;
-            textureNeedsUpdate = true;
-        }
     }
 
     void applyMerge(bool &show, bool &textureNeedsUpdate) {
@@ -908,7 +852,8 @@ public:
             if (baseTexID) { glDeleteTextures(1, &baseTexID); baseTexID = 0; }
             if (overlayTexID) { glDeleteTextures(1, &overlayTexID); overlayTexID = 0; }
             init = false; overlayLoaded = false;
-            dragging = resizingCorner = resizingEdge = false; activeCorner = activeEdge = -1;
+            dragging = resizingCorner = resizingEdge = false; 
+            activeCorner = activeEdge = -1;
             return;
         }
 
@@ -960,10 +905,9 @@ public:
         float scaleY = displayedHeight / (float)baseImage.height;
 
         if (!overlayLoaded) {
-            // Movable/resizable control panel (top-left by default)
+            // initalizing panel
             static ImVec2 panelPos = ImVec2(0, 0);
             static ImVec2 panelSize = ImVec2(340, 150);
-            // Ensure resize state exists before child so in-child grip can use it
             static bool panelResizing = false;
             static ImVec2 panelResizeStart;
 
@@ -972,11 +916,12 @@ public:
             ImVec2 panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
 
             const float headerH = 28.0f;
-            // Panel background and border
+
+            // panel background and border
             draw->AddRectFilled(panelTL, panelBR, IM_COL32(20, 20, 20, 230), 6.0f);
             draw->AddRect(panelTL, panelBR, IM_COL32(255, 255, 255, 64), 6.0f, 0, 1.5f);
 
-            // Contents area below header
+            // contents area below header
             ImVec2 childPos = panelPos + ImVec2(0, headerH);
             ImVec2 childSize = panelSize - ImVec2(0, headerH);
             ImGui::SetCursorPos(childPos);
@@ -1012,7 +957,7 @@ public:
                 ImGui::CloseCurrentPopup();
                 show = false; init = false;
             }
-            // In-child resize grip to ensure clickability
+            // in child resize grip to ensure clickability
             {
                 const float grip = 28.0f;
                 ImVec2 childTL = winPos + childPos;
@@ -1030,7 +975,7 @@ public:
             }
             ImGui::EndChild();
 
-            // Header for moving (placed after child to capture input)
+            // Header
             ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
             draw->AddRectFilled(panelTL, headerBR, IM_COL32(45, 45, 45, 255), 6.0f);
             draw->AddText(ImVec2(panelTL.x + 8, panelTL.y + 6), IM_COL32(255,255,255,255), "Merge Controls");
@@ -1047,7 +992,7 @@ public:
             }
             if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
-            // Size grip bottom-right (after child for input priority)
+            // size grip bottom-right
             const float mergeGrip = 28.0f;
             ImVec2 gripTL = ImVec2(panelBR.x - mergeGrip, panelBR.y - mergeGrip);
             ImGui::SetCursorScreenPos(gripTL);
@@ -1066,10 +1011,9 @@ public:
             return;
         }
 
-        // Movable/resizable control panel (top-left by default)
+        // initialization
         static ImVec2 panelPos = ImVec2(0, 0);
         static ImVec2 panelSize = ImVec2(340, 240);
-        // Ensure resize state exists before child so in-child grip can use it
         static bool panelResizing = false;
         static ImVec2 panelResizeStart;
 
@@ -1078,11 +1022,11 @@ public:
         ImVec2 panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
 
         const float headerH = 28.0f;
-        // Panel background and border
+        // panel background and border
         draw->AddRectFilled(panelTL, panelBR, IM_COL32(20, 20, 20, 230), 6.0f);
         draw->AddRect(panelTL, panelBR, IM_COL32(255, 255, 255, 64), 6.0f, 0, 1.5f);
 
-        // Contents area below header
+        // contents area below header
         ImVec2 childPos = panelPos + ImVec2(0, headerH);
         ImVec2 childSize = panelSize - ImVec2(0, headerH);
         ImGui::SetCursorPos(childPos);
@@ -1129,7 +1073,7 @@ public:
             ImGui::CloseCurrentPopup();
             show = false; init = false; overlayLoaded = false;
         }
-        // In-child resize grip to ensure clickability above child window
+        // in child resize grip to ensure clickability above child window
         {
             const float grip = 28.0f;
             ImVec2 childTL = winPos + childPos;
@@ -1148,7 +1092,7 @@ public:
         }
         ImGui::EndChild();
 
-        // Header for moving
+        // Header
         ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
         draw->AddRectFilled(panelTL, headerBR, IM_COL32(45, 45, 45, 255), 6.0f);
         draw->AddText(ImVec2(panelTL.x + 8, panelTL.y + 6), IM_COL32(255,255,255,255), "Merge Controls");
@@ -1165,7 +1109,7 @@ public:
         }
         if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
-        // Size grip bottom-right
+        //grip
         const float mergeGrip2 = 28.0f;
         ImVec2 gripTL = ImVec2(panelBR.x - mergeGrip2, panelBR.y - mergeGrip2);
         ImGui::SetCursorScreenPos(gripTL);
@@ -1182,15 +1126,15 @@ public:
         }
         if (!ImGui::IsMouseDown(0)) panelResizing = false;
 
-        // Overlay rect in screen space
+        // overlay rectangle in screen space
         ImVec2 overMin(imagePos.x + posX * scaleX, imagePos.y + posY * scaleY);
         ImVec2 overMax(overMin.x + overW * scaleX, overMin.y + overH * scaleY);
 
-        // Draw overlay image and frame
+        // draw overlay image and frame
         draw->AddImage((void *)(intptr_t)overlayTexID, overMin, overMax, ImVec2(0, 0), ImVec2(1, 1), IM_COL32(255, 255, 255, (int)(alpha * 255)));
         draw->AddRect(overMin, overMax, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
 
-        // Corner handles
+        // corner handles
         ImVec2 corners[4] = { overMin, ImVec2(overMax.x, overMin.y), overMax, ImVec2(overMin.x, overMax.y) };
         const float handleR = 8.0f;
         for (auto &c : corners) {
@@ -1272,7 +1216,7 @@ public:
             overH = std::max(1, std::min(tmpH, baseImage.height - posY));
         }
 
-        // Handle edge resizing (ignores aspect keeping for precise axis control)
+        // Handle edge resizing
         if (resizingEdge && ImGui::IsMouseDown(0)) {
             ImVec2 delta(mouse.x - dragStart.x, mouse.y - dragStart.y);
             int dx = (int)(delta.x / scaleX);
@@ -1318,7 +1262,6 @@ public:
     }
 
     void applyRotate(bool &show, bool &textureNeedsUpdate) {
-        // Overlay-style rotate with handle and 90° step buttons
         static Image originalImage;
         static bool init = false;
         static GLuint textureID = 0;
@@ -1372,10 +1315,12 @@ public:
         float hw = displayedWidth * 0.5f;
         float hh = displayedHeight * 0.5f;
 
-        // Rotation (preview only) using a rotated quad
+        // Rotation (preview only)
         double degreesExact = (double)angleDeg;
         float rad = (float)(angleDeg * 3.14159265358979323846 / 180.0);
         float c = cosf(rad), s = sinf(rad);
+        
+        //multiplying by rotation matrix
         auto rot = [&](ImVec2 p){
             ImVec2 r;
             r.x = c * p.x - s * p.y;
@@ -1394,6 +1339,7 @@ public:
             draw->AddImageQuad((void*)(intptr_t)textureID, tl, tr, br, bl,
                                ImVec2(0,0), ImVec2(1,0), ImVec2(1,1), ImVec2(0,1), IM_COL32(255,255,255,255));
         }
+
         // Draw frame
         draw->AddPolyline(&tl, 1, IM_COL32(0,0,0,0), false, 0.0f); // ensure drawlist not empty for pointers
         draw->AddLine(tl, tr, IM_COL32(255,255,255,180), 2.0f);
@@ -1410,13 +1356,15 @@ public:
         draw->AddCircleFilled(handlePos, handleR, IM_COL32(255,255,255,255));
         draw->AddCircle(handlePos, handleR, IM_COL32(0,0,0,255), 0, 2.0f);
 
-        // Control panel (top-left), fully opaque to intercept inputs
+        // panel
         static ImVec2 panelPos = ImVec2(0, 0);
         static ImVec2 panelSize = ImVec2(320, 160);
         static bool panelResizing = false; static ImVec2 panelResizeStart;
         ImVec2 winPos = ImGui::GetWindowPos();
         ImVec2 panelTL = winPos + panelPos;
         ImVec2 panelBR = ImVec2(panelTL.x + panelSize.x, panelTL.y + panelSize.y);
+
+        //header
         const float headerH = 28.0f;
         draw->AddRectFilled(panelTL, panelBR, IM_COL32(30,30,30,255), 6.0f);
         ImVec2 headerBR = ImVec2(panelBR.x, panelTL.y + headerH);
@@ -1458,7 +1406,7 @@ public:
             ImGui::CloseCurrentPopup();
             show = false; init = false; handleDragging = false; angleDeg = 0.0f;
         }
-        // In-child resize grip
+        // in-child resize grip
         {
             const float grip = 28.0f;
             ImVec2 childTL = winPos + childPos;
@@ -1476,7 +1424,7 @@ public:
         }
         ImGui::EndChild();
 
-        // Panel header move (after child for input priority)
+        // panel header move
         ImGui::SetCursorScreenPos(panelTL);
         ImGui::InvisibleButton("##rotate_panel_move", ImVec2(panelSize.x, headerH));
         static bool panelDragging = false; static ImVec2 panelDragStart;
@@ -1489,7 +1437,7 @@ public:
         }
         if (!ImGui::IsMouseDown(0)) panelDragging = false;
 
-        // Panel outer grip
+        // panel outer grip
         const float grip = 28.0f;
         ImVec2 gripTL = ImVec2(panelBR.x - grip, panelBR.y - grip);
         ImGui::SetCursorScreenPos(gripTL);
@@ -1512,7 +1460,6 @@ public:
             ImGui::SetCursorScreenPos(handleTL);
             ImGui::InvisibleButton("##rotate_handle", ImVec2(handleR * 2.0f, handleR * 2.0f));
             if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-            // no click-to-step; drag only
             if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
                 handleDragging = true;
             }
@@ -1522,7 +1469,8 @@ public:
             float ang = atan2f(m.y - center.y, m.x - center.x); // radians relative to +X
             float deg = (float)(ang * 180.0 / 3.14159265358979323846);
             deg = fmodf(deg + 360.0f, 360.0f); // [0,360)
-            // Map so that up (negative Y) is 0°. Convert to [-180,180]
+
+            // map so that up (negative Y) is 0°. Convert to [-180,180]
             float upBased = deg + 90.0f;
             while (upBased > 180.0f) upBased -= 360.0f;
             while (upBased < -180.0f) upBased += 360.0f;
@@ -1531,17 +1479,6 @@ public:
         if (!ImGui::IsMouseDown(0)) handleDragging = false;
 
         ImGui::EndPopup();
-    }
-
-    void applyOutline(bool &show, bool &textureNeedsUpdate) {
-        if(show){
-            OutlineFilter filter;
-            processor.applyFilter(filter);
-            std::cout << "Applied Outline Filter\n";
-            
-            show = false;
-            textureNeedsUpdate = true;
-        }
     }
 
     void applyPurple(bool &show, bool &textureNeedsUpdate) {
@@ -1553,10 +1490,11 @@ public:
         if (show) {
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
+
             if (!BeginParamsUI("Purple Parameters", &show)) return;
 
             if(!init){
-                factor = 0.0f; // Reset to default value
+                factor = 0.0f;
                 init = true;
             }
 
@@ -1573,8 +1511,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 PurpleFilter filter(factor);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1582,9 +1519,7 @@ public:
             if (ImGui::Button("Apply")) {
                 PurpleFilter filter(factor);
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
-                std::cout << "Purple filter applied with factor: " << factor << std::endl;
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1595,7 +1530,7 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(gOriginalImageForPreview);
-                factor = 0.0f; // Reset to default value
+                factor = 0.0f;
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1603,17 +1538,6 @@ public:
 
             EndParamsUI();
         }else init = false;
-    }
-
-    void applyInfrared(bool &show, bool &textureNeedsUpdate) {
-        if(show){
-            InfraredFilter filter;
-            processor.applyFilter(filter);
-            std::cout << "Applied Infrared Filter\n";
-            
-            show = false;
-            textureNeedsUpdate = true;
-        }
     }
 
     void applyWave(bool &show, bool &textureNeedsUpdate) {
@@ -1626,11 +1550,12 @@ public:
         if(show){
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
+
             if (!BeginParamsUI("Wave Parameters", &show)) return;
 
             if(!init){
-                amplitude = 1.0f; // Reset to default value
-                wavelength = 1.0f; // Reset to default value
+                amplitude = 1.0f;
+                wavelength = 1.0f;
                 init = true;
             }
 
@@ -1648,8 +1573,7 @@ public:
                 processor.setImage(gOriginalImageForPreview);
                 float safeWavelength = std::max(0.1f, wavelength);
                 WaveFilter filter(amplitude, safeWavelength);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             
@@ -1659,9 +1583,7 @@ public:
                 float safeWavelength = std::max(0.1f, wavelength);
                 WaveFilter filter(amplitude, safeWavelength);
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
-                std::cout << "Wave filter applied with Parameters: " << amplitude << " " << safeWavelength << std::endl;
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1672,15 +1594,15 @@ public:
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(gOriginalImageForPreview);
-                amplitude = 1.0f; // Reset to default value
-                wavelength = 1.0f; // Reset to default value
+                amplitude = 1.0f;
+                wavelength = 1.0f;
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
             }
 
             EndParamsUI();
-        }else init = false;
+        }
     }
     
     void applyOilPainting(bool &show, bool &textureNeedsUpdate) {
@@ -1697,10 +1619,11 @@ public:
         if(show){
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
+
             if (!BeginParamsUI("Oil Painting Parameters", &show)) return;
 
             if(!init){
-                currentItem = 0; // Reset to default value
+                currentItem = 0;
                 init = true;
             }
 
@@ -1712,8 +1635,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 OilPaintingFilter filter(radiusValues[currentItem], intensityValues[currentItem]); 
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1721,8 +1643,7 @@ public:
             if(ImGui::Button("Apply")){
                 OilPaintingFilter filter(radiusValues[currentItem], intensityValues[currentItem]); 
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1733,14 +1654,14 @@ public:
             ImGui::SameLine();
             if(ImGui::Button("Cancel")){
                 processor.setImage(gOriginalImageForPreview);
-                currentItem = 0; // Reset to default value
+                currentItem = 0;
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
             }
 
             EndParamsUI();
-        }else init = false;
+        }
     }
 
     void applyContrast(bool &show, bool &textureNeedsUpdate) {
@@ -1752,19 +1673,18 @@ public:
         if (show) {
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
+
             if (!BeginParamsUI("Contrast Parameters", &show)) return;
 
             if(!init){
-                factor = 1.0f; // Reset to default value
+                factor = 1.0f;
                 init = true;
             }
-
 
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
             if(ImGui::SliderFloat("##FactorSlider", &factor, 1.0f, 3.0f, "%.2f"))changed = true;
-
             
             ImGui::SameLine();
             if(ClampedInputFloat("##FactorInput", &factor, 1.0f, 3.0f, "%.2f"))changed = true;
@@ -1773,8 +1693,7 @@ public:
                 processor.setImage(gOriginalImageForPreview);
                 float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1783,9 +1702,7 @@ public:
                 float safe = std::max(1.0f, factor);
                 ContrastFilter filter(safe);
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
-                std::cout << "Contrast filter applied with factor: " << factor << std::endl;
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1796,23 +1713,13 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(gOriginalImageForPreview);
-                factor = 1.0f; // Reset to default value
+                factor = 1.0f;
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
             }
 
             EndParamsUI();
-        }else init = false;
-    }
-
-    void applyRetro(bool &show, bool &textureNeedsUpdate) {
-        if(show){
-            RetroFilter filter;
-            processor.applyFilter(filter);
-            std::cout << "Applied Retro Filter\n";
-            show = false;
-            textureNeedsUpdate = true;
         }
     }
 
@@ -1825,19 +1732,18 @@ public:
         if (show) {
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
+
             if (!BeginParamsUI("Saturation Parameters", &show)) return;
 
             if(!init){
-                factor = 1.0f; // Reset to default value
+                factor = 1.0f;
                 init = true;
             }
-
 
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
             if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
-
             
             ImGui::SameLine();
             if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
@@ -1846,8 +1752,7 @@ public:
                 processor.setImage(gOriginalImageForPreview);
                 float safe = std::max(0.0f, factor);
                 SaturationFilter filter(safe);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1856,9 +1761,7 @@ public:
                 float safe = std::max(0.0f, factor);
                 SaturationFilter filter(safe);
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
-                std::cout << "Saturation filter applied with factor: " << factor << std::endl;
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1869,14 +1772,14 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(gOriginalImageForPreview);
-                factor = 1.0f; // Reset to default value
+                factor = 1.0f; 
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
             }
 
             EndParamsUI();
-        }else init = false;
+        }
     }
 
     void applySkew(bool &show, bool &textureNeedsUpdate) {
@@ -1888,19 +1791,18 @@ public:
         if (show) {
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
+
             if (!BeginParamsUI("Skew Parameters", &show)) return;
 
             if(!init){
-                Angle = 0.0f; // Reset to default value
+                Angle = 0.0f; 
                 init = true;
             }
-
 
             ImGui::Text("Angle:");
             ImGui::SameLine();
             bool changed = false;
             if(ImGui::SliderFloat("##AngleSlider", &Angle, -70.0f, 70.0f, "%.2f"))changed = true;
-
             
             ImGui::SameLine();
             if(ClampedInputFloat("##AngleInput", &Angle, -70.0f, 70.0f, "%.2f"))changed = true;
@@ -1908,8 +1810,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 SkewFilter filter(Angle);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1917,9 +1818,7 @@ public:
             if (ImGui::Button("Apply")) {
                 SkewFilter filter(Angle);
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
-                std::cout << "Skew filter applied with Angle: " << Angle << std::endl;
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1930,14 +1829,14 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(gOriginalImageForPreview);
-                Angle = 0.0f; // Reset to default value
+                Angle = 0.0f; 
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
             }
 
             EndParamsUI();
-        }else init = false;
+        }
     }
 
     void applyVignette(bool &show, bool &textureNeedsUpdate) {
@@ -1949,19 +1848,18 @@ public:
         if (show) {
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
+
             if (!BeginParamsUI("Vignette Parameters", &show)) return;
 
             if(!init){
-                factor = 0.0f; // Reset to default value
+                factor = 0.0f;
                 init = true;
             }
-
 
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
             if(ImGui::SliderFloat("##FactorSlider", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
-
             
             ImGui::SameLine();
             if(ClampedInputFloat("##FactorInput", &factor, 0.0f, 3.0f, "%.2f"))changed = true;
@@ -1970,10 +1868,7 @@ public:
                 processor.setImage(gOriginalImageForPreview);
                 float safe = std::max(0.0f, factor);
                 VigentteFilter filter(safe);
-                if (processor.hasSelection())
-                    processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else
-                    processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -1982,9 +1877,7 @@ public:
                 float safe = std::max(0.0f, factor);
                 VigentteFilter filter(safe);
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
-                std::cout << "Vignette filter applied with factor: " << factor << std::endl;
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -1995,14 +1888,14 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(gOriginalImageForPreview);
-                factor = 1.0f; // Reset to default value
+                factor = 1.0f; 
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
             }
 
             EndParamsUI();
-        }else init = false;
+        }
     }
     
     void applyWarmth(bool &show, bool &textureNeedsUpdate) {
@@ -2014,19 +1907,18 @@ public:
         if (show) {
             if (lastSessionId != gImageSessionId) { init = false; }
             lastSessionId = gImageSessionId;
+
             if (!BeginParamsUI("Warmth Parameters", &show)) return;
 
             if(!init){
-                factor = 0.0f; // Reset to default value
+                factor = 0.0f; 
                 init = true;
             }
-
 
             ImGui::Text("Factor:");
             ImGui::SameLine();
             bool changed = false;
             if(ImGui::SliderFloat("##FactorSlider", &factor, -3.0f, 3.0f, "%.2f"))changed = true;
-
             
             ImGui::SameLine();
             if(ClampedInputFloat("##FactorInput", &factor, -3.0f, 3.0f, "%.2f"))changed = true;
@@ -2034,8 +1926,7 @@ public:
             if(changed){
                 processor.setImage(gOriginalImageForPreview);
                 WarmthFilter filter(factor);
-                if (processor.hasSelection()) processor.applyFilterSelectiveNoHistory(filter, processor.getSelectionInvertApply());
-                else processor.applyFilterNoHistory(filter);
+                selectivityCheck(processor, filter, false);
                 textureNeedsUpdate = true;
             }
             ImGui::Separator();
@@ -2043,9 +1934,7 @@ public:
             if (ImGui::Button("Apply")) {
                 WarmthFilter filter(factor);
                 processor.setImage(gOriginalImageForPreview);
-                if (processor.hasSelection()) processor.applyFilterSelective(filter, processor.getSelectionInvertApply());
-                else processor.applyFilter(filter);
-                std::cout << "Warmth filter applied with factor: " << factor << std::endl;
+                selectivityCheck(processor, filter, true);
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
@@ -2056,16 +1945,15 @@ public:
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
                 processor.setImage(gOriginalImageForPreview);
-                factor = 0.0f; // Reset to default value
+                factor = 0.0f;
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
             }
 
             EndParamsUI();
-        }else init = false;
+        }
     }
-
 private:
     ImageProcessor &processor;    
 };
