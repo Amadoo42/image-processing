@@ -60,8 +60,8 @@ public:
             const double abs_s = std::fabs(s);
             //standard formula to calculate axis-aligned bounding box (AABB)
             //in short calculated the bounds of a rotated rectangle
-            newWidth = std::max(1, std::ceil(image.width  * abs_c + image.height * abs_s));
-            newHeight = std::max(1, std::ceil(image.width  * abs_s + image.height * abs_c));
+            newWidth = std::max(1, (int)std::ceil(image.width  * abs_c + image.height * abs_s));
+            newHeight = std::max(1, (int)std::ceil(image.width  * abs_s + image.height * abs_c));
         }
 
         Image output(newWidth, newHeight);
@@ -70,8 +70,8 @@ public:
         const double centerXD = (newWidth  - 1.0) * 0.5;
         const double centerYD = (newHeight  - 1.0) * 0.5;
 
-        for (int y = 0; y < outH; ++y) {
-            for (int x = 0; x < outW; ++x) {
+        for (int y = 0; y < newHeight; ++y) {
+            for (int x = 0; x < newWidth; ++x) {
                 // Destination pixel relative to its center
                 const double dx = x - centerXD;
                 const double dy = y - centerYD;
@@ -87,8 +87,8 @@ public:
 
                 // Bilinear sample with zero padding outside image bounds
                 for (int ch = 0; ch < 3; ++ch) {
-                    const double v = sampleBilinear(image, sX, sY, ch);
-                    output(x, y, ch) = std::clamp(v, 0, 255);
+                    double v = sampleBilinear(image, sX, sY, ch);
+                    output(x, y, ch) = std::clamp((int)v, 0, 255);
                 }
             }
         }
