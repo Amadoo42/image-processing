@@ -45,8 +45,10 @@ public:
         if(totalPixels > MIN_PIXELS) {
             if(totalPixels >= MAX_PIXELS) downsampleFactor = MAX_DOWNSAMPLE_FACTOR;
             else {
-                double t = (double)(totalPixels - MIN_PIXELS) / (MAX_PIXELS - MIN_PIXELS);
-                downsampleFactor = MIN_DOWNSAMPLE_FACTOR + t * (MAX_DOWNSAMPLE_FACTOR - MIN_DOWNSAMPLE_FACTOR);
+                // We use linear interpolation here to tell me how much I should downsample by
+                // alpha is the interpolation factor which tells me how far is totalPixels between MIN_PIXELS and MAX_PIXELS
+                double alpha = (double)(totalPixels - MIN_PIXELS) / (MAX_PIXELS - MIN_PIXELS);
+                downsampleFactor = (1.0 - alpha) * MIN_DOWNSAMPLE_FACTOR + alpha * MAX_DOWNSAMPLE_FACTOR;
             }
         }
 
