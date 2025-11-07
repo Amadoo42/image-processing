@@ -10,9 +10,7 @@ public:
     void apply(Image &image) override {
         // We first convert the image to grayscale and then apply a blur to reduce noise
         GrayscaleFilter gray;
-        BlurFilter blur;
         gray.apply(image);
-        blur.apply(image);
         
         const int w = image.width;
         const int h = image.height;

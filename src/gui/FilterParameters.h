@@ -126,7 +126,7 @@ public:
                 show = false;
                 init = false;
                 textureNeedsUpdate = true;
-                gPresetManager.recordStep(FilterStep{FilterType::Blur, { kernal, sigma }, ""});
+                gPresetManager.recordStep(FilterStep{FilterType::Blur, { static_cast<double>(kernal), static_cast<double>(sigma) }, ""});
                 clearStoredOriginalImage();
             }
 
