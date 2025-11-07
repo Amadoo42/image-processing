@@ -118,7 +118,7 @@ public:
             bool changed = false;
             if(ImGui::SliderInt("##IntenistySlider", &sigma, 1, 10))changed = true;
 
-            // changed = false;
+            changed = false;
             
             ImGui::Separator();
 
