@@ -118,6 +118,7 @@ public:
             bool changed = false;
             if(ImGui::SliderInt("##IntenistySlider", &sigma, 1, 10))changed = true;
 
+            // Change this for real-time preview. We'll leave it the way it is now, because it is buggy.
             changed = false;
             
             ImGui::Separator();
