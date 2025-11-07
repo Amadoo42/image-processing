@@ -90,7 +90,7 @@ public:
             return;
         }
 
-        // We've changed this to make it a little faster, where we first downsample the image to 25% of the resolution
+        // We've changed this to make it a little faster, where we first downsample the image
         // Then blur it then upsample it again. This significantly improves speed while not losing too much accuracy.
         Image downsampledImage = image;
         ResizeFilter downsample(newW, newH);
